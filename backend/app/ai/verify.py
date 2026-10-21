@@ -40,3 +40,16 @@ def verify_findings(
             continue  # technique claimed doesn't match what the cited event actually triggered
         verified.append(finding)
     return verified
+
+
+def merge_findings_by_technique(findings: list[AIFinding]) -> list[AIFinding]:
+    """Collapse multiple findings for the same technique (e.g. one per detection
+    that fired it) into a single finding per technique, with evidence unioned."""
+    merged: dict[str, AIFinding] = {}
+    for finding in findings:
+        existing = merged.get(finding.technique_id)
+        if existing is None:
+            merged[finding.technique_id] = finding.model_copy(update={"event_ids": list(finding.event_ids)})
+        else:
+            existing.event_ids.extend(eid for eid in finding.event_ids if eid not in existing.event_ids)
+    return list(merged.values())

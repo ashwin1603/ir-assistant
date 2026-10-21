@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.ai.client import AIProviderError, LLMClient, get_client
 from app.ai.prompts import build_prompt
-from app.ai.verify import AIFinding, AIModelOutput, verify_findings
+from app.ai.verify import AIFinding, AIModelOutput, merge_findings_by_technique, verify_findings
 from app.audit import log_action
 from app.config import settings
 from app.detection.attack_map import MITIGATIONS, TECHNIQUE_NAMES
@@ -23,6 +23,46 @@ from app.models import Action, AIAnalysis, AuditLog, Detection
 MAX_ATTEMPTS = 2  # one try + one retry, then fall back to the template
 
 _SECRET_PATTERN = re.compile(r"(?i)(api[_-]?key|token|bearer|authorization)\S*[:=]\s*\S+")
+_DIGIT_PATTERN = re.compile(r"\d")
+_SENTENCE_SPLIT_PATTERN = re.compile(r"[.!?]+")
+MAX_NARRATIVE_SENTENCES = 5
+
+# benign < suspicious < malicious. The model only explains; the verdict floor
+# below is the actual, code-computed decision of "how bad is this at minimum".
+_VERDICT_RANK = {"benign": 0, "suspicious": 1, "malicious": 2}
+
+
+def _max_risk_score(detections: list[Detection]) -> float:
+    return max((d.risk_score for d in detections), default=0.0)
+
+
+def _verdict_floor(max_risk: float) -> str:
+    """The verdict can never be softer than what the rule engine's own risk
+    score implies: High/Critical risk (score >= 60) must read as malicious,
+    Medium (>= 30) at least suspicious. The AI explains, it never overrides."""
+    if max_risk >= 60:
+        return "malicious"
+    if max_risk >= 30:
+        return "suspicious"
+    return "benign"
+
+
+def _apply_verdict_floor(verdict: str, floor: str) -> str:
+    return floor if _VERDICT_RANK[floor] > _VERDICT_RANK[verdict] else verdict
+
+
+def _has_disallowed_numbers(result: AIModelOutput) -> bool:
+    """All numeric facts (scores, counts, confidences) are computed in code and
+    shown in the UI separately. If the model's prose contains any digit, it has
+    either invented a number or restated one it could get wrong - either way,
+    reject it rather than risk showing the analyst a fabricated figure."""
+    texts = [result.reasoning, result.narrative, result.risk_explanation] + [f.claim for f in result.findings]
+    return any(_DIGIT_PATTERN.search(text) for text in texts)
+
+
+def _narrative_too_long(result: AIModelOutput) -> bool:
+    sentences = [s for s in _SENTENCE_SPLIT_PATTERN.split(result.narrative) if s.strip()]
+    return len(sentences) > MAX_NARRATIVE_SENTENCES
 
 
 def _redact(text: str | None, limit: int = 4000) -> str:
@@ -140,7 +180,11 @@ def analyze_incident(
     actor: str,
     client: LLMClient | None = None,
 ) -> AIAnalysis:
-    summary, known_event_ids, technique_ids, event_to_techniques = _build_summary(detections)
+    # The chronological order, every detection's facts, and the risk scores are
+    # all computed in code here - the model only ever rewrites them in words.
+    ordered_detections = sorted(detections, key=lambda d: d.first_seen)
+    summary, known_event_ids, technique_ids, event_to_techniques = _build_summary(ordered_detections)
+    floor = _verdict_floor(_max_risk_score(ordered_detections))
 
     prompt_text: str | None = None
     raw_response: str | None = None
@@ -148,7 +192,7 @@ def analyze_incident(
 
     if settings.llm_provider == "template":
         provider_used = "template"
-        result = template_result(detections)
+        result = template_result(ordered_detections)
     else:
         provider_used = settings.llm_provider
         client = client or get_client(settings.llm_provider)
@@ -157,7 +201,12 @@ def analyze_incident(
         for _ in range(MAX_ATTEMPTS):
             try:
                 raw_response = client.complete_json(prompt_text)
-                result = AIModelOutput.model_validate_json(_extract_json_object(raw_response))
+                candidate = AIModelOutput.model_validate_json(_extract_json_object(raw_response))
+                if _has_disallowed_numbers(candidate):
+                    raise ValueError("model output contained digits outside the computed facts")
+                if _narrative_too_long(candidate):
+                    raise ValueError("narrative exceeded the 5-sentence limit")
+                result = candidate
                 break
             except (AIProviderError, ValidationError, ValueError) as exc:
                 raw_response = f"{raw_response or ''}\n<error: {exc}>"
@@ -165,16 +214,19 @@ def analyze_incident(
         if result is None:
             degraded = True
             provider_used = "template"
-            result = template_result(detections)
+            result = template_result(ordered_detections)
 
-    verified_findings = verify_findings(result.findings, known_event_ids, event_to_techniques)
+    verified_findings = merge_findings_by_technique(
+        verify_findings(result.findings, known_event_ids, event_to_techniques)
+    )
     actions = build_recommended_actions(technique_ids)
+    final_verdict = _apply_verdict_floor(result.verdict, floor)
 
     analysis = AIAnalysis(
         incident_id=incident_id,
         provider=provider_used,
         degraded=degraded,
-        verdict=result.verdict,
+        verdict=final_verdict,
         confidence=result.confidence,
         reasoning=result.reasoning,
         narrative=result.narrative,

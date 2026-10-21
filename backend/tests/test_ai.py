@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 
 from app.ai.client import AIProviderError, LLMClient
 from app.ai.triage import analyze_incident, check_rate_limit
-from app.ai.verify import AIFinding, verify_findings
+from app.ai.verify import AIFinding, merge_findings_by_technique, verify_findings
 from app.config import settings
 from app.models import AuditLog, Detection
 
@@ -98,6 +98,19 @@ def test_verify_keeps_valid_finding():
         event_to_techniques={"evt-1": {"T1110"}, "evt-2": {"T1110"}},
     )
     assert len(survivors) == 1
+
+
+def test_merge_findings_by_technique_unions_evidence_into_one_finding():
+    findings = [
+        AIFinding(technique_id="T1110", claim="first detection", event_ids=["evt-1"]),
+        AIFinding(technique_id="T1110", claim="second detection", event_ids=["evt-2", "evt-1"]),
+        AIFinding(technique_id="T1098", claim="unrelated technique", event_ids=["evt-3"]),
+    ]
+    merged = merge_findings_by_technique(findings)
+
+    assert len(merged) == 2
+    t1110 = next(f for f in merged if f.technique_id == "T1110")
+    assert set(t1110.event_ids) == {"evt-1", "evt-2"}
 
 
 # ---- triage.py: summary never leaks raw event fields -----------------------
@@ -206,6 +219,91 @@ def test_ollama_response_citing_nonexistent_event_id_is_dropped(db_session, monk
 
     assert analysis.degraded is False  # JSON was valid, just failed evidence verification
     assert json.loads(analysis.findings) == []
+
+
+def test_verdict_floor_overrides_model_understating_a_critical_incident(db_session, monkeypatch):
+    monkeypatch.setattr(settings, "llm_provider", "ollama")
+    brute_force = _detection("Brute force logon", ["T1110"], ["evt-1"], risk_score=92.0, risk_level="Critical")
+    admin_add = _detection("Added to Administrators", ["T1098"], ["evt-2"], risk_score=72.0, risk_level="High")
+
+    # Model wrongly softens a Critical+High incident to "suspicious" - this is the bug being fixed.
+    understated = json.dumps(
+        {
+            "verdict": "suspicious",
+            "confidence": 0.5,
+            "reasoning": "activity observed",
+            "narrative": "a user logged on repeatedly then was added to a privileged group",
+            "risk_explanation": "risk is elevated due to privilege escalation after repeated logon failures",
+            "findings": [
+                {"technique_id": "T1110", "claim": "brute force pattern observed", "event_ids": ["evt-1"]},
+                {"technique_id": "T1098", "claim": "privilege escalation observed", "event_ids": ["evt-2"]},
+            ],
+        }
+    )
+    client = FakeClient([understated])
+
+    analysis = analyze_incident(
+        db_session, incident_id="inc-floor", detections=[brute_force, admin_add], actor="test_analyst", client=client
+    )
+
+    assert analysis.verdict == "malicious"
+    assert analysis.degraded is False  # the model's output was otherwise valid, just softened
+
+
+def test_verdict_floor_leaves_a_correctly_severe_verdict_alone(db_session, monkeypatch):
+    monkeypatch.setattr(settings, "llm_provider", "template")
+    detection = _detection("Brute force logon", ["T1110"], ["evt-1"], risk_score=20.0, risk_level="Low")
+
+    analysis = analyze_incident(db_session, incident_id="inc-low", detections=[detection], actor="test_analyst")
+
+    assert analysis.verdict == "benign"
+
+
+def test_model_output_with_digits_in_prose_falls_back_to_template(db_session, monkeypatch):
+    monkeypatch.setattr(settings, "llm_provider", "ollama")
+    detection = _detection("Brute force logon", ["T1110"], ["evt-1"])
+
+    has_numbers = json.dumps(
+        {
+            "verdict": "malicious",
+            "confidence": 0.9,
+            "reasoning": "5 failed logons were observed",
+            "narrative": "a brute force attempt occurred",
+            "risk_explanation": "the risk score is 92",
+            "findings": [{"technique_id": "T1110", "claim": "fired 5 times", "event_ids": ["evt-1"]}],
+        }
+    )
+    client = FakeClient([has_numbers, has_numbers])
+
+    analysis = analyze_incident(db_session, incident_id="inc-digits", detections=[detection], actor="test_analyst", client=client)
+
+    assert client.calls == 2
+    assert analysis.provider == "template"
+    assert analysis.degraded is True
+
+
+def test_model_narrative_over_five_sentences_falls_back_to_template(db_session, monkeypatch):
+    monkeypatch.setattr(settings, "llm_provider", "ollama")
+    detection = _detection("Brute force logon", ["T1110"], ["evt-1"])
+
+    long_narrative = " ".join(f"Sentence {n}." for n in "one two three four five six".split())
+    too_long = json.dumps(
+        {
+            "verdict": "malicious",
+            "confidence": 0.9,
+            "reasoning": "a brute force pattern was observed",
+            "narrative": long_narrative,
+            "risk_explanation": "the pattern matches a high severity rule",
+            "findings": [{"technique_id": "T1110", "claim": "brute force pattern", "event_ids": ["evt-1"]}],
+        }
+    )
+    client = FakeClient([too_long, too_long])
+
+    analysis = analyze_incident(db_session, incident_id="inc-long", detections=[detection], actor="test_analyst", client=client)
+
+    assert client.calls == 2
+    assert analysis.provider == "template"
+    assert analysis.degraded is True
 
 
 def test_audit_log_stores_redacted_prompt_and_response(db_session, monkeypatch):

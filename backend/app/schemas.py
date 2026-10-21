@@ -1,6 +1,20 @@
-from datetime import datetime
+from datetime import datetime, timezone
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
+
+
+def _as_utc(value: datetime) -> datetime:
+    """SQLite drops tzinfo on round-trip, so values read back from the DB are
+    naive but represent UTC. Stamp UTC back on before serializing, otherwise
+    the JSON timestamp has no offset and browsers parse it as local time
+    instead of UTC, double-shifting it when the UI converts to local time."""
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
+UTCDateTime = Annotated[datetime, BeforeValidator(_as_utc)]
 
 
 class LoginRequest(BaseModel):
@@ -23,7 +37,7 @@ class AuditLogOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: str
-    timestamp: datetime
+    timestamp: UTCDateTime
     actor: str | None
     action: str
     detail: str | None
@@ -59,7 +73,7 @@ class EventOut(BaseModel):
     id: str
     source: str
     host: str
-    timestamp: datetime
+    timestamp: UTCDateTime
     channel: str
     provider: str
     event_id: int
@@ -88,8 +102,8 @@ class DetectionOut(BaseModel):
     host: str
     event_count: int
     matched_event_ids: list[str]
-    first_seen: datetime
-    last_seen: datetime
+    first_seen: UTCDateTime
+    last_seen: UTCDateTime
     risk_score: float
     risk_level: str
 
@@ -97,8 +111,8 @@ class DetectionOut(BaseModel):
 class IncidentOut(BaseModel):
     id: str
     host: str
-    started_at: datetime
-    ended_at: datetime
+    started_at: UTCDateTime
+    ended_at: UTCDateTime
     risk_score: float
     risk_level: str
     detection_count: int
@@ -113,8 +127,8 @@ class TimelineEntry(BaseModel):
     confidence: float
     risk_score: float
     risk_level: str
-    first_seen: datetime
-    last_seen: datetime
+    first_seen: UTCDateTime
+    last_seen: UTCDateTime
     event_ids: list[str]
 
 
@@ -136,9 +150,9 @@ class ActionOut(BaseModel):
     analysis_id: str
     action_text: str
     status: str
-    created_at: datetime
+    created_at: UTCDateTime
     decided_by: str | None
-    decided_at: datetime | None
+    decided_at: UTCDateTime | None
 
 
 class AnalysisOut(BaseModel):
@@ -152,4 +166,4 @@ class AnalysisOut(BaseModel):
     risk_explanation: str
     findings: list[FindingOut]
     recommended_actions: list[str]
-    created_at: datetime
+    created_at: UTCDateTime
