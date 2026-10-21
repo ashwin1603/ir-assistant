@@ -60,3 +60,11 @@ def seed_users(db_session):
         ]
     )
     db_session.commit()
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    # Store each phase's report on the test item so fixtures can read pass/fail.
+    outcome = yield
+    report = outcome.get_result()
+    setattr(item, f"rep_{report.when}", report)
