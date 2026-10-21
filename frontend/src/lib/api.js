@@ -59,6 +59,25 @@ export function put(path, body) {
   return request(path, { method: "PUT", body: JSON.stringify(body) });
 }
 
+// Authenticated file download: fetch with the bearer token, then save the blob.
+export async function download(path, filename) {
+  const headers = authToken ? { Authorization: `Bearer ${authToken}` } : {};
+  let res;
+  try {
+    res = await fetch(`${API_BASE_URL}${path}`, { headers });
+  } catch {
+    throw new ApiError("Network error", 0);
+  }
+  if (!res.ok) throw new ApiError(res.status === 403 ? "Not authorized" : "Download failed", res.status);
+
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 // Multipart upload via XHR (fetch has no upload-progress events).
 export function upload(path, file, onProgress) {
   return new Promise((resolve, reject) => {

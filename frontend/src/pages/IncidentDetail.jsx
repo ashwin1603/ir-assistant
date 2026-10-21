@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { get, post, put, ApiError } from "../lib/api";
+import { get, post, put, download, ApiError } from "../lib/api";
 import { RiskBadge } from "../components/RiskBadge";
 import { StatusBadge, INCIDENT_STATUSES } from "../components/StatusBadge";
 import { useAuth } from "../auth/AuthContext";
@@ -72,6 +72,15 @@ export default function IncidentDetail() {
     }
   }
 
+  async function downloadArtifact(path, filename) {
+    setCaseError("");
+    try {
+      await download(`/incidents/${id}/${path}`, filename);
+    } catch (err) {
+      setCaseError(err.message || "Download failed");
+    }
+  }
+
   if (loading) return <p className="text-slate-500">Loading...</p>;
   if (error) return <p className="text-red-400">{error}</p>;
   if (!incident) return null;
@@ -116,6 +125,45 @@ export default function IncidentDetail() {
       </div>
 
       {caseError && <p className="mb-3 text-sm text-red-400">{caseError}</p>}
+
+      <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">Artifacts</h2>
+      <div className="mb-6 rounded border border-slate-800 bg-slate-900/40 p-4">
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => downloadArtifact("iocs?format=csv", `iocs-${id.slice(0, 8)}.csv`)}
+            className="rounded border border-slate-700 px-3 py-1.5 text-sm text-slate-200 hover:bg-slate-800"
+          >
+            IOCs (CSV)
+          </button>
+          <button
+            onClick={() => downloadArtifact("iocs?format=json", `iocs-${id.slice(0, 8)}.json`)}
+            className="rounded border border-slate-700 px-3 py-1.5 text-sm text-slate-200 hover:bg-slate-800"
+          >
+            IOCs (JSON)
+          </button>
+          {canEdit && (
+            <>
+              <button
+                onClick={() => downloadArtifact("scripts/firewall", `firewall-${id.slice(0, 8)}.ps1.txt`)}
+                className="rounded border border-amber-700 px-3 py-1.5 text-sm text-amber-300 hover:bg-amber-900/30"
+              >
+                Firewall block commands
+              </button>
+              <button
+                onClick={() => downloadArtifact("scripts/isolation", `isolation-${id.slice(0, 8)}.ps1.txt`)}
+                className="rounded border border-amber-700 px-3 py-1.5 text-sm text-amber-300 hover:bg-amber-900/30"
+              >
+                Host isolation script
+              </button>
+            </>
+          )}
+        </div>
+        {canEdit && (
+          <p className="mt-2 text-xs text-amber-400">
+            Scripts are text only and are never executed by this app. Review before use.
+          </p>
+        )}
+      </div>
 
       <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">Analyst notes</h2>
       <div className="mb-6 rounded border border-slate-800 bg-slate-900/40 p-4">

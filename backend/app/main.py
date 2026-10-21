@@ -17,6 +17,7 @@ from app.config import settings
 from app.db import Base, SessionLocal, engine
 from app.rate_limit import limiter
 from app.routes.actions import router as actions_router
+from app.routes.artifacts import router as artifacts_router
 from app.routes.audit_log import router as audit_router
 from app.routes.detections import router as detections_router
 from app.routes.events import router as events_router
@@ -77,6 +78,7 @@ app.include_router(events_router)
 app.include_router(detections_router)
 app.include_router(incidents_router)
 app.include_router(reports_router)
+app.include_router(artifacts_router)
 app.include_router(actions_router)
 app.include_router(uploads_router)
 
