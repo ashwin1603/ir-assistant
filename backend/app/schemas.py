@@ -128,6 +128,19 @@ class FindingOut(BaseModel):
     event_ids: list[str]
 
 
+class ActionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    incident_id: str
+    analysis_id: str
+    action_text: str
+    status: str
+    created_at: datetime
+    decided_by: str | None
+    decided_at: datetime | None
+
+
 class AnalysisOut(BaseModel):
     incident_id: str
     provider: str

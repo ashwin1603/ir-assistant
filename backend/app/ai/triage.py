@@ -18,7 +18,7 @@ from app.ai.verify import AIFinding, AIModelOutput, verify_findings
 from app.audit import log_action
 from app.config import settings
 from app.detection.attack_map import MITIGATIONS, TECHNIQUE_NAMES
-from app.models import AIAnalysis, AuditLog, Detection
+from app.models import Action, AIAnalysis, AuditLog, Detection
 
 MAX_ATTEMPTS = 2  # one try + one retry, then fall back to the template
 
@@ -183,6 +183,10 @@ def analyze_incident(
         recommended_actions=json.dumps(actions),
     )
     db.add(analysis)
+    db.flush()  # assign analysis.id before creating actions that reference it
+
+    for action_text in actions:
+        db.add(Action(incident_id=incident_id, analysis_id=analysis.id, action_text=action_text))
 
     log_action(
         db,
