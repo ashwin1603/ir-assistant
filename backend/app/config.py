@@ -29,6 +29,9 @@ class Settings(BaseSettings):
 
     rate_limit_enabled: bool = True
 
+    upload_dir: str = "uploads"  # outside any served directory; git-ignored
+    upload_max_mb: int = 20
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
 

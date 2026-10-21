@@ -22,6 +22,7 @@ from app.routes.detections import router as detections_router
 from app.routes.events import router as events_router
 from app.routes.incidents import router as incidents_router
 from app.routes.reports import router as reports_router
+from app.routes.uploads import router as uploads_router
 from app.seed import seed_admin_user
 
 Base.metadata.create_all(bind=engine)
@@ -77,6 +78,7 @@ app.include_router(detections_router)
 app.include_router(incidents_router)
 app.include_router(reports_router)
 app.include_router(actions_router)
+app.include_router(uploads_router)
 
 
 @app.get("/api/health")

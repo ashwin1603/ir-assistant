@@ -54,3 +54,32 @@ export function get(path) {
 export function post(path, body, timeoutMs) {
   return request(path, { method: "POST", body: JSON.stringify(body) }, timeoutMs);
 }
+
+// Multipart upload via XHR (fetch has no upload-progress events).
+export function upload(path, file, onProgress) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `${API_BASE_URL}${path}`);
+    if (authToken) xhr.setRequestHeader("Authorization", `Bearer ${authToken}`);
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100));
+    };
+    xhr.onload = () => {
+      let body = null;
+      try {
+        body = JSON.parse(xhr.responseText);
+      } catch {
+        // keep generic message
+      }
+      if (xhr.status >= 200 && xhr.status < 300) return resolve(body);
+      const detail = typeof body?.detail === "string" ? body.detail : "Upload failed";
+      reject(new ApiError(detail, xhr.status));
+    };
+    xhr.onerror = () => reject(new ApiError("Network error", 0));
+
+    const form = new FormData();
+    form.append("file", file);
+    xhr.send(form);
+  });
+}

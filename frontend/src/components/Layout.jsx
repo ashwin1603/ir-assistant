@@ -13,7 +13,9 @@ const navItems = [
 export default function Layout() {
   const { session, logout } = useAuth();
   const location = useLocation();
-  const items = session?.role === "admin" ? [...navItems, { to: "/audit", label: "Audit Log" }] : navItems;
+  const items = [...navItems];
+  if (session?.role === "admin" || session?.role === "analyst") items.push({ to: "/upload", label: "Upload" });
+  if (session?.role === "admin") items.push({ to: "/audit", label: "Audit Log" });
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 print:bg-white print:text-black">

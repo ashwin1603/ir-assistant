@@ -11,6 +11,7 @@ import IncidentDetail from "./pages/IncidentDetail";
 import Recommendations from "./pages/Recommendations";
 import AuditLog from "./pages/AuditLog";
 import Report from "./pages/Report";
+import Upload from "./pages/Upload";
 
 export default function App() {
   return (
@@ -25,6 +26,7 @@ export default function App() {
             <Route path="/incidents" element={<Incidents />} />
             <Route path="/incidents/:id" element={<IncidentDetail />} />
             <Route path="/incidents/:id/report" element={<Report />} />
+            <Route path="/upload" element={<Upload />} />
             <Route path="/recommendations" element={<Recommendations />} />
             <Route path="/audit" element={<AuditLog />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />

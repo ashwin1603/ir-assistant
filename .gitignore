@@ -11,3 +11,6 @@ build/
 *.egg-info/
 .pytest_cache/
 *.log
+
+# Exported event samples contain real usernames/hosts (scripts/export_sample.ps1)
+security_sample*.json

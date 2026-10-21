@@ -10,3 +10,5 @@ slowapi
 httpx
 pyyaml
 pytest
+python-multipart
+python-evtx
