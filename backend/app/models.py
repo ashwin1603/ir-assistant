@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, Index, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -50,4 +50,37 @@ class Event(Base):
     logon_type: Mapped[str | None] = mapped_column(String, nullable=True)
     message: Mapped[str | None] = mapped_column(Text, nullable=True)
     raw: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class Incident(Base):
+    __tablename__ = "incidents"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    host: Mapped[str] = mapped_column(String, index=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime, index=True)
+    ended_at: Mapped[datetime] = mapped_column(DateTime)
+    risk_score: Mapped[float] = mapped_column(Float)
+    risk_level: Mapped[str] = mapped_column(String)
+    detection_count: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class Detection(Base):
+    __tablename__ = "detections"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    incident_id: Mapped[str | None] = mapped_column(String, ForeignKey("incidents.id"), nullable=True, index=True)
+    rule_name: Mapped[str] = mapped_column(String, index=True)
+    technique_ids: Mapped[str] = mapped_column(Text)  # JSON list[str]
+    tactics: Mapped[str] = mapped_column(Text)  # JSON list[str]
+    severity: Mapped[int] = mapped_column(Integer)
+    confidence: Mapped[float] = mapped_column(Float)
+    host: Mapped[str] = mapped_column(String, index=True)
+    matched_event_ids: Mapped[str] = mapped_column(Text)  # JSON list[str]
+    event_count: Mapped[int] = mapped_column(Integer)
+    first_seen: Mapped[datetime] = mapped_column(DateTime, index=True)
+    last_seen: Mapped[datetime] = mapped_column(DateTime)
+    risk_score: Mapped[float] = mapped_column(Float)
+    risk_level: Mapped[str] = mapped_column(String)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))

@@ -15,7 +15,9 @@ from app.config import settings
 from app.db import Base, SessionLocal, engine
 from app.rate_limit import limiter
 from app.routes.audit_log import router as audit_router
+from app.routes.detections import router as detections_router
 from app.routes.events import router as events_router
+from app.routes.incidents import router as incidents_router
 from app.seed import seed_admin_user
 
 Base.metadata.create_all(bind=engine)
@@ -65,6 +67,8 @@ async def security_headers(request, call_next):
 app.include_router(auth_router)
 app.include_router(audit_router)
 app.include_router(events_router)
+app.include_router(detections_router)
+app.include_router(incidents_router)
 
 
 @app.get("/api/health")

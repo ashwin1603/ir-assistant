@@ -75,3 +75,48 @@ class EventOut(BaseModel):
 class EventPage(BaseModel):
     total: int
     items: list[EventOut]
+
+
+class DetectionOut(BaseModel):
+    id: str
+    incident_id: str | None
+    rule_name: str
+    technique_ids: list[str]
+    tactics: list[str]
+    severity: int
+    confidence: float
+    host: str
+    event_count: int
+    matched_event_ids: list[str]
+    first_seen: datetime
+    last_seen: datetime
+    risk_score: float
+    risk_level: str
+
+
+class IncidentOut(BaseModel):
+    id: str
+    host: str
+    started_at: datetime
+    ended_at: datetime
+    risk_score: float
+    risk_level: str
+    detection_count: int
+
+
+class TimelineEntry(BaseModel):
+    detection_id: str
+    rule_name: str
+    technique_ids: list[str]
+    tactics: list[str]
+    severity: int
+    confidence: float
+    risk_score: float
+    risk_level: str
+    first_seen: datetime
+    last_seen: datetime
+    event_ids: list[str]
+
+
+class IncidentDetail(IncidentOut):
+    timeline: list[TimelineEntry]
