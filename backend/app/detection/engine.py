@@ -75,7 +75,10 @@ def run_detection(db: Session) -> None:
             candidates = [e for e in candidates if predicate(e)]
 
         if rule.kind == "filter":
-            detections.extend(_build_detection(rule, [event]) for event in candidates)
+            by_host: dict[str, list[Event]] = {}
+            for event in candidates:
+                by_host.setdefault(event.host, []).append(event)
+            detections.extend(_build_detection(rule, group) for group in by_host.values())
         else:
             clusters = _cluster_events(candidates, rule.window_minutes, rule.min_count, rule.group_by)
             detections.extend(_build_detection(rule, cluster) for cluster in clusters)
