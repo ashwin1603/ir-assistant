@@ -1,10 +1,11 @@
-"""Seed synthetic 4688 (process creation) events for demoing the v2 detection rules.
+"""Seed synthetic events for demoing the detection rules: 4688 (process creation),
+plus a 1102 (Security log cleared) and 7045 (service installed) events.
 
 Nothing is executed on this machine: the command lines are just text posted to
 the API, tagged source="simulated" on host SIM-WS01 so they are easy to spot and
 remove. Does not need an elevated terminal.
 
-    python scripts/seed_simulated_events.py          # post ~25 events
+    python scripts/seed_simulated_events.py          # post ~29 events
     python scripts/seed_simulated_events.py --wipe   # delete all simulated events
 """
 
@@ -57,32 +58,58 @@ BENIGN = [
 ]
 
 
+# Non-4688 events: (channel, provider, event_id, message, fields).
+# For 7045 the normalizer puts the service name in "process" and the binary
+# path in "command_line", so the simulated events do the same.
+OTHER_EVENTS = [
+    ("Security", "Microsoft-Windows-Eventlog", 1102, "The audit log was cleared. (simulated)",
+     {"user": "jdoe"}),
+    ("System", "Service Control Manager", 7045, "A service was installed in the system. (simulated)",
+     {"process": "updsvc", "command_line": "C:\\Users\\Public\\evil.exe", "user": "LocalSystem"}),
+    # benign: services under System32 must not trigger the untrusted-path rule
+    ("System", "Service Control Manager", 7045, "A service was installed in the system. (simulated)",
+     {"process": "WinDefend", "command_line": "C:\\Windows\\System32\\svchost.exe -k secsvcs", "user": "LocalSystem"}),
+    ("System", "Service Control Manager", 7045, "A service was installed in the system. (simulated)",
+     {"process": "Spooler", "command_line": "C:\\Windows\\System32\\spoolsv.exe", "user": "LocalSystem"}),
+]
+
+
+def _make_event(channel: str, provider: str, event_id: int, message: str, fields: dict, now: datetime) -> dict:
+    timestamp = now - timedelta(seconds=random.randint(0, 20 * 60))
+    return {
+        "id": str(uuid.uuid4()),
+        "record_id": None,
+        "source": "simulated",
+        "host": HOST,
+        "timestamp": timestamp.isoformat(),
+        "channel": channel,
+        "provider": provider,
+        "event_id": event_id,
+        "process": None,
+        "command_line": None,
+        "parent_process": None,
+        **fields,
+        "src_ip": None,
+        "logon_type": None,
+        "message": message,
+        "raw": json.dumps({"simulated": True, **fields}),
+    }
+
+
 def _build_events() -> list[dict]:
     now = datetime.now(timezone.utc)
     events = []
     for process, command_line in MALICIOUS + BENIGN:
-        timestamp = now - timedelta(seconds=random.randint(0, 20 * 60))
         fields = {
             "process": process,
             "command_line": command_line,
             "parent_process": "C:\\Windows\\explorer.exe",
             "user": USER,
         }
-        events.append({
-            "id": str(uuid.uuid4()),
-            "record_id": None,
-            "source": "simulated",
-            "host": HOST,
-            "timestamp": timestamp.isoformat(),
-            "channel": "Security",
-            "provider": "Microsoft-Windows-Security-Auditing",
-            "event_id": 4688,
-            **fields,
-            "src_ip": None,
-            "logon_type": None,
-            "message": "A new process has been created. (simulated)",
-            "raw": json.dumps({"simulated": True, **fields}),
-        })
+        events.append(_make_event("Security", "Microsoft-Windows-Security-Auditing", 4688,
+                                  "A new process has been created. (simulated)", fields, now))
+    for channel, provider, event_id, message, fields in OTHER_EVENTS:
+        events.append(_make_event(channel, provider, event_id, message, fields, now))
     return events
 
 
