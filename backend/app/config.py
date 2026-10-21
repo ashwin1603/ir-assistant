@@ -17,6 +17,11 @@ class Settings(BaseSettings):
     llm_api_key: str = ""
     llm_model: str = "claude-sonnet-5"
 
+    admin_username: str = ""
+    admin_password: str = ""
+
+    rate_limit_enabled: bool = True
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
 
