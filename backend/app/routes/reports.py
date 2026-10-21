@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.analysis.case_state import get_notes, get_status
 from app.analysis.timeline import build_timeline
 from app.auth.deps import get_current_user
 from app.db import get_db
@@ -28,7 +29,9 @@ def get_report(incident_id: str, db: Session = Depends(get_db), _user=Depends(ge
         risk_score=incident.risk_score,
         risk_level=incident.risk_level,
         detection_count=incident.detection_count,
+        status=get_status(db, incident),
         timeline=timeline,
+        notes=get_notes(db, incident),
     )
 
     latest_analysis = (

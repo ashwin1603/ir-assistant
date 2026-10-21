@@ -2,22 +2,39 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { get } from "../lib/api";
 import { RiskBadge } from "../components/RiskBadge";
+import { StatusBadge, INCIDENT_STATUSES } from "../components/StatusBadge";
 
 export default function Incidents() {
   const [incidents, setIncidents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
 
   useEffect(() => {
-    get("/incidents")
+    setLoading(true);
+    get(statusFilter ? `/incidents?status=${statusFilter}` : "/incidents")
       .then(setIncidents)
       .catch((err) => setError(err.message || "Failed to load incidents"))
       .finally(() => setLoading(false));
-  }, []);
+  }, [statusFilter]);
 
   return (
     <div>
-      <h1 className="mb-4 text-xl font-semibold text-slate-100">Incidents</h1>
+      <div className="mb-4 flex items-center justify-between">
+        <h1 className="text-xl font-semibold text-slate-100">Incidents</h1>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="rounded border border-slate-700 bg-slate-900 px-2 py-1 text-sm text-slate-200"
+        >
+          <option value="">All statuses</option>
+          {INCIDENT_STATUSES.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
+      </div>
 
       {error && <p className="mb-3 text-sm text-red-400">{error}</p>}
 
@@ -30,20 +47,21 @@ export default function Incidents() {
               <th className="px-3 py-2">Ended</th>
               <th className="px-3 py-2">Detections</th>
               <th className="px-3 py-2">Risk</th>
+              <th className="px-3 py-2">Status</th>
               <th className="px-3 py-2" />
             </tr>
           </thead>
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={6} className="px-3 py-6 text-center text-slate-500">
+                <td colSpan={7} className="px-3 py-6 text-center text-slate-500">
                   Loading...
                 </td>
               </tr>
             )}
             {!loading && incidents.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-3 py-6 text-center text-slate-500">
+                <td colSpan={7} className="px-3 py-6 text-center text-slate-500">
                   No incidents found.
                 </td>
               </tr>
@@ -61,6 +79,9 @@ export default function Incidents() {
                   <td className="px-3 py-2 text-slate-300">{inc.detection_count}</td>
                   <td className="px-3 py-2">
                     <RiskBadge level={inc.risk_level} score={inc.risk_score} />
+                  </td>
+                  <td className="px-3 py-2">
+                    <StatusBadge status={inc.status} />
                   </td>
                   <td className="px-3 py-2 text-right">
                     <Link to={`/incidents/${inc.id}`} className="text-sky-400 hover:text-sky-300">

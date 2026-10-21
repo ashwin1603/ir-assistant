@@ -121,6 +121,24 @@ class IncidentOut(BaseModel):
     risk_score: float
     risk_level: str
     detection_count: int
+    status: str = "new"
+
+
+class IncidentStatusUpdate(BaseModel):
+    status: str = Field(pattern="^(new|investigating|contained|closed)$")
+
+
+class NoteCreate(BaseModel):
+    text: str = Field(min_length=1, max_length=2000)
+
+
+class NoteOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    author: str
+    text: str
+    created_at: UTCDateTime
 
 
 class TimelineEntry(BaseModel):
@@ -139,6 +157,7 @@ class TimelineEntry(BaseModel):
 
 class IncidentDetail(IncidentOut):
     timeline: list[TimelineEntry]
+    notes: list[NoteOut] = []
 
 
 class FindingOut(BaseModel):

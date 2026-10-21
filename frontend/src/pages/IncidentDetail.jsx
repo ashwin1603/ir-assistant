@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { get, post, ApiError } from "../lib/api";
+import { get, post, put, ApiError } from "../lib/api";
 import { RiskBadge } from "../components/RiskBadge";
+import { StatusBadge, INCIDENT_STATUSES } from "../components/StatusBadge";
+import { useAuth } from "../auth/AuthContext";
 
 const ANALYZE_TIMEOUT_MS = 40_000;
 
@@ -21,6 +23,11 @@ export default function IncidentDetail() {
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzeError, setAnalyzeError] = useState("");
 
+  const { session } = useAuth();
+  const canEdit = session?.role === "admin" || session?.role === "analyst";
+  const [noteText, setNoteText] = useState("");
+  const [caseError, setCaseError] = useState("");
+
   useEffect(() => {
     setLoading(true);
     get(`/incidents/${id}`)
@@ -39,6 +46,29 @@ export default function IncidentDetail() {
       setAnalyzeError(err instanceof ApiError ? err.message : "AI analysis failed");
     } finally {
       setAnalyzing(false);
+    }
+  }
+
+  async function changeStatus(status) {
+    setCaseError("");
+    try {
+      const updated = await put(`/incidents/${id}/status`, { status });
+      setIncident((prev) => ({ ...prev, status: updated.status }));
+    } catch (err) {
+      setCaseError(err.message || "Failed to update status");
+    }
+  }
+
+  async function addNote(e) {
+    e.preventDefault();
+    if (!noteText.trim()) return;
+    setCaseError("");
+    try {
+      const note = await post(`/incidents/${id}/notes`, { text: noteText.trim() });
+      setIncident((prev) => ({ ...prev, notes: [...prev.notes, note] }));
+      setNoteText("");
+    } catch (err) {
+      setCaseError(err.message || "Failed to add note");
     }
   }
 
@@ -65,7 +95,60 @@ export default function IncidentDetail() {
             {new Date(incident.ended_at).toLocaleString()}
           </p>
         </div>
-        <RiskBadge level={incident.risk_level} score={incident.risk_score} />
+        <div className="flex items-center gap-3">
+          {canEdit ? (
+            <select
+              value={incident.status}
+              onChange={(e) => changeStatus(e.target.value)}
+              className="rounded border border-slate-700 bg-slate-900 px-2 py-1 text-sm text-slate-200"
+            >
+              {INCIDENT_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <StatusBadge status={incident.status} />
+          )}
+          <RiskBadge level={incident.risk_level} score={incident.risk_score} />
+        </div>
+      </div>
+
+      {caseError && <p className="mb-3 text-sm text-red-400">{caseError}</p>}
+
+      <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">Analyst notes</h2>
+      <div className="mb-6 rounded border border-slate-800 bg-slate-900/40 p-4">
+        {incident.notes.length === 0 && <p className="text-sm text-slate-500">No notes yet.</p>}
+        <ul className="space-y-2">
+          {incident.notes.map((n) => (
+            <li key={n.id} className="text-sm">
+              <p className="whitespace-pre-wrap text-slate-300">{n.text}</p>
+              <p className="text-xs text-slate-500">
+                {n.author} · {new Date(n.created_at).toLocaleString()}
+              </p>
+            </li>
+          ))}
+        </ul>
+        {canEdit && (
+          <form onSubmit={addNote} className="mt-3 flex gap-2">
+            <textarea
+              value={noteText}
+              onChange={(e) => setNoteText(e.target.value)}
+              maxLength={2000}
+              rows={2}
+              placeholder="Add a note..."
+              className="flex-1 rounded border border-slate-700 bg-slate-950 px-2 py-1 text-sm text-slate-200"
+            />
+            <button
+              type="submit"
+              disabled={!noteText.trim()}
+              className="self-end rounded bg-sky-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-sky-500 disabled:opacity-50"
+            >
+              Add note
+            </button>
+          </form>
+        )}
       </div>
 
       <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">

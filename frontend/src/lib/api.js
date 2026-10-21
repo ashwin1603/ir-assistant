@@ -55,6 +55,10 @@ export function post(path, body, timeoutMs) {
   return request(path, { method: "POST", body: JSON.stringify(body) }, timeoutMs);
 }
 
+export function put(path, body) {
+  return request(path, { method: "PUT", body: JSON.stringify(body) });
+}
+
 // Multipart upload via XHR (fetch has no upload-progress events).
 export function upload(path, file, onProgress) {
   return new Promise((resolve, reject) => {

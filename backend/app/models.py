@@ -115,3 +115,31 @@ class AIAnalysis(Base):
     findings: Mapped[str] = mapped_column(Text)  # JSON list[{technique_id, claim, event_ids}]
     recommended_actions: Mapped[str] = mapped_column(Text)  # JSON list[str]
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+INCIDENT_STATUSES = ("new", "investigating", "contained", "closed")
+
+
+class IncidentCase(Base):
+    """Analyst-owned state for an incident. Incident ids are hash-derived and
+    change whenever detections are regrouped, so this is keyed by
+    case_key = "host|started_at" instead, which survives regrouping."""
+
+    __tablename__ = "incident_cases"
+
+    case_key: Mapped[str] = mapped_column(String, primary_key=True)
+    status: Mapped[str] = mapped_column(String, default="new")
+    updated_by: Mapped[str | None] = mapped_column(String, nullable=True)
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class IncidentNote(Base):
+    """Append-only analyst notes (never edited or deleted, for an audit trail)."""
+
+    __tablename__ = "incident_notes"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    case_key: Mapped[str] = mapped_column(String, index=True)
+    author: Mapped[str] = mapped_column(String)
+    text: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
