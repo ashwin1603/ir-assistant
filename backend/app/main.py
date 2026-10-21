@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -10,6 +11,7 @@ from slowapi.errors import RateLimitExceeded
 
 logger = logging.getLogger("ir_assistant")
 
+from app.ai.client import warm_up
 from app.auth.routes import router as auth_router
 from app.config import settings
 from app.db import Base, SessionLocal, engine
@@ -31,6 +33,8 @@ async def lifespan(app: FastAPI):
         seed_admin_user(db)
     finally:
         db.close()
+    # Fire-and-forget: don't block server startup on the model load.
+    asyncio.create_task(asyncio.to_thread(warm_up, settings.llm_provider))
     yield
 
 

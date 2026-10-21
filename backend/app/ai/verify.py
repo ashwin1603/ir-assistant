@@ -14,6 +14,11 @@ class AIFinding(BaseModel):
 
 
 class AIModelOutput(BaseModel):
+    """The deterministic analysis result shown to the analyst. Despite the
+    name, the model itself no longer fills this in - template_result() builds
+    it from code, and the model may only supply a replacement narrative (see
+    AINarrativeOutput)."""
+
     verdict: Literal["benign", "suspicious", "malicious"]
     confidence: float = Field(ge=0, le=1)
     reasoning: str = Field(max_length=4000)
@@ -25,6 +30,13 @@ class AIModelOutput(BaseModel):
     @classmethod
     def _normalize_verdict(cls, value):
         return value.strip().lower() if isinstance(value, str) else value
+
+
+class AINarrativeOutput(BaseModel):
+    """The only thing actually asked of the LLM: a short paraphrase of the
+    detections. Everything else in AIModelOutput is code-computed."""
+
+    narrative: str = Field(max_length=1000)
 
 
 def verify_findings(

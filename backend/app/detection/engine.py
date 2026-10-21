@@ -40,6 +40,15 @@ def _cluster_events(events: list[Event], window_minutes: int, min_count: int, gr
 # the API recomputes on every GET, and clients hold onto ids across requests.
 NAMESPACE = uuid.UUID("5c3f8f2a-6b1b-4c2a-9e8d-1b9f2a7d4e60")
 
+# "filter" rules (e.g. encoded PowerShell, local user created) have no window
+# of their own - without one, every matching event on a host, however far
+# apart, would be merged into a single detection spanning its whole lifetime,
+# which then drags the incident grouping below into one incident spanning
+# months. Bound them to the same 30-minute gap incidents use, so a detection
+# (and the incident it lands in) never spans longer than genuinely-related
+# activity.
+FILTER_RULE_WINDOW_MINUTES = 30
+
 
 def _build_detection(rule: Rule, matched_events: list[Event]) -> Detection:
     matched_ids = sorted(e.id for e in matched_events)
@@ -75,13 +84,10 @@ def run_detection(db: Session) -> None:
             candidates = [e for e in candidates if predicate(e)]
 
         if rule.kind == "filter":
-            by_host: dict[str, list[Event]] = {}
-            for event in candidates:
-                by_host.setdefault(event.host, []).append(event)
-            detections.extend(_build_detection(rule, group) for group in by_host.values())
+            clusters = _cluster_events(candidates, FILTER_RULE_WINDOW_MINUTES, min_count=1, group_by=("host",))
         else:
             clusters = _cluster_events(candidates, rule.window_minutes, rule.min_count, rule.group_by)
-            detections.extend(_build_detection(rule, cluster) for cluster in clusters)
+        detections.extend(_build_detection(rule, cluster) for cluster in clusters)
 
     incidents = group_into_incidents(detections)
 

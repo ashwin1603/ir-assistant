@@ -17,7 +17,10 @@ class Settings(BaseSettings):
     llm_model: str = "qwen2.5:3b"
 
     ollama_base_url: str = "http://localhost:11434"
-    ollama_timeout_seconds: int = 120
+    ollama_timeout_seconds: int = 35
+    ollama_num_predict: int = 150
+    ollama_num_ctx: int = 2048
+    ollama_keep_alive: str = "30m"
 
     ai_calls_per_hour: int = 20
 

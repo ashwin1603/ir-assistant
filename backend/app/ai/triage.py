@@ -1,12 +1,16 @@
-"""Orchestrates AI analysis of an incident: build a compact prompt from
-detection summaries only (never raw log fields), call the configured
-provider, validate + verify its output, and fall back to a deterministic
-template on any failure. Recommended actions always come from the
-technique-to-mitigation playbook, never from the model, so the AI never
-decides on its own what to recommend - it only explains."""
+"""Orchestrates AI analysis of an incident. Every fact shown to the analyst -
+verdict, confidence, reasoning, risk explanation, findings, recommended
+actions - is computed deterministically in code from the rule engine's own
+output (see template_result()). The only thing ever asked of the LLM is a
+short narrative paraphrase of the highest-risk detections; if that fails,
+times out, or breaks a rule, the deterministic narrative is used instead.
+This keeps "rules detect, AI reasons" true even when the model degrades, and
+keeps the model's job small enough to finish well under the UI's time budget."""
 
+import hashlib
 import json
 import re
+
 from datetime import datetime, timedelta, timezone
 
 from pydantic import ValidationError
@@ -14,61 +18,19 @@ from sqlalchemy.orm import Session
 
 from app.ai.client import AIProviderError, LLMClient, get_client
 from app.ai.prompts import build_prompt
-from app.ai.verify import AIFinding, AIModelOutput, merge_findings_by_technique, verify_findings
+from app.ai.verify import AIFinding, AIModelOutput, AINarrativeOutput, merge_findings_by_technique, verify_findings
 from app.audit import log_action
 from app.config import settings
 from app.detection.attack_map import MITIGATIONS, TECHNIQUE_NAMES
 from app.models import Action, AIAnalysis, AuditLog, Detection
 
-MAX_ATTEMPTS = 2  # one try + one retry, then fall back to the template
+MAX_ATTEMPTS = 2  # one try + one retry, then fall back to the deterministic narrative
+TOP_DETECTIONS_FOR_NARRATIVE = 5  # only the highest-risk detections are sent to the model
 
 _SECRET_PATTERN = re.compile(r"(?i)(api[_-]?key|token|bearer|authorization)\S*[:=]\s*\S+")
 _DIGIT_PATTERN = re.compile(r"\d")
 _SENTENCE_SPLIT_PATTERN = re.compile(r"[.!?]+")
-MAX_NARRATIVE_SENTENCES = 5
-
-# benign < suspicious < malicious. The model only explains; the verdict floor
-# below is the actual, code-computed decision of "how bad is this at minimum".
-_VERDICT_RANK = {"benign": 0, "suspicious": 1, "malicious": 2}
-
-
-def _max_risk_score(detections: list[Detection]) -> float:
-    return max((d.risk_score for d in detections), default=0.0)
-
-
-def _verdict_floor(max_risk: float) -> str:
-    """The verdict can never be softer than what the rule engine's own risk
-    score implies: High/Critical risk (score >= 60) must read as malicious,
-    Medium (>= 30) at least suspicious. The AI explains, it never overrides."""
-    if max_risk >= 60:
-        return "malicious"
-    if max_risk >= 30:
-        return "suspicious"
-    return "benign"
-
-
-def _apply_verdict_floor(verdict: str, floor: str) -> str:
-    return floor if _VERDICT_RANK[floor] > _VERDICT_RANK[verdict] else verdict
-
-
-def _has_disallowed_numbers(result: AIModelOutput) -> bool:
-    """All numeric facts (scores, counts, confidences) are computed in code and
-    shown in the UI separately. If the model's prose contains any digit, it has
-    either invented a number or restated one it could get wrong - either way,
-    reject it rather than risk showing the analyst a fabricated figure."""
-    texts = [result.reasoning, result.narrative, result.risk_explanation] + [f.claim for f in result.findings]
-    return any(_DIGIT_PATTERN.search(text) for text in texts)
-
-
-def _narrative_too_long(result: AIModelOutput) -> bool:
-    sentences = [s for s in _SENTENCE_SPLIT_PATTERN.split(result.narrative) if s.strip()]
-    return len(sentences) > MAX_NARRATIVE_SENTENCES
-
-
-def _redact(text: str | None, limit: int = 4000) -> str:
-    if not text:
-        return ""
-    return _SECRET_PATTERN.sub(r"\1=[REDACTED]", text)[:limit]
+MAX_NARRATIVE_SENTENCES = 3
 
 
 def _build_summary(detections: list[Detection]):
@@ -105,6 +67,22 @@ def _build_summary(detections: list[Detection]):
     return summary, known_event_ids, technique_ids, event_to_techniques
 
 
+def _narrative_summary(detections: list[Detection]) -> list[dict]:
+    """What actually gets sent to the model: only the highest-risk detections,
+    only the fields needed to write a sentence or two - no event ids, counts,
+    or exact scores, so there's nothing for the model to invent a number from."""
+    top = sorted(detections, key=lambda d: d.risk_score, reverse=True)[:TOP_DETECTIONS_FOR_NARRATIVE]
+    return [
+        {
+            "rule_name": d.rule_name,
+            "technique_ids": json.loads(d.technique_ids),
+            "tactics": json.loads(d.tactics),
+            "risk_level": d.risk_level,
+        }
+        for d in top
+    ]
+
+
 def _extract_json_object(text: str) -> str:
     start, end = text.find("{"), text.rfind("}")
     if start == -1 or end == -1 or end < start:
@@ -112,9 +90,30 @@ def _extract_json_object(text: str) -> str:
     return text[start : end + 1]
 
 
+def _narrative_invalid_reason(narrative: str) -> str | None:
+    """All numeric facts are computed in code and shown in the UI separately;
+    a digit in the model's prose means it invented or restated a number it
+    could get wrong. Returns why the narrative is unusable, or None if it's fine."""
+    if _DIGIT_PATTERN.search(narrative):
+        return "narrative contained digits"
+    sentences = [s for s in _SENTENCE_SPLIT_PATTERN.split(narrative) if s.strip()]
+    if len(sentences) > MAX_NARRATIVE_SENTENCES:
+        return f"narrative exceeded the {MAX_NARRATIVE_SENTENCES}-sentence limit"
+    return None
+
+
+def _redact(text: str | None, limit: int = 4000) -> str:
+    if not text:
+        return ""
+    return _SECRET_PATTERN.sub(r"\1=[REDACTED]", text)[:limit]
+
+
 def template_result(detections: list[Detection]) -> AIModelOutput:
-    """Deterministic, rule-based stand-in for an LLM: used when LLM_PROVIDER=template,
-    and as the fallback any provider degrades to after a failed retry."""
+    """Deterministic, rule-based result: verdict, confidence, reasoning, risk
+    explanation, findings, and the default narrative are always built this
+    way. Used as-is when LLM_PROVIDER=template, as the fallback narrative
+    source when a provider degrades, and as the base every provider's
+    narrative gets grafted onto otherwise."""
     if not detections:
         return AIModelOutput(
             verdict="benign",
@@ -173,6 +172,15 @@ def check_rate_limit(db: Session, actor: str) -> bool:
     return count < settings.ai_calls_per_hour
 
 
+def _detections_hash(detections: list[Detection]) -> str:
+    """Stable fingerprint of this incident's current detection set. Detection
+    ids are content-addressed (same events -> same id), so this is unchanged
+    across repeat requests until a detection is added, removed, or its
+    matched events change - that's the cache invalidation signal."""
+    ids = sorted(d.id for d in detections)
+    return hashlib.sha256(",".join(ids).encode()).hexdigest()
+
+
 def analyze_incident(
     db: Session,
     incident_id: str,
@@ -180,11 +188,23 @@ def analyze_incident(
     actor: str,
     client: LLMClient | None = None,
 ) -> AIAnalysis:
-    # The chronological order, every detection's facts, and the risk scores are
-    # all computed in code here - the model only ever rewrites them in words.
     ordered_detections = sorted(detections, key=lambda d: d.first_seen)
-    summary, known_event_ids, technique_ids, event_to_techniques = _build_summary(ordered_detections)
-    floor = _verdict_floor(_max_risk_score(ordered_detections))
+    detections_hash = _detections_hash(ordered_detections)
+
+    cached = (
+        db.query(AIAnalysis)
+        .filter(AIAnalysis.incident_id == incident_id, AIAnalysis.detections_hash == detections_hash)
+        .order_by(AIAnalysis.created_at.desc())
+        .first()
+    )
+    if cached:
+        log_action(db, actor=actor, action="ai_analyze_cached", detail=json.dumps({"incident_id": incident_id}))
+        return cached
+
+    # The chronological order and every detection's facts are computed in
+    # code here - the model, if used at all, only ever paraphrases a subset.
+    _, known_event_ids, technique_ids, event_to_techniques = _build_summary(ordered_detections)
+    result = template_result(ordered_detections)
 
     prompt_text: str | None = None
     raw_response: str | None = None
@@ -192,41 +212,40 @@ def analyze_incident(
 
     if settings.llm_provider == "template":
         provider_used = "template"
-        result = template_result(ordered_detections)
     else:
         provider_used = settings.llm_provider
         client = client or get_client(settings.llm_provider)
-        prompt_text = build_prompt(summary)
-        result = None
+        prompt_text = build_prompt(_narrative_summary(ordered_detections))
+        narrative = None
         for _ in range(MAX_ATTEMPTS):
             try:
                 raw_response = client.complete_json(prompt_text)
-                candidate = AIModelOutput.model_validate_json(_extract_json_object(raw_response))
-                if _has_disallowed_numbers(candidate):
-                    raise ValueError("model output contained digits outside the computed facts")
-                if _narrative_too_long(candidate):
-                    raise ValueError("narrative exceeded the 5-sentence limit")
-                result = candidate
+                candidate = AINarrativeOutput.model_validate_json(_extract_json_object(raw_response))
+                reason = _narrative_invalid_reason(candidate.narrative)
+                if reason:
+                    raise ValueError(reason)
+                narrative = candidate.narrative
                 break
             except (AIProviderError, ValidationError, ValueError) as exc:
                 raw_response = f"{raw_response or ''}\n<error: {exc}>"
                 continue
-        if result is None:
+        if narrative is None:
             degraded = True
-            provider_used = "template"
-            result = template_result(ordered_detections)
+            provider_used = "template (fallback)"
+        else:
+            result = result.model_copy(update={"narrative": narrative})
 
     verified_findings = merge_findings_by_technique(
         verify_findings(result.findings, known_event_ids, event_to_techniques)
     )
     actions = build_recommended_actions(technique_ids)
-    final_verdict = _apply_verdict_floor(result.verdict, floor)
 
     analysis = AIAnalysis(
         incident_id=incident_id,
+        detections_hash=detections_hash,
         provider=provider_used,
         degraded=degraded,
-        verdict=final_verdict,
+        verdict=result.verdict,
         confidence=result.confidence,
         reasoning=result.reasoning,
         narrative=result.narrative,

@@ -22,6 +22,13 @@ class OllamaClient(LLMClient):
         self.model = model or settings.llm_model
         self.timeout_seconds = timeout_seconds or settings.ollama_timeout_seconds
 
+    def _options(self) -> dict:
+        return {
+            "temperature": 0,
+            "num_predict": settings.ollama_num_predict,
+            "num_ctx": settings.ollama_num_ctx,
+        }
+
     def complete_json(self, prompt: str) -> str:
         try:
             response = httpx.post(
@@ -31,7 +38,8 @@ class OllamaClient(LLMClient):
                     "prompt": prompt,
                     "format": "json",
                     "stream": False,
-                    "options": {"temperature": 0},
+                    "keep_alive": settings.ollama_keep_alive,
+                    "options": self._options(),
                 },
                 timeout=self.timeout_seconds,
             )
@@ -49,3 +57,27 @@ def get_client(provider: str) -> LLMClient:
     if provider == "ollama":
         return OllamaClient()
     raise ValueError(f"No network client for LLM_PROVIDER={provider!r}")
+
+
+def warm_up(provider: str) -> None:
+    """Best-effort: ask Ollama to load the model into memory ahead of the
+    first real analyze request, so that request isn't paying model-load time
+    out of its 35s budget. Failures are swallowed - the first real request
+    still retries/falls back on its own if Ollama is unreachable."""
+    if provider != "ollama":
+        return
+    client = OllamaClient()
+    try:
+        httpx.post(
+            f"{client.base_url}/api/generate",
+            json={
+                "model": client.model,
+                "prompt": "ready",
+                "stream": False,
+                "keep_alive": settings.ollama_keep_alive,
+                "options": {**client._options(), "num_predict": 1},
+            },
+            timeout=client.timeout_seconds,
+        )
+    except httpx.HTTPError:
+        pass

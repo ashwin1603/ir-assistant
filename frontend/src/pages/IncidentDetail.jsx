@@ -3,7 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { get, post, ApiError } from "../lib/api";
 import { RiskBadge } from "../components/RiskBadge";
 
-const ANALYZE_TIMEOUT_MS = 120_000;
+const ANALYZE_TIMEOUT_MS = 40_000;
 
 const VERDICT_STYLES = {
   benign: "bg-emerald-900/60 text-emerald-300",
@@ -116,13 +116,13 @@ export default function IncidentDetail() {
           disabled={analyzing}
           className="rounded bg-sky-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-sky-500 disabled:opacity-50"
         >
-          {analyzing ? "Analyzing... (up to 120s)" : "Run AI analysis"}
+          {analyzing ? "Analyzing... (up to 35s)" : "Run AI analysis"}
         </button>
       </div>
 
       {analyzing && (
         <p className="mb-4 text-sm text-slate-500">
-          Waiting for the AI provider to triage this incident. This can take up to two minutes.
+          Waiting for the AI provider to triage this incident. This can take up to 35 seconds.
         </p>
       )}
       {analyzeError && <p className="mb-4 text-sm text-red-400">{analyzeError}</p>}
@@ -139,7 +139,6 @@ export default function IncidentDetail() {
             </span>
             <span className="text-xs text-slate-500">
               confidence {Math.round(analysis.confidence * 100)}% · provider {analysis.provider}
-              {analysis.degraded && " (degraded, fell back to template)"}
             </span>
           </div>
 

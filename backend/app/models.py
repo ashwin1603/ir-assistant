@@ -104,6 +104,7 @@ class AIAnalysis(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     incident_id: Mapped[str] = mapped_column(String, ForeignKey("incidents.id"), index=True)
+    detections_hash: Mapped[str] = mapped_column(String, index=True)  # cache key: sha256 of this incident's detection ids
     provider: Mapped[str] = mapped_column(String)
     degraded: Mapped[bool] = mapped_column(Boolean, default=False)
     verdict: Mapped[str] = mapped_column(String)
