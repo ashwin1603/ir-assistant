@@ -14,7 +14,7 @@ CHANNELS: dict[str, list[int]] = {
 # starve rarer events (4625, 4720, 4698, ...) out of a shared -MaxEvents window.
 # Each event id gets its own budget instead.
 DEFAULT_MAX_EVENTS = 500
-EVENT_MAX_EVENTS: dict[int, int] = {4688: 200}
+EVENT_MAX_EVENTS: dict[int, int] = {4688: 500}  # raised for the v2 command-line rules
 
 
 def max_events_for(event_id: int) -> int:

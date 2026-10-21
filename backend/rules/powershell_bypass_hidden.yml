@@ -1,0 +1,20 @@
+title: Hidden PowerShell with execution policy bypass
+id: c82ed4a3-c3ab-4857-a20a-a62c84c554de
+status: stable
+description: PowerShell launched with both -ExecutionPolicy Bypass and -WindowStyle Hidden.
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    event_id: 4688
+    command_line|contains: powershell
+  bypass:
+    command_line|re: '-(ep|exec|executionpolicy)\s+bypass\b'
+  hidden:
+    command_line|re: '-w(indowstyle)?\s+hidden\b'
+  condition: selection and bypass and hidden
+level: medium
+tags: [attack.execution, attack.t1059.001]
+severity: 6
+confidence: 0.7

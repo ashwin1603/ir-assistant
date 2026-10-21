@@ -1,0 +1,16 @@
+title: Run key persistence
+id: 063a2ad9-91c0-4b94-be54-c573042854e4
+status: stable
+description: A value written to a CurrentVersion\Run or RunOnce registry key from the command line.
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    event_id: 4688
+    command_line|re: '(reg(\.exe)?\s+add|New-ItemProperty|Set-ItemProperty)\b.*\\CurrentVersion\\Run(Once)?\b'
+  condition: selection
+level: high
+tags: [attack.persistence, attack.t1547.001]
+severity: 7
+confidence: 0.75

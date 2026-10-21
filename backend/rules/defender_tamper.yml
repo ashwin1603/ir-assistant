@@ -1,0 +1,18 @@
+title: Defender tampering
+id: 74dece9d-765a-4f00-bb65-1137e6f4e0b0
+status: stable
+description: Microsoft Defender protection disabled or an exclusion added via PowerShell.
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    event_id: 4688
+    command_line|re:
+      - 'Set-MpPreference\b.*-Disable\w+'
+      - 'Add-MpPreference\b.*-Exclusion\w+'
+  condition: selection
+level: high
+tags: [attack.defense_evasion, attack.t1562.001]
+severity: 8
+confidence: 0.85

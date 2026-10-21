@@ -1,0 +1,16 @@
+title: Service created with sc.exe
+id: 9829f3d3-d638-4d0b-b302-d2edb8a8d796
+status: stable
+description: A service was created from the command line with sc create.
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    event_id: 4688
+    command_line|re: '\bsc(\.exe)?"?\s+(\\\S+\s+)?create\b'
+  condition: selection
+level: medium
+tags: [attack.persistence, attack.t1543.003]
+severity: 6
+confidence: 0.7

@@ -1,8 +1,8 @@
 from app.collector.windows_events import max_events_for
 
 
-def test_max_events_for_process_creation_is_lower():
-    assert max_events_for(4688) == 200
+def test_max_events_for_process_creation():
+    assert max_events_for(4688) == 500
 
 
 def test_max_events_for_other_ids_uses_default():

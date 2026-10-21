@@ -1,0 +1,16 @@
+title: RDP enabled via registry
+id: 762348ba-0bfa-49bd-b0cb-daa061bd65e3
+status: stable
+description: fDenyTSConnections set to 0, enabling Remote Desktop.
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    event_id: 4688
+    command_line|re: 'fDenyTSConnections\b.*(/d|-Value)\s+0\b'
+  condition: selection
+level: medium
+tags: [attack.lateral_movement, attack.t1021.001]
+severity: 6
+confidence: 0.75

@@ -1,0 +1,18 @@
+title: Shadow copy deletion
+id: 30442609-d1ef-4fe9-9402-ce0d2e078b5b
+status: stable
+description: Volume shadow copies deleted via vssadmin or wmic (common ransomware pre-step).
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    event_id: 4688
+    command_line|re:
+      - 'vssadmin(\.exe)?\s+delete\s+shadows'
+      - 'wmic(\.exe)?\s+shadowcopy\s+delete'
+  condition: selection
+level: critical
+tags: [attack.impact, attack.t1490]
+severity: 9
+confidence: 0.9

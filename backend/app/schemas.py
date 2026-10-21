@@ -52,7 +52,7 @@ class AuditLogPage(BaseModel):
 class EventIn(BaseModel):
     id: str = Field(min_length=1, max_length=64)
     record_id: int | None = None
-    source: str = Field(pattern="^(local|upload|agent)$")
+    source: str = Field(pattern="^(local|upload|agent|simulated)$")
     host: str = Field(min_length=1, max_length=255)
     timestamp: datetime
     channel: str = Field(min_length=1, max_length=255)

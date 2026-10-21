@@ -147,3 +147,18 @@ def test_list_events_pagination(client, seed_users):
     body = resp.json()
     assert body["total"] == 5
     assert len(body["items"]) == 2
+
+
+def test_wipe_simulated_requires_key_and_keeps_real_events(client, seed_users):
+    headers = {"X-Collector-Key": "test-collector-key"}
+    simulated = _other_event() | {"source": "simulated"}
+    client.post("/api/events/ingest", json={"events": [SAMPLE_EVENT, simulated]}, headers=headers)
+
+    assert client.delete("/api/events/simulated").status_code == 401
+    resp = client.delete("/api/events/simulated", headers=headers)
+    assert resp.json() == {"deleted": 1}
+
+    login = client.post("/api/auth/login", json={"username": "test_viewer", "password": "TestViewerPass123!"})
+    token = login.json()["access_token"]
+    body = client.get("/api/events", headers={"Authorization": f"Bearer {token}"}).json()
+    assert [e["source"] for e in body["items"]] == ["agent"]

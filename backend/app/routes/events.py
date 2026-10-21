@@ -40,6 +40,19 @@ def ingest_events(
     return {"ingested": inserted, "skipped": skipped}
 
 
+@router.delete("/simulated")
+def wipe_simulated_events(
+    db: Session = Depends(get_db),
+    _collector=Depends(require_collector_key),
+):
+    # Only ever removes synthetic demo events (scripts/seed_simulated_events.py);
+    # real collected events cannot be deleted through the API.
+    deleted = db.query(Event).filter(Event.source == "simulated").delete()
+    db.commit()
+    log_action(db, actor="collector", action="wipe_simulated", detail=f"{deleted} deleted", success=True)
+    return {"deleted": deleted}
+
+
 @router.get("", response_model=EventPage)
 def list_events(
     db: Session = Depends(get_db),

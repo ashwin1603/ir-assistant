@@ -12,6 +12,12 @@ TACTICS: dict[str, str] = {
     "T1033": "Discovery",
     "T1087": "Discovery",
     "T1082": "Discovery",
+    "T1490": "Impact",
+    "T1562.001": "Defense Evasion",
+    "T1105": "Command and Control",
+    "T1021.001": "Lateral Movement",
+    "T1547.001": "Persistence",
+    "T1003": "Credential Access",
 }
 
 TECHNIQUE_NAMES: dict[str, str] = {
@@ -26,6 +32,12 @@ TECHNIQUE_NAMES: dict[str, str] = {
     "T1033": "System Owner/User Discovery",
     "T1087": "Account Discovery",
     "T1082": "System Information Discovery",
+    "T1490": "Inhibit System Recovery",
+    "T1562.001": "Impair Defenses: Disable or Modify Tools",
+    "T1105": "Ingress Tool Transfer",
+    "T1021.001": "Remote Services: Remote Desktop Protocol",
+    "T1547.001": "Registry Run Keys / Startup Folder",
+    "T1003": "OS Credential Dumping",
 }
 
 
@@ -83,6 +95,36 @@ MITIGATIONS: dict[str, list[str]] = {
     "T1082": [
         "Review whether this is expected admin activity or a reconnaissance step",
         "Monitor for follow-on lateral movement or credential access",
+    ],
+    "T1490": [
+        "Isolate the host immediately: shadow copy deletion often precedes ransomware encryption",
+        "Verify offline/immutable backups are intact before any restore",
+        "Alert on and restrict vssadmin/wmic shadow copy deletion",
+    ],
+    "T1562.001": [
+        "Re-enable Defender protections and remove unauthorized exclusions",
+        "Enable Defender Tamper Protection to block preference changes",
+        "Run a full scan of the host, including any excluded paths",
+    ],
+    "T1105": [
+        "Quarantine the downloaded file and check its hash against threat intel",
+        "Block the source URL/domain at the proxy or firewall",
+        "Restrict certutil/bitsadmin network use via AppLocker/WDAC",
+    ],
+    "T1021.001": [
+        "Disable RDP again (fDenyTSConnections=1) if not authorized",
+        "Restrict RDP to a VPN or jump host and require Network Level Authentication",
+        "Review recent RDP logons (4624 logon type 10) on the host",
+    ],
+    "T1547.001": [
+        "Inspect the Run/RunOnce value and its target binary; remove if unauthorized",
+        "Scan the referenced binary for malware",
+        "Hunt for other autostart entries on the host",
+    ],
+    "T1003": [
+        "Isolate the host and reset credentials for all accounts used on it",
+        "Enable LSASS protection (RunAsPPL) and Credential Guard",
+        "Delete saved hive/dump files and check for exfiltration",
     ],
 }
 

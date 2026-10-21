@@ -1,0 +1,18 @@
+title: Event log clear command
+id: 9e89c1bd-c26a-4c40-9e8b-d74ddd925e4a
+status: stable
+description: Process command line clears an event log (wevtutil cl / Clear-EventLog).
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    event_id: 4688
+    command_line|re:
+      - 'wevtutil(\.exe)?\s+(cl|clear-log)\b'
+      - 'Clear-EventLog\b'
+  condition: selection
+level: high
+tags: [attack.defense_evasion, attack.t1070.001]
+severity: 9
+confidence: 0.9

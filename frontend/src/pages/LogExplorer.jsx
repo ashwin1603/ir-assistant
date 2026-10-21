@@ -3,6 +3,13 @@ import { get } from "../lib/api";
 
 const PAGE_SIZE = 25;
 
+const SOURCE_BADGE = {
+  agent: "bg-sky-900/60 text-sky-300",
+  local: "bg-sky-900/60 text-sky-300",
+  upload: "bg-violet-900/60 text-violet-300",
+  simulated: "bg-amber-900/60 text-amber-300",
+};
+
 export default function LogExplorer() {
   const [q, setQ] = useState("");
   const [channel, setChannel] = useState("");
@@ -94,6 +101,7 @@ export default function LogExplorer() {
           <thead className="bg-slate-900 text-slate-400">
             <tr>
               <th className="px-3 py-2">Timestamp</th>
+              <th className="px-3 py-2">Source</th>
               <th className="px-3 py-2">Host</th>
               <th className="px-3 py-2">Channel</th>
               <th className="px-3 py-2">Event ID</th>
@@ -105,14 +113,14 @@ export default function LogExplorer() {
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={7} className="px-3 py-6 text-center text-slate-500">
+                <td colSpan={8} className="px-3 py-6 text-center text-slate-500">
                   Loading...
                 </td>
               </tr>
             )}
             {!loading && data.items.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-3 py-6 text-center text-slate-500">
+                <td colSpan={8} className="px-3 py-6 text-center text-slate-500">
                   No events found.
                 </td>
               </tr>
@@ -129,6 +137,15 @@ export default function LogExplorer() {
                   >
                     <td className="whitespace-nowrap px-3 py-2 text-slate-300">
                       {new Date(ev.timestamp).toLocaleString()}
+                    </td>
+                    <td className="px-3 py-2">
+                      <span
+                        className={`rounded px-1.5 py-0.5 text-xs font-medium ${
+                          SOURCE_BADGE[ev.source] || "bg-slate-800 text-slate-300"
+                        }`}
+                      >
+                        {ev.source}
+                      </span>
                     </td>
                     <td className="px-3 py-2 text-slate-300">{ev.host}</td>
                     <td className="px-3 py-2 text-slate-300">{ev.channel}</td>

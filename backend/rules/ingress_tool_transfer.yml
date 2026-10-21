@@ -1,0 +1,18 @@
+title: File download via LOLBin
+id: 7366d4a8-81ef-4b63-a7ec-5f6adf3d19f6
+status: stable
+description: certutil -urlcache or bitsadmin /transfer used to download a file.
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    event_id: 4688
+    command_line|re:
+      - 'certutil(\.exe)?\b.*-urlcache'
+      - 'bitsadmin(\.exe)?\b.*/transfer'
+  condition: selection
+level: high
+tags: [attack.command_and_control, attack.t1105]
+severity: 7
+confidence: 0.8
