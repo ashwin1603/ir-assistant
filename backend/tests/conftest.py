@@ -1,6 +1,7 @@
 import os
 
 os.environ["RATE_LIMIT_ENABLED"] = "false"
+os.environ["COLLECTOR_API_KEY"] = "test-collector-key"
 
 import pytest
 from fastapi.testclient import TestClient

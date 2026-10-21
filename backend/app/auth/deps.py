@@ -1,9 +1,10 @@
 import jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
 from app.auth.security import decode_access_token
+from app.config import settings
 from app.db import get_db
 from app.models import User
 
@@ -34,3 +35,8 @@ def require_role(*roles: str):
         return user
 
     return checker
+
+
+def require_collector_key(x_collector_key: str | None = Header(default=None)) -> None:
+    if not x_collector_key or x_collector_key != settings.collector_api_key:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid collector key")

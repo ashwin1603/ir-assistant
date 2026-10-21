@@ -28,3 +28,50 @@ class AuditLogOut(BaseModel):
     action: str
     detail: str | None
     success: bool
+
+
+class EventIn(BaseModel):
+    id: str = Field(min_length=1, max_length=64)
+    record_id: int | None = None
+    source: str = Field(pattern="^(local|upload|agent)$")
+    host: str = Field(min_length=1, max_length=255)
+    timestamp: datetime
+    channel: str = Field(min_length=1, max_length=255)
+    provider: str = Field(max_length=255)
+    event_id: int
+    user: str | None = Field(default=None, max_length=255)
+    process: str | None = Field(default=None, max_length=512)
+    command_line: str | None = Field(default=None, max_length=50000)
+    parent_process: str | None = Field(default=None, max_length=512)
+    src_ip: str | None = Field(default=None, max_length=64)
+    logon_type: str | None = Field(default=None, max_length=32)
+    message: str | None = Field(default=None, max_length=50000)
+    raw: str = Field(max_length=100000)
+
+
+class EventIngestRequest(BaseModel):
+    events: list[EventIn] = Field(min_length=1, max_length=1000)
+
+
+class EventOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    source: str
+    host: str
+    timestamp: datetime
+    channel: str
+    provider: str
+    event_id: int
+    user: str | None
+    process: str | None
+    command_line: str | None
+    parent_process: str | None
+    src_ip: str | None
+    logon_type: str | None
+    message: str | None
+
+
+class EventPage(BaseModel):
+    total: int
+    items: list[EventOut]

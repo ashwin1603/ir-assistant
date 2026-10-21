@@ -1,15 +1,21 @@
+import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+
+logger = logging.getLogger("ir_assistant")
 
 from app.auth.routes import router as auth_router
 from app.config import settings
 from app.db import Base, SessionLocal, engine
 from app.rate_limit import limiter
 from app.routes.audit_log import router as audit_router
+from app.routes.events import router as events_router
 from app.seed import seed_admin_user
 
 Base.metadata.create_all(bind=engine)
@@ -29,6 +35,14 @@ app = FastAPI(title="IR Assistant API", lifespan=lifespan)
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    # Log the full error (may include offending field values) server-side only.
+    logger.warning("validation error on %s: %s", request.url.path, exc.errors())
+    sanitized = [{"loc": err["loc"], "type": err["type"], "msg": err["msg"]} for err in exc.errors()]
+    return JSONResponse(status_code=422, content={"detail": sanitized})
 
 app.add_middleware(
     CORSMiddleware,
@@ -50,6 +64,7 @@ async def security_headers(request, call_next):
 
 app.include_router(auth_router)
 app.include_router(audit_router)
+app.include_router(events_router)
 
 
 @app.get("/api/health")
