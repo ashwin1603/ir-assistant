@@ -1,0 +1,16 @@
+title: User added to local Administrators
+id: 0ea16cce-45b9-4bd3-b843-b9bb3cde3a1f
+status: stable
+description: A member was added to the local Administrators group.
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    event_id: 4732
+    message|contains: administrators
+  condition: selection
+level: high
+tags: [attack.persistence, attack.t1098]
+severity: 8
+confidence: 0.9

@@ -1,0 +1,16 @@
+title: Encoded PowerShell command
+id: adae165f-ba79-4519-9ecf-5e18cf7ba598
+status: stable
+description: Process created with a PowerShell -enc / -EncodedCommand argument.
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    event_id: 4688
+    command_line|re: '-enc(odedcommand)?\b'
+  condition: selection
+level: high
+tags: [attack.execution, attack.t1059.001, attack.defense_evasion, attack.t1027]
+severity: 7
+confidence: 0.8

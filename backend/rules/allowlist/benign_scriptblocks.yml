@@ -1,0 +1,38 @@
+title: Benign PowerShell script blocks
+description: >
+  Known-good script blocks from developer installers and from our own collector.
+  Patterns are anchored to the whole script block (^...$) so appending extra
+  code to a known-good block does not get it suppressed.
+applies_to:
+  - f9e10ffe-bed2-4f64-9ffa-7bb7864afc45   # Suspicious PowerShell script block
+entries:
+  - name: Node.js npm/npx PowerShell shim
+    match:
+      event_id: 4104
+      command_line|re: |-
+        ^#!/usr/bin/env pwsh\s+Set-StrictMode -Version 'Latest'\s+\$NODE_EXE="\$PSScriptRoot/node\.exe"[\s\S]*Invoke-Expression "& `"\$NODE_EXE`" `"\$NP[MX]_CLI_JS`" \$NP[MX]_ARGS"\s*\}\s*exit \$LASTEXITCODE\s*$
+  - name: uv installer one-liner (astral.sh)
+    match:
+      event_id: 4104
+      command_line|re: |-
+        ^\s*powershell(\.exe)?\s+-ExecutionPolicy\s+Bypass\s+-c\s+["']irm https://astral\.sh/uv/install\.ps1 \| iex["']\s*$
+  - name: Scoop installer one-liner
+    match:
+      event_id: 4104
+      command_line|re: |-
+        ^\s*(irm|Invoke-RestMethod)(\s+-Uri)?\s+(https://)?get\.scoop\.sh\s*\|\s*(iex|Invoke-Expression)\s*$
+  - name: Chocolatey installer one-liner
+    match:
+      event_id: 4104
+      command_line|re: |-
+        ^\s*Set-ExecutionPolicy Bypass -Scope Process -Force;\s*\[System\.Net\.ServicePointManager\]::SecurityProtocol = \[System\.Net\.ServicePointManager\]::SecurityProtocol -bor 3072;\s*iex \(\(New-Object System\.Net\.WebClient\)\.DownloadString\('https://community\.chocolatey\.org/install\.ps1'\)\)\s*$
+  - name: WinGet client bootstrap (Microsoft docs)
+    match:
+      event_id: 4104
+      command_line|re: |-
+        ^\s*Install-PackageProvider -Name NuGet -Force \| Out-Null;\s*Install-Module -Name Microsoft\.WinGet\.Client -Force -Repository PSGallery \| Out-Null;\s*Repair-WinGetPackageManager( -AllUsers)?\s*$
+  - name: IR Assistant collector (Get-WinEvent export, see app/collector/windows_events.py)
+    match:
+      event_id: 4104
+      command_line|re: |-
+        ^\$events = Get-WinEvent -FilterHashtable @\{LogName='[A-Za-z0-9/ -]+'; Id=[0-9,]+\} -MaxEvents \d+ -ErrorAction SilentlyContinue; if \(\$events\) \{ \$events \| ForEach-Object \{ \[PSCustomObject\]@\{ RecordId = \$_\.RecordId; TimeCreated = \$_\.TimeCreated\.ToUniversalTime\(\)\.ToString\('o'\); Id = \$_\.Id; LogName = \$_\.LogName; ProviderName = \$_\.ProviderName; MachineName = \$_\.MachineName; Message = \$_\.Message; Properties = @\(\$_\.Properties \| ForEach-Object \{ \$_\.Value \}\) \} \} \| ConvertTo-Json -Depth 5 \} else \{ '\[\]' \}$

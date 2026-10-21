@@ -8,4 +8,5 @@ argon2-cffi
 pyjwt
 slowapi
 httpx
+pyyaml
 pytest

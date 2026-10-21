@@ -1,0 +1,20 @@
+title: Suspicious PowerShell script block
+id: f9e10ffe-bed2-4f64-9ffa-7bb7864afc45
+status: stable
+description: Script block logging captured download/execute or decode primitives.
+logsource:
+  product: windows
+  service: powershell
+detection:
+  selection:
+    event_id: 4104
+    command_line|re:
+      - 'invoke-expression'
+      - 'downloadstring'
+      - 'frombase64string'
+      - '\biex\b'
+  condition: selection
+level: medium
+tags: [attack.execution, attack.t1059.001]
+severity: 6
+confidence: 0.5

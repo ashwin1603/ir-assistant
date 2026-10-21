@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.analysis.incidents import group_into_incidents
 from app.analysis.risk import compute_risk
 from app.detection.attack_map import tactics_for
-from app.detection.rules import PREDICATES, RULES, Rule
+from app.detection.rules import ALLOWLIST, RULES, Rule, is_allowlisted
 from app.models import Detection, Event, Incident
 
 
@@ -78,10 +78,7 @@ def run_detection(db: Session) -> None:
 
     detections: list[Detection] = []
     for rule in RULES:
-        candidates = [e for e in events if e.event_id in rule.event_ids]
-        predicate = PREDICATES.get(rule.name)
-        if predicate:
-            candidates = [e for e in candidates if predicate(e)]
+        candidates = [e for e in events if rule.matches(e) and not is_allowlisted(rule, e, ALLOWLIST)]
 
         if rule.kind == "filter":
             clusters = _cluster_events(candidates, FILTER_RULE_WINDOW_MINUTES, min_count=1, group_by=("host",))

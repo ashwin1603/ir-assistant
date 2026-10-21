@@ -1,0 +1,15 @@
+title: Local user account created
+id: ae158ccb-9270-4e35-93b1-cb1e87b5a2c1
+status: stable
+description: A local user account was created.
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    event_id: 4720
+  condition: selection
+level: medium
+tags: [attack.persistence, attack.t1136.001]
+severity: 5
+confidence: 0.6

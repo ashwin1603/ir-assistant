@@ -1,0 +1,18 @@
+title: Brute force logon
+id: 8b596fb9-4145-48d7-907e-b16ed8c185a6
+status: stable
+description: 5 or more failed logons for the same account on one host within 5 minutes.
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    event_id: 4625
+  condition: selection
+  timeframe: 5m
+  group_by: [host, user]
+  min_count: 5
+level: medium
+tags: [attack.credential_access, attack.t1110]
+severity: 6
+confidence: 0.9

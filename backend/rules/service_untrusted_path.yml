@@ -1,0 +1,21 @@
+title: New service installed outside trusted paths
+id: c90333d5-d05e-451e-9374-24f12c394caa
+status: stable
+description: A service was installed whose binary is not under Program Files or System32/SysWOW64.
+logsource:
+  product: windows
+  service: system
+detection:
+  selection:
+    event_id: 7045
+  filter_empty:          # no binary info at all -> nothing to judge
+    process: null
+    command_line: null
+  filter_trusted:        # list = OR: either field under a trusted path
+    - process|contains: [program files, system32, syswow64]
+    - command_line|contains: [program files, system32, syswow64]
+  condition: selection and not filter_empty and not filter_trusted
+level: high
+tags: [attack.persistence, attack.t1543.003]
+severity: 7
+confidence: 0.6

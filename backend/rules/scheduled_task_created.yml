@@ -1,0 +1,15 @@
+title: Scheduled task created
+id: 5fecf101-4f48-4eb6-9918-4fdcb73c7ee9
+status: stable
+description: A scheduled task was registered.
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    event_id: 4698
+  condition: selection
+level: medium
+tags: [attack.persistence, attack.t1053.005]
+severity: 6
+confidence: 0.6

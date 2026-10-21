@@ -1,0 +1,25 @@
+title: Discovery command burst
+id: 62a537e5-5836-4eb7-aef4-63aa75d72560
+status: stable
+description: Several discovery commands (whoami, net user, ipconfig, systeminfo) on one host within 2 minutes.
+logsource:
+  product: windows
+  service: security
+detection:
+  selection:
+    event_id: 4688
+  discovery:             # list = OR: either field names a discovery command
+    - process|re: &discovery
+        - '\bwhoami\b'
+        - '\bnet\s+(user|group|localgroup)\b'
+        - '\bipconfig\b'
+        - '\bsysteminfo\b'
+    - command_line|re: *discovery
+  condition: selection and discovery
+  timeframe: 2m
+  group_by: [host]
+  min_count: 2
+level: low
+tags: [attack.discovery, attack.t1033, attack.t1087, attack.t1082]
+severity: 4
+confidence: 0.6
