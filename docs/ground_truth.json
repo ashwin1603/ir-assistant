@@ -1,0 +1,41 @@
+{
+  "real": {
+    "host": "DESKTOP-M35SOM0",
+    "date": "2026-10-21",
+    "utc_offset": "+05:30",
+    "evaluation_window": {"start": "10:30", "end": "11:20"},
+    "attacks": [
+      {"technique": "T1110",     "rule": "Brute force logon",                   "start": "10:33", "end": "10:36"},
+      {"technique": "T1136.001", "rule": "Local user account created",          "start": "10:34", "end": "10:35"},
+      {"technique": "T1053.005", "rule": "Scheduled task created",              "start": "10:34", "end": "10:35"},
+      {"technique": "T1059.001", "rule": "Encoded PowerShell command",          "start": "11:13", "end": "11:14"},
+      {"technique": "T1033",     "rule": "Discovery command burst",             "start": "11:13", "end": "11:14"},
+      {"technique": "T1087",     "rule": "Discovery command burst",             "start": "11:13", "end": "11:14"},
+      {"technique": "T1082",     "rule": "Discovery command burst",             "start": "11:13", "end": "11:14"},
+      {"technique": "T1136.001", "rule": "Local user account created",          "start": "11:13", "end": "11:14"},
+      {"technique": "T1098",     "rule": "User added to local Administrators",  "start": "11:13", "end": "11:14"}
+    ],
+    "known_noise": {"Suspicious PowerShell script block": "developer tooling"}
+  },
+  "simulated": {
+    "host": "SIM-WS01",
+    "benign_count": 14,
+    "malicious": [
+      {"technique": "T1490",     "rule": "Shadow copy deletion",                        "event_id": 4688, "contains": "vssadmin.exe delete shadows"},
+      {"technique": "T1490",     "rule": "Shadow copy deletion",                        "event_id": 4688, "contains": "wmic shadowcopy delete"},
+      {"technique": "T1562.001", "rule": "Defender tampering",                          "event_id": 4688, "contains": "Set-MpPreference"},
+      {"technique": "T1562.001", "rule": "Defender tampering",                          "event_id": 4688, "contains": "Add-MpPreference"},
+      {"technique": "T1070.001", "rule": "Event log clear command",                     "event_id": 4688, "contains": "wevtutil cl"},
+      {"technique": "T1105",     "rule": "File download via LOLBin",                    "event_id": 4688, "contains": "certutil.exe -urlcache"},
+      {"technique": "T1105",     "rule": "File download via LOLBin",                    "event_id": 4688, "contains": "bitsadmin /transfer"},
+      {"technique": "T1543.003", "rule": "Service created with sc.exe",                 "event_id": 4688, "contains": "sc.exe create"},
+      {"technique": "T1021.001", "rule": "RDP enabled via registry",                    "event_id": 4688, "contains": "fDenyTSConnections"},
+      {"technique": "T1547.001", "rule": "Run key persistence",                         "event_id": 4688, "contains": "CurrentVersion\\Run"},
+      {"technique": "T1059.001", "rule": "Hidden PowerShell with execution policy bypass", "event_id": 4688, "contains": "-ExecutionPolicy Bypass"},
+      {"technique": "T1003",     "rule": "Credential dumping",                          "event_id": 4688, "contains": "reg save HKLM\\SAM"},
+      {"technique": "T1003",     "rule": "Credential dumping",                          "event_id": 4688, "contains": "comsvcs.dll, MiniDump"},
+      {"technique": "T1070.001", "rule": "Security/System event log cleared",           "event_id": 1102, "contains": ""},
+      {"technique": "T1543.003", "rule": "New service installed outside trusted paths", "event_id": 7045, "contains": "evil.exe"}
+    ]
+  }
+}

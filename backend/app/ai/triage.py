@@ -141,7 +141,8 @@ def template_result(detections: list[Detection]) -> AIModelOutput:
 
     return AIModelOutput(
         verdict=verdict,
-        confidence=0.6,
+        # Confidence comes from the rules themselves, not a fixed number.
+        confidence=max(d.confidence for d in detections),
         reasoning=f"{len(detections)} detection(s) fired: {', '.join(rule_names)}.",
         narrative=f"Observed {', '.join(technique_names)} activity, consistent with {', '.join(rule_names)}.",
         risk_explanation=(
