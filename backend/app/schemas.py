@@ -44,6 +44,11 @@ class AuditLogOut(BaseModel):
     success: bool
 
 
+class AuditLogPage(BaseModel):
+    total: int
+    items: list[AuditLogOut]
+
+
 class EventIn(BaseModel):
     id: str = Field(min_length=1, max_length=64)
     record_id: int | None = None
@@ -167,3 +172,10 @@ class AnalysisOut(BaseModel):
     findings: list[FindingOut]
     recommended_actions: list[str]
     created_at: UTCDateTime
+
+
+class ReportOut(BaseModel):
+    incident: IncidentDetail
+    analysis: AnalysisOut | None
+    actions: list[ActionOut]
+    generated_at: UTCDateTime

@@ -2,6 +2,7 @@ import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 
 const navItems = [
+  { to: "/dashboard", label: "Dashboard" },
   { to: "/events", label: "Log Explorer" },
   { to: "/detections", label: "Detections" },
   { to: "/incidents", label: "Incidents" },
@@ -10,17 +11,18 @@ const navItems = [
 
 export default function Layout() {
   const { session, logout } = useAuth();
+  const items = session?.role === "admin" ? [...navItems, { to: "/audit", label: "Audit Log" }] : navItems;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <header className="border-b border-slate-800 bg-slate-900/60">
+    <div className="min-h-screen bg-slate-950 text-slate-100 print:bg-white print:text-black">
+      <header className="border-b border-slate-800 bg-slate-900/60 print:hidden">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3">
           <div className="flex items-center gap-8">
             <span className="text-sm font-semibold tracking-wide text-slate-200">
               IR Assistant
             </span>
             <nav className="flex gap-4 text-sm">
-              {navItems.map((item) => (
+              {items.map((item) => (
                 <NavLink
                   key={item.to}
                   to={item.to}

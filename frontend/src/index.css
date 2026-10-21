@@ -10,3 +10,10 @@ body {
   background-color: #0b0f14;
   color: #e5e9ee;
 }
+
+@media print {
+  body {
+    background-color: #ffffff;
+    color: #000000;
+  }
+}

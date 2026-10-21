@@ -45,7 +45,7 @@ def test_audit_log_records_failed_and_successful_logins(client, seed_users):
 
     resp = client.get("/api/audit", headers={"Authorization": f"Bearer {token}"})
     assert resp.status_code == 200
-    entries = resp.json()
+    entries = resp.json()["items"]
     login_entries = [e for e in entries if e["action"] == "login" and e["actor"] == "test_admin"]
     assert any(e["success"] is False for e in login_entries)
     assert any(e["success"] is True for e in login_entries)

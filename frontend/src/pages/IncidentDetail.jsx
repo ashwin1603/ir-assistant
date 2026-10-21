@@ -48,9 +48,14 @@ export default function IncidentDetail() {
 
   return (
     <div>
-      <Link to="/incidents" className="mb-4 inline-block text-sm text-sky-400 hover:text-sky-300">
-        &larr; Back to incidents
-      </Link>
+      <div className="mb-4 flex items-center justify-between">
+        <Link to="/incidents" className="inline-block text-sm text-sky-400 hover:text-sky-300">
+          &larr; Back to incidents
+        </Link>
+        <Link to={`/incidents/${id}/report`} className="text-sm text-sky-400 hover:text-sky-300">
+          View printable report &rarr;
+        </Link>
+      </div>
 
       <div className="mb-6 flex items-center justify-between">
         <div>

@@ -21,6 +21,7 @@ from app.routes.audit_log import router as audit_router
 from app.routes.detections import router as detections_router
 from app.routes.events import router as events_router
 from app.routes.incidents import router as incidents_router
+from app.routes.reports import router as reports_router
 from app.seed import seed_admin_user
 
 Base.metadata.create_all(bind=engine)
@@ -74,6 +75,7 @@ app.include_router(audit_router)
 app.include_router(events_router)
 app.include_router(detections_router)
 app.include_router(incidents_router)
+app.include_router(reports_router)
 app.include_router(actions_router)
 
 

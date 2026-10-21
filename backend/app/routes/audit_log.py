@@ -1,14 +1,22 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.auth.deps import require_role
 from app.db import get_db
 from app.models import AuditLog
-from app.schemas import AuditLogOut
+from app.schemas import AuditLogPage
 
 router = APIRouter(prefix="/api/audit", tags=["audit"])
 
 
-@router.get("", response_model=list[AuditLogOut])
-def list_audit_log(db: Session = Depends(get_db), _admin=Depends(require_role("admin"))):
-    return db.query(AuditLog).order_by(AuditLog.timestamp.desc()).limit(200).all()
+@router.get("", response_model=AuditLogPage)
+def list_audit_log(
+    db: Session = Depends(get_db),
+    _admin=Depends(require_role("admin")),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=50, ge=1, le=200),
+):
+    query = db.query(AuditLog).order_by(AuditLog.timestamp.desc())
+    total = query.count()
+    items = query.offset((page - 1) * page_size).limit(page_size).all()
+    return AuditLogPage(total=total, items=items)
