@@ -1,5 +1,6 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import ErrorBoundary from "./ErrorBoundary";
 
 const navItems = [
   { to: "/dashboard", label: "Dashboard" },
@@ -11,6 +12,7 @@ const navItems = [
 
 export default function Layout() {
   const { session, logout } = useAuth();
+  const location = useLocation();
   const items = session?.role === "admin" ? [...navItems, { to: "/audit", label: "Audit Log" }] : navItems;
 
   return (
@@ -54,7 +56,9 @@ export default function Layout() {
         </div>
       </header>
       <main className="mx-auto max-w-6xl px-6 py-6">
-        <Outlet />
+        <ErrorBoundary key={location.pathname}>
+          <Outlet />
+        </ErrorBoundary>
       </main>
     </div>
   );

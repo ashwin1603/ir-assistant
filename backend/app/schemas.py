@@ -152,6 +152,8 @@ class ActionOut(BaseModel):
 
     id: str
     incident_id: str
+    incident_host: str
+    incident_started_at: UTCDateTime
     analysis_id: str
     action_text: str
     status: str

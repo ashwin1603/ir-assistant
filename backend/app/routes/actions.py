@@ -6,10 +6,25 @@ from sqlalchemy.orm import Session
 from app.audit import log_action
 from app.auth.deps import get_current_user, require_role
 from app.db import get_db
-from app.models import Action
+from app.models import Action, Incident
 from app.schemas import ActionOut
 
 router = APIRouter(prefix="/api/actions", tags=["actions"])
+
+
+def _to_out(action: Action, incident: Incident) -> ActionOut:
+    return ActionOut(
+        id=action.id,
+        incident_id=action.incident_id,
+        incident_host=incident.host,
+        incident_started_at=incident.started_at,
+        analysis_id=action.analysis_id,
+        action_text=action.action_text,
+        status=action.status,
+        created_at=action.created_at,
+        decided_by=action.decided_by,
+        decided_at=action.decided_at,
+    )
 
 
 @router.get("", response_model=list[ActionOut])
@@ -19,15 +34,16 @@ def list_actions(
     incident_id: str | None = Query(default=None, max_length=64),
     status: str | None = Query(default=None, pattern="^(pending|approved|rejected)$"),
 ):
-    query = db.query(Action)
+    query = db.query(Action, Incident).join(Incident, Action.incident_id == Incident.id)
     if incident_id:
         query = query.filter(Action.incident_id == incident_id)
     if status:
         query = query.filter(Action.status == status)
-    return query.order_by(Action.created_at.desc()).all()
+    rows = query.order_by(Action.created_at.desc()).all()
+    return [_to_out(action, incident) for action, incident in rows]
 
 
-def _decide(action_id: str, new_status: str, db: Session, user) -> Action:
+def _decide(action_id: str, new_status: str, db: Session, user) -> ActionOut:
     action = db.query(Action).filter(Action.id == action_id).first()
     if not action:
         raise HTTPException(status_code=404, detail="Action not found")
@@ -46,7 +62,8 @@ def _decide(action_id: str, new_status: str, db: Session, user) -> Action:
         detail=f"incident={action.incident_id} action_id={action.id} (simulated, not executed): {action.action_text}",
         success=True,
     )
-    return action
+    incident = db.query(Incident).filter(Incident.id == action.incident_id).first()
+    return _to_out(action, incident)
 
 
 @router.post("/{action_id}/approve", response_model=ActionOut)

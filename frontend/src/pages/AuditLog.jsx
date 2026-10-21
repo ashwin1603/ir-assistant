@@ -19,8 +19,8 @@ export default function AuditLog() {
     setLoading(true);
     get(`/audit?page=${page}&page_size=${PAGE_SIZE}`)
       .then((data) => {
-        setEntries(data.items);
-        setTotal(data.total);
+        setEntries(data.items ?? []);
+        setTotal(data.total ?? 0);
       })
       .catch((err) => setError(err.message || "Failed to load audit log"))
       .finally(() => setLoading(false));
