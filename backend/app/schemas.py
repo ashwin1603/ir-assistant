@@ -120,3 +120,23 @@ class TimelineEntry(BaseModel):
 
 class IncidentDetail(IncidentOut):
     timeline: list[TimelineEntry]
+
+
+class FindingOut(BaseModel):
+    technique_id: str
+    claim: str
+    event_ids: list[str]
+
+
+class AnalysisOut(BaseModel):
+    incident_id: str
+    provider: str
+    degraded: bool
+    verdict: str
+    confidence: float
+    reasoning: str
+    narrative: str
+    risk_explanation: str
+    findings: list[FindingOut]
+    recommended_actions: list[str]
+    created_at: datetime

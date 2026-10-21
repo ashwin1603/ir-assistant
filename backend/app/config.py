@@ -13,9 +13,13 @@ class Settings(BaseSettings):
 
     cors_origin: str = "http://localhost:5173"
 
-    llm_provider: str = "anthropic"
-    llm_api_key: str = ""
-    llm_model: str = "claude-sonnet-5"
+    llm_provider: str = "template"  # "ollama" (local, free) or "template" (deterministic, no network)
+    llm_model: str = "qwen2.5:3b"
+
+    ollama_base_url: str = "http://localhost:11434"
+    ollama_timeout_seconds: int = 120
+
+    ai_calls_per_hour: int = 20
 
     admin_username: str = ""
     admin_password: str = ""

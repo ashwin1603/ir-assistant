@@ -84,3 +84,20 @@ class Detection(Base):
     risk_score: Mapped[float] = mapped_column(Float)
     risk_level: Mapped[str] = mapped_column(String)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class AIAnalysis(Base):
+    __tablename__ = "ai_analyses"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    incident_id: Mapped[str] = mapped_column(String, ForeignKey("incidents.id"), index=True)
+    provider: Mapped[str] = mapped_column(String)
+    degraded: Mapped[bool] = mapped_column(Boolean, default=False)
+    verdict: Mapped[str] = mapped_column(String)
+    confidence: Mapped[float] = mapped_column(Float)
+    reasoning: Mapped[str] = mapped_column(Text)
+    narrative: Mapped[str] = mapped_column(Text)
+    risk_explanation: Mapped[str] = mapped_column(Text)
+    findings: Mapped[str] = mapped_column(Text)  # JSON list[{technique_id, claim, event_ids}]
+    recommended_actions: Mapped[str] = mapped_column(Text)  # JSON list[str]
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
