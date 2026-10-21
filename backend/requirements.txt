@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+pydantic
+pydantic-settings
+python-dotenv
+argon2-cffi
+pyjwt
+slowapi
+httpx
+pytest
