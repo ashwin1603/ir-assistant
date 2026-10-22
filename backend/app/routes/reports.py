@@ -4,18 +4,20 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.analysis.artifacts import extract_iocs
 from app.analysis.case_state import get_notes, get_status
+from app.analysis.report import attack_table, impact_text, top_actions, what_happened
 from app.analysis.timeline import build_timeline
 from app.auth.deps import get_current_user
 from app.db import get_db
 from app.models import Action, AIAnalysis, Incident
-from app.schemas import AnalysisOut, IncidentDetail, ReportOut
+from app.schemas import AnalysisOut, ExecutiveSummary, IncidentDetail, ReportOut
 
 router = APIRouter(prefix="/api/incidents", tags=["reports"])
 
 
 @router.get("/{incident_id}/report", response_model=ReportOut)
-def get_report(incident_id: str, db: Session = Depends(get_db), _user=Depends(get_current_user)):
+def get_report(incident_id: str, db: Session = Depends(get_db), user=Depends(get_current_user)):
     incident = db.query(Incident).filter(Incident.id == incident_id).first()
     if not incident:
         raise HTTPException(status_code=404, detail="Incident not found")
@@ -58,9 +60,19 @@ def get_report(incident_id: str, db: Session = Depends(get_db), _user=Depends(ge
 
     actions = db.query(Action).filter(Action.incident_id == incident_id).order_by(Action.created_at.asc()).all()
 
+    executive = ExecutiveSummary(
+        what_happened=what_happened(timeline),
+        impact=impact_text(incident.risk_level),
+        top_actions=top_actions(actions),
+    )
+
     return ReportOut(
         incident=incident_detail,
         analysis=analysis_out,
         actions=actions,
+        attack=attack_table(timeline),
+        iocs=extract_iocs(db, incident.id),
+        executive=executive,
         generated_at=datetime.now(timezone.utc),
+        generated_by=user.username,
     )

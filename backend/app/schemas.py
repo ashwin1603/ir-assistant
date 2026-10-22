@@ -266,8 +266,34 @@ class AnalysisOut(BaseModel):
     created_at: UTCDateTime
 
 
+class IOCOut(BaseModel):
+    type: str
+    value: str
+    event_count: int
+    event_ids: list[str]
+
+
+class AttackRow(BaseModel):
+    technique_id: str
+    name: str
+    tactic: str
+    rule_names: list[str]
+    detection_count: int
+    event_ids: list[str]
+
+
+class ExecutiveSummary(BaseModel):
+    what_happened: list[str]
+    impact: str
+    top_actions: list[ActionOut]
+
+
 class ReportOut(BaseModel):
     incident: IncidentDetail
     analysis: AnalysisOut | None
     actions: list[ActionOut]
+    attack: list[AttackRow]
+    iocs: list[IOCOut]
+    executive: ExecutiveSummary
     generated_at: UTCDateTime
+    generated_by: str

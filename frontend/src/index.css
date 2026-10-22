@@ -12,8 +12,48 @@ body {
 }
 
 @media print {
+  @page {
+    size: A4;
+    margin: 14mm 12mm;
+  }
+
   body {
     background-color: #ffffff;
     color: #000000;
+    font-size: 11pt;
+  }
+
+  /* Keep risk badge and table header colours in the PDF. */
+  .report {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .report h2,
+  .report h3 {
+    break-after: avoid;
+  }
+
+  .report section,
+  .report tr,
+  .report li {
+    break-inside: avoid;
+  }
+
+  /* Long tables may split, but repeat their header on each page. */
+  .report section.report-long {
+    break-inside: auto;
+  }
+
+  .report thead {
+    display: table-header-group;
+  }
+
+  .report .page-break {
+    break-before: page;
+  }
+
+  .report .mono {
+    word-break: break-all;
   }
 }

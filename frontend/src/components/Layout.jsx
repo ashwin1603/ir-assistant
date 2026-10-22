@@ -60,7 +60,7 @@ export default function Layout() {
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-6xl px-6 py-6">
+      <main className="mx-auto max-w-6xl px-6 py-6 print:max-w-none print:p-0">
         <ErrorBoundary key={location.pathname}>
           <Outlet />
         </ErrorBoundary>
