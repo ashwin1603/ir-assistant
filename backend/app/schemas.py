@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
 
@@ -31,6 +31,77 @@ class TokenResponse(BaseModel):
 class UserOut(BaseModel):
     username: str
     role: str
+
+
+Role = Literal["admin", "analyst", "viewer"]
+# Admin-set passwords: length is the policy (NIST 800-63B style), no composition rules.
+Password = Annotated[str, Field(min_length=12, max_length=200)]
+
+
+class AdminUserOut(BaseModel):
+    """Never includes password_hash."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    username: str
+    role: str
+    is_active: bool
+    created_at: UTCDateTime
+
+
+class AdminUserCreate(BaseModel):
+    username: str = Field(min_length=3, max_length=50, pattern=r"^[A-Za-z0-9_.-]+$")
+    password: Password
+    role: Role = "viewer"
+
+
+class AdminUserUpdate(BaseModel):
+    role: Role | None = None
+    is_active: bool | None = None
+
+
+class PasswordReset(BaseModel):
+    new_password: Password
+
+
+class RuleSettingOut(BaseModel):
+    id: str
+    name: str
+    kind: str
+    level: str
+    severity: int
+    technique_ids: list[str]
+    enabled: bool
+    min_count: int | None
+    window_minutes: int | None
+    default_min_count: int | None
+    default_window_minutes: int | None
+
+
+class RuleSettingUpdate(BaseModel):
+    enabled: bool | None = None
+    min_count: int | None = Field(default=None, ge=1, le=1000)
+    window_minutes: int | None = Field(default=None, ge=1, le=1440)
+
+
+class OllamaStatus(BaseModel):
+    reachable: bool
+    model_installed: bool
+    model_loaded: bool
+
+
+class SystemStatusOut(BaseModel):
+    llm_provider: str
+    llm_model: str
+    ai_calls_per_hour: int
+    ai_calls_last_hour: int
+    ollama: OllamaStatus | None  # None when the provider isn't ollama
+    collector_last_seen: UTCDateTime | None
+
+
+class SystemSettingsUpdate(BaseModel):
+    ai_calls_per_hour: int = Field(ge=1, le=1000)
 
 
 class AuditLogOut(BaseModel):

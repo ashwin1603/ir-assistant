@@ -1,5 +1,6 @@
 import json
 import uuid
+from dataclasses import replace
 from datetime import timedelta
 
 from sqlalchemy.orm import Session
@@ -8,7 +9,7 @@ from app.analysis.incidents import group_into_incidents
 from app.analysis.risk import compute_risk
 from app.detection.attack_map import tactics_for
 from app.detection.rules import ALLOWLIST, RULES, Rule, is_allowlisted
-from app.models import Detection, Event, Incident
+from app.models import Detection, Event, Incident, RuleOverride
 
 
 def _cluster_events(events: list[Event], window_minutes: int, min_count: int, group_by: tuple[str, ...]) -> list[list[Event]]:
@@ -72,12 +73,34 @@ def _build_detection(rule: Rule, matched_events: list[Event]) -> Detection:
     )
 
 
+def effective_rules(db: Session) -> list[Rule]:
+    """The YAML rules with admin overrides (Settings page) applied: disabled
+    rules are dropped and cluster thresholds replaced where set."""
+    overrides = {o.rule_id: o for o in db.query(RuleOverride).all()}
+    rules = []
+    for rule in RULES:
+        override = overrides.get(rule.id)
+        if override is None:
+            rules.append(rule)
+            continue
+        if not override.enabled:
+            continue
+        if rule.kind == "cluster":
+            rule = replace(
+                rule,
+                min_count=override.min_count or rule.min_count,
+                window_minutes=override.window_minutes or rule.window_minutes,
+            )
+        rules.append(rule)
+    return rules
+
+
 def run_detection(db: Session) -> None:
     """Recompute all detections and incidents from the current events table."""
     events = db.query(Event).order_by(Event.timestamp.asc()).all()
 
     detections: list[Detection] = []
-    for rule in RULES:
+    for rule in effective_rules(db):
         candidates = [e for e in events if rule.matches(e) and not is_allowlisted(rule, e, ALLOWLIST)]
 
         if rule.kind == "filter":

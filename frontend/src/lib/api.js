@@ -59,6 +59,10 @@ export function put(path, body) {
   return request(path, { method: "PUT", body: JSON.stringify(body) });
 }
 
+export function patch(path, body) {
+  return request(path, { method: "PATCH", body: JSON.stringify(body) });
+}
+
 // Authenticated file download: fetch with the bearer token, then save the blob.
 export async function download(path, filename) {
   const headers = authToken ? { Authorization: `Bearer ${authToken}` } : {};

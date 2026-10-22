@@ -12,6 +12,7 @@ import Recommendations from "./pages/Recommendations";
 import AuditLog from "./pages/AuditLog";
 import Report from "./pages/Report";
 import Upload from "./pages/Upload";
+import Settings from "./pages/Settings";
 
 export default function App() {
   return (
@@ -29,6 +30,7 @@ export default function App() {
             <Route path="/upload" element={<Upload />} />
             <Route path="/recommendations" element={<Recommendations />} />
             <Route path="/audit" element={<AuditLog />} />
+            <Route path="/settings" element={<Settings />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
           </Route>
         </Route>

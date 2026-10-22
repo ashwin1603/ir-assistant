@@ -18,7 +18,8 @@ GENERIC_AUTH_ERROR = "Invalid username or password"
 @limiter.limit("5/minute")
 def login(request: Request, payload: LoginRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == payload.username).first()
-    if not user or not verify_password(payload.password, user.password_hash):
+    # Disabled accounts get the same generic error (no account-state enumeration).
+    if not user or not verify_password(payload.password, user.password_hash) or not user.is_active:
         log_action(db, actor=payload.username, action="login", success=False)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=GENERIC_AUTH_ERROR)
 

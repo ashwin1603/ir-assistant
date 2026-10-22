@@ -81,3 +81,21 @@ def warm_up(provider: str) -> None:
         )
     except httpx.HTTPError:
         pass
+
+
+def ollama_status() -> dict:
+    """For the admin System panel: is Ollama reachable, is the configured model
+    pulled (/api/tags), and is it loaded in memory right now (/api/ps)."""
+    client = OllamaClient()
+    status = {"reachable": False, "model_installed": False, "model_loaded": False}
+    try:
+        tags = httpx.get(f"{client.base_url}/api/tags", timeout=2)
+        tags.raise_for_status()
+        status["reachable"] = True
+        status["model_installed"] = any(m.get("name") == client.model for m in tags.json().get("models", []))
+        ps = httpx.get(f"{client.base_url}/api/ps", timeout=2)
+        ps.raise_for_status()
+        status["model_loaded"] = any(m.get("name") == client.model for m in ps.json().get("models", []))
+    except (httpx.HTTPError, ValueError):
+        pass
+    return status

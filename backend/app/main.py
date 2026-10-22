@@ -14,7 +14,7 @@ logger = logging.getLogger("ir_assistant")
 from app.ai.client import warm_up
 from app.auth.routes import router as auth_router
 from app.config import settings
-from app.db import Base, SessionLocal, engine
+from app.db import Base, SessionLocal, add_missing_columns, engine
 from app.rate_limit import limiter
 from app.routes.actions import router as actions_router
 from app.routes.artifacts import router as artifacts_router
@@ -23,10 +23,12 @@ from app.routes.detections import router as detections_router
 from app.routes.events import router as events_router
 from app.routes.incidents import router as incidents_router
 from app.routes.reports import router as reports_router
+from app.routes.settings import router as settings_router
 from app.routes.uploads import router as uploads_router
 from app.seed import seed_admin_user
 
 Base.metadata.create_all(bind=engine)
+add_missing_columns()
 
 
 @asynccontextmanager
@@ -81,6 +83,7 @@ app.include_router(reports_router)
 app.include_router(artifacts_router)
 app.include_router(actions_router)
 app.include_router(uploads_router)
+app.include_router(settings_router)
 
 
 @app.get("/api/health")

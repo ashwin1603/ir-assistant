@@ -23,6 +23,7 @@ from app.audit import log_action
 from app.config import settings
 from app.detection.attack_map import MITIGATIONS, TECHNIQUE_NAMES
 from app.models import Action, AIAnalysis, AuditLog, Detection
+from app.runtime_settings import get_ai_calls_per_hour
 
 MAX_ATTEMPTS = 2  # one try + one retry, then fall back to the deterministic narrative
 TOP_DETECTIONS_FOR_NARRATIVE = 5  # only the highest-risk detections are sent to the model
@@ -170,7 +171,7 @@ def check_rate_limit(db: Session, actor: str) -> bool:
         .filter(AuditLog.actor == actor, AuditLog.action == "ai_analyze", AuditLog.timestamp >= since)
         .count()
     )
-    return count < settings.ai_calls_per_hour
+    return count < get_ai_calls_per_hour(db)
 
 
 def _detections_hash(detections: list[Detection]) -> str:

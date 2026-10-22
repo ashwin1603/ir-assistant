@@ -16,6 +16,7 @@ class User(Base):
     username: Mapped[str] = mapped_column(String, unique=True, index=True)
     password_hash: Mapped[str] = mapped_column(String)
     role: Mapped[str] = mapped_column(String, default="viewer")
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
@@ -143,3 +144,26 @@ class IncidentNote(Base):
     author: Mapped[str] = mapped_column(String)
     text: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class RuleOverride(Base):
+    """Admin overrides for a YAML rule (keyed by the rule's YAML id). Applied by
+    the detection engine on its next run; a missing row means "use the YAML"."""
+
+    __tablename__ = "rule_overrides"
+
+    rule_id: Mapped[str] = mapped_column(String, primary_key=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    min_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    window_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    updated_by: Mapped[str | None] = mapped_column(String, nullable=True)
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class AppSetting(Base):
+    """Admin-editable runtime settings (key/value). Falls back to config.py defaults."""
+
+    __tablename__ = "app_settings"
+
+    key: Mapped[str] = mapped_column(String, primary_key=True)
+    value: Mapped[str] = mapped_column(String)
