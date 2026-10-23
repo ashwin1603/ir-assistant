@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { get } from "../lib/api";
 import { Skeleton } from "../components/Skeleton";
+import { ErrorBanner } from "../components/States";
 
 // Cell colour = highest risk level among current detections; grey = covered by a rule, not seen.
 const CELL_STYLES = {
@@ -17,13 +18,14 @@ export default function AttackMatrix() {
   const host = searchParams.get("host") || "";
   const [matrix, setMatrix] = useState(null);
   const [error, setError] = useState("");
+  const [reload, setReload] = useState(0); // bumped by Retry
 
   useEffect(() => {
     setError("");
     get(`/attack/matrix${host ? `?host=${encodeURIComponent(host)}` : ""}`)
       .then(setMatrix)
       .catch((err) => setError(err.message || "Failed to load ATT&CK matrix"));
-  }, [host]);
+  }, [host, reload]);
 
   return (
     <div>
@@ -52,7 +54,7 @@ export default function AttackMatrix() {
         ))}
       </div>
 
-      {error && <p className="mb-3 text-sm text-red-400">{error}</p>}
+      <ErrorBanner message={error} onRetry={() => setReload((n) => n + 1)} />
       {!matrix && !error && <Skeleton lines={6} />}
 
       {matrix && (

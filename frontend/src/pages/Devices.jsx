@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { get } from "../lib/api";
 import { AutoRefreshToggle, useAutoRefresh } from "../components/AutoRefresh";
-import { Skeleton } from "../components/Skeleton";
 import { useNewIds } from "../components/useNewIds";
 import { TimeAgo } from "../components/TimeAgo";
+import { ErrorBanner, EmptyRow, SkeletonRows } from "../components/States";
 
 const STATUS_STYLES = {
   online: "bg-emerald-900/60 text-emerald-300",
@@ -15,6 +15,7 @@ export default function Devices() {
   const [devices, setDevices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [reload, setReload] = useState(0); // bumped by Retry
   const [autoRefresh, setAutoRefresh, tick] = useAutoRefresh(15);
   const freshRows = useNewIds(devices, (d) => `${d.host}|${d.source}`);
 
@@ -26,7 +27,7 @@ export default function Devices() {
       })
       .catch((err) => setError(err.message || "Failed to load devices"))
       .finally(() => setLoading(false));
-  }, [tick]);
+  }, [tick, reload]);
 
   return (
     <div>
@@ -39,7 +40,7 @@ export default function Devices() {
         <code>scripts/collector.py --watch</code> to keep a host online.
       </p>
 
-      {error && <p className="mb-3 text-sm text-red-400">{error}</p>}
+      <ErrorBanner message={error} onRetry={() => setReload((n) => n + 1)} />
 
       <div className="overflow-x-auto rounded border border-slate-800">
         <table className="w-full text-left text-sm">
@@ -54,20 +55,8 @@ export default function Devices() {
             </tr>
           </thead>
           <tbody>
-            {loading && (
-              <tr>
-                <td colSpan={6} className="px-3 py-4">
-                  <Skeleton lines={4} />
-                </td>
-              </tr>
-            )}
-            {!loading && devices.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-3 py-6 text-center text-slate-500">
-                  No devices have checked in yet.
-                </td>
-              </tr>
-            )}
+            {loading && <SkeletonRows cols={6} />}
+            {!loading && !error && devices.length === 0 && <EmptyRow colSpan={6} title="No devices have checked in" hint="Run python scripts/collector.py --watch from an elevated terminal to stream events from this machine." />}
             {!loading &&
               devices.map((d) => (
                 <tr key={`${d.host}|${d.source}`} className={`border-t border-slate-800 ${freshRows.has(`${d.host}|${d.source}`) ? "row-flash" : ""}`}>

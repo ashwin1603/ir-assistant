@@ -4,8 +4,8 @@ import { get } from "../lib/api";
 import { rowOpenProps } from "../lib/a11y";
 import { EventDrawer } from "../components/DetailDrawers";
 import { TIBadge } from "../components/TIBadge";
-import { Skeleton } from "../components/Skeleton";
 import { TimeAgo } from "../components/TimeAgo";
+import { ErrorBanner, EmptyRow, SkeletonRows } from "../components/States";
 
 const PAGE_SIZE = 25;
 
@@ -33,6 +33,7 @@ export default function LogExplorer() {
   const [selectedId, setSelectedId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [reload, setReload] = useState(0); // bumped by Retry
 
   useEffect(() => {
     get("/detections")
@@ -63,14 +64,23 @@ export default function LogExplorer() {
       .then(setData)
       .catch((err) => setError(err.message || "Failed to load events"))
       .finally(() => setLoading(false));
-  }, [q, channel, host, eventId, page]);
+  }, [q, channel, host, eventId, page, reload]);
 
   const totalPages = useMemo(
     () => Math.max(1, Math.ceil(data.total / PAGE_SIZE)),
     [data.total],
   );
 
+  function clearFilters() {
+    setQ("");
+    setChannel("");
+    setHost("");
+    setEventId("");
+    setPage(1);
+  }
+
   function resetToFirstPage(setter) {
+
     return (value) => {
       setter(value);
       setPage(1);
@@ -114,7 +124,7 @@ export default function LogExplorer() {
         />
       </div>
 
-      {error && <p className="mb-3 text-sm text-red-400">{error}</p>}
+      <ErrorBanner message={error} onRetry={() => setReload((n) => n + 1)} />
 
       <div className="overflow-x-auto rounded border border-slate-800">
         <table className="w-full text-left text-sm">
@@ -132,20 +142,8 @@ export default function LogExplorer() {
             </tr>
           </thead>
           <tbody>
-            {loading && (
-              <tr>
-                <td colSpan={9} className="px-3 py-4">
-                  <Skeleton lines={4} />
-                </td>
-              </tr>
-            )}
-            {!loading && data.items.length === 0 && (
-              <tr>
-                <td colSpan={9} className="px-3 py-6 text-center text-slate-500">
-                  No events found.
-                </td>
-              </tr>
-            )}
+            {loading && <SkeletonRows cols={9} />}
+            {!loading && !error && data.items.length === 0 && <EmptyRow colSpan={9} title="No events found" hint="Try a broader search or clear the filters. Live events arrive when scripts/collector.py runs from an elevated terminal." action={{ onClick: clearFilters, label: "Clear filters" }} />}
             {!loading &&
               data.items.map((ev) => {
                 const isFlagged = flagged.has(ev.id);

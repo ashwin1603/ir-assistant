@@ -11,6 +11,8 @@ import { StatusBadge } from "../components/StatusBadge";
 import { useNewIds } from "../components/useNewIds";
 import { TimeAgo } from "../components/TimeAgo";
 import { Sparkline } from "../components/Sparkline";
+import { EmptyState, ErrorBanner } from "../components/States";
+
 
 const LEVEL_ORDER = ["Low", "Medium", "High", "Critical"];
 
@@ -72,8 +74,12 @@ function Panel({ title, span, action, children }) {
   );
 }
 
-function Empty({ children }) {
-  return <p className="dash-empty">{children}</p>;
+function Empty({ children, hint, action }) {
+  return (
+    <div className="dash-empty">
+      <EmptyState compact title={children} hint={hint} action={action} />
+    </div>
+  );
 }
 
 function StatTile({ label, value, spark, sparkTip, sparkColor, children }) {
@@ -103,7 +109,7 @@ function ChartTooltip({ active, payload }) {
 // Plain CSS bars: always render, no SVG sizing issues inside the flex panels.
 function SeverityChart({ detections }) {
   if (!detections) return <Skeleton lines={5} />;
-  if (detections.length === 0) return <Empty>No detections yet.</Empty>;
+  if (detections.length === 0) return <Empty hint="Rules flag suspicious events as they arrive.">No detections yet.</Empty>;
   const data = LEVEL_ORDER.map((level) => ({ name: level, count: detections.filter((d) => d.risk_level === level).length }));
   const max = Math.max(1, ...data.map((d) => d.count));
   return (
@@ -131,7 +137,7 @@ function TechniqueChart({ detections }) {
     .map(([name, count]) => ({ name, count }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 8);
-  if (data.length === 0) return <Empty>No techniques observed yet.</Empty>;
+  if (data.length === 0) return <Empty hint="ATT&CK techniques appear with the first detection.">No techniques observed yet.</Empty>;
   const max = data[0].count;
   const riskiest = detections.reduce((best, d) => (!best || d.risk_score > best.risk_score ? d : best), null);
   const tacticCounts = {};
@@ -210,7 +216,9 @@ function RiskDonut({ incidents }) {
 
 function RecentIncidents({ incidents }) {
   if (!incidents) return <Skeleton lines={6} />;
-  if (incidents.length === 0) return <Empty>No incidents yet.</Empty>;
+  if (incidents.length === 0) {
+    return <Empty hint="Related detections on a host are grouped into incidents." action={{ to: "/detections", label: "View detections" }}>No incidents yet.</Empty>;
+  }
   const recent = [...incidents].sort((a, b) => new Date(b.started_at) - new Date(a.started_at)).slice(0, 7);
   return (
     <table className="w-full text-left text-sm">
@@ -245,7 +253,9 @@ function EventFeed({ events }) {
   const items = events?.items ?? [];
   const fresh = useNewIds(items);
   if (!events) return <Skeleton lines={7} />;
-  if (items.length === 0) return <Empty>No events collected yet.</Empty>;
+  if (items.length === 0) {
+    return <Empty hint="Run python scripts/collector.py --watch from an elevated terminal, or upload a log file.">No events collected yet.</Empty>;
+  }
   return (
     <ul className="dash-feed text-sm">
       {items.map((ev) => (
@@ -264,7 +274,7 @@ function EventFeed({ events }) {
 
 function DeviceTiles({ devices }) {
   if (!devices) return <Skeleton lines={4} />;
-  if (devices.length === 0) return <Empty>No devices have checked in yet.</Empty>;
+  if (devices.length === 0) return <Empty hint="The collector checks in every few seconds while it runs.">No devices have checked in yet.</Empty>;
   return (
     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
       {devices.map((d) => (
@@ -297,7 +307,7 @@ function TopHosts({ incidents }) {
     if (i.risk_score > h.score) Object.assign(h, { score: i.risk_score, level: i.risk_level });
   }
   const hosts = Object.values(byHost).sort((a, b) => b.score - a.score).slice(0, 6);
-  if (hosts.length === 0) return <Empty>No hosts with incidents.</Empty>;
+  if (hosts.length === 0) return <Empty hint="Hosts are ranked once they have an incident.">No hosts with incidents.</Empty>;
   return (
     <ul className="space-y-2.5 text-sm">
       {hosts.map((h) => (
@@ -320,7 +330,7 @@ function TopHosts({ incidents }) {
 // One tile per ATT&CK tactic: detection hits summed over its techniques, coloured by the worst level seen.
 function TacticStrip({ matrix }) {
   if (!matrix) return <Skeleton lines={3} />;
-  if (matrix.tactics.length === 0) return <Empty>No ATT&CK coverage data.</Empty>;
+  if (matrix.tactics.length === 0) return <Empty hint="Coverage comes from the enabled detection rules.">No ATT&CK coverage data.</Empty>;
   const tiles = matrix.tactics.map((col) => {
     const hits = col.techniques.reduce((sum, t) => sum + t.hit_count, 0);
     const worst = col.techniques.reduce(
@@ -351,6 +361,7 @@ export default function Dashboard() {
   const { can } = useAuth();
   const [data, setData] = useState({});
   const [error, setError] = useState("");
+  const [reload, setReload] = useState(0); // bumped by Retry
   const [autoRefresh, setAutoRefresh, tick] = useAutoRefresh(15);
 
   useEffect(() => {
@@ -369,7 +380,7 @@ export default function Dashboard() {
       setData((prev) => ({ ...prev, ...next }));
       setError(failed ? "Some dashboard data could not be loaded." : "");
     });
-  }, [tick, can]);
+  }, [tick, can, reload]);
 
   if (!can("read")) return <p className="text-slate-400">Your role cannot view the dashboard.</p>;
 
@@ -383,7 +394,7 @@ export default function Dashboard() {
         <h1 className="text-xl font-semibold text-slate-100">Dashboard</h1>
         <AutoRefreshToggle enabled={autoRefresh} onChange={setAutoRefresh} />
       </div>
-      {error && <p className="mb-3 text-sm text-amber-400">{error}</p>}
+      <ErrorBanner message={error} onRetry={() => setReload((n) => n + 1)} />
 
       <div className="dash-grid">
         <div className="dash-stats span-12">

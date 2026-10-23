@@ -12,6 +12,7 @@ import { AttackGraph } from "../components/AttackGraph";
 import { PageSkeleton } from "../components/Skeleton";
 import { Segmented } from "../components/Segmented";
 import { TimeAgo } from "../components/TimeAgo";
+import { ErrorBanner } from "../components/States";
 
 const ANALYZE_TIMEOUT_MS = 40_000;
 
@@ -46,6 +47,7 @@ export default function IncidentDetail() {
   const [incident, setIncident] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [reload, setReload] = useState(0); // bumped by Retry
 
   const [analysis, setAnalysis] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
@@ -69,7 +71,7 @@ export default function IncidentDetail() {
       .then(setIncident)
       .catch((err) => setError(err.message || "Failed to load incident"))
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, reload]);
 
   const toast = useToast();
 
@@ -125,7 +127,7 @@ export default function IncidentDetail() {
   }
 
   if (loading) return <PageSkeleton />;
-  if (error) return <p className="text-red-400">{error}</p>;
+  if (error) return <ErrorBanner message={error} onRetry={() => setReload((n) => n + 1)} />;
   if (!incident) return null;
 
   const tactics = [...new Set(incident.timeline.flatMap((e) => e.tactics))];

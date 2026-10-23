@@ -4,8 +4,8 @@ import { get } from "../lib/api";
 import { rowOpenProps } from "../lib/a11y";
 import { DetectionDrawer } from "../components/DetailDrawers";
 import { TIBadge } from "../components/TIBadge";
-import { Skeleton } from "../components/Skeleton";
 import { TimeAgo } from "../components/TimeAgo";
+import { ErrorBanner, EmptyRow, SkeletonRows } from "../components/States";
 
 const LEVEL_STYLES = {
   Low: "bg-slate-800 text-slate-300",
@@ -22,6 +22,7 @@ export default function Detections() {
   const [detections, setDetections] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [reload, setReload] = useState(0); // bumped by Retry
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -34,7 +35,7 @@ export default function Detections() {
       .then(setDetections)
       .catch((err) => setError(err.message || "Failed to load detections"))
       .finally(() => setLoading(false));
-  }, [host, techniqueId]);
+  }, [host, techniqueId, reload]);
 
   return (
     <div>
@@ -55,7 +56,7 @@ export default function Detections() {
         />
       </div>
 
-      {error && <p className="mb-3 text-sm text-red-400">{error}</p>}
+      <ErrorBanner message={error} onRetry={() => setReload((n) => n + 1)} />
 
       <div className="overflow-x-auto rounded border border-slate-800">
         <table className="w-full text-left text-sm">
@@ -72,20 +73,8 @@ export default function Detections() {
             </tr>
           </thead>
           <tbody>
-            {loading && (
-              <tr>
-                <td colSpan={8} className="px-3 py-4">
-                  <Skeleton lines={4} />
-                </td>
-              </tr>
-            )}
-            {!loading && detections.length === 0 && (
-              <tr>
-                <td colSpan={8} className="px-3 py-6 text-center text-slate-500">
-                  No detections found.
-                </td>
-              </tr>
-            )}
+            {loading && <SkeletonRows cols={8} />}
+            {!loading && !error && detections.length === 0 && <EmptyRow colSpan={8} title="No detections match" hint="Detections appear when rules match collected events. Clear the filters, or generate activity with the collector or simulate_attacks.ps1." action={{ to: "/events", label: "Open Log Explorer" }} />}
             {!loading &&
               detections.map((d) => (
                 <tr key={d.id} className="border-t border-slate-800 hover:bg-slate-900/60" {...rowOpenProps(() => setSelectedId(d.id), d.id === selectedId)}>

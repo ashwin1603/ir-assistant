@@ -357,7 +357,79 @@ kbd {
   background: var(--ir-bar-grad);
 }
 
+/* ---------- Empty / error / loading states ---------- */
+
+.ir-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+.ir-empty.compact {
+  padding: 1rem 0.75rem;
+}
+
+.ir-empty-icon {
+  display: block;
+  width: 2.25rem;
+  height: 2.25rem;
+  margin-bottom: 0.75rem;
+  border: 1px dashed rgba(255, 255, 255, 0.22);
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.08) 0 30%, transparent 32%);
+}
+
+.ir-empty.compact .ir-empty-icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  margin-bottom: 0.5rem;
+}
+
+/* The table empty-row decoration in theme.css is replaced by .ir-empty's own icon. */
+main tbody > tr:only-child > td[colspan]:only-child:has(.ir-empty)::before {
+  content: none;
+}
+
+main tbody > tr:only-child > td[colspan]:only-child:has(.ir-empty) {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.ir-error {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0.6rem 0.75rem 0.6rem 0.9rem;
+  border: 1px solid rgba(255, 69, 58, 0.35);
+  border-radius: var(--ir-radius-sm);
+  background: rgba(255, 69, 58, 0.1);
+  color: #ffd2cd;
+  font-size: 0.875rem;
+}
+
+.ir-error-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 9999px;
+  background: var(--ir-danger);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.ir-skel-row td .skeleton {
+  height: 0.7rem;
+}
+
 /* Clickable rows that open the drawer. */
+
 
 main tbody tr[tabindex="0"] {
   cursor: pointer;

@@ -4,15 +4,16 @@ import { get } from "../lib/api";
 import { AutoRefreshToggle, useAutoRefresh } from "../components/AutoRefresh";
 import { RiskBadge } from "../components/RiskBadge";
 import { StatusBadge, INCIDENT_STATUSES } from "../components/StatusBadge";
-import { Skeleton } from "../components/Skeleton";
 import { Segmented } from "../components/Segmented";
 import { useNewIds } from "../components/useNewIds";
 import { TimeAgo } from "../components/TimeAgo";
+import { ErrorBanner, EmptyRow, SkeletonRows } from "../components/States";
 
 export default function Incidents() {
   const [incidents, setIncidents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [reload, setReload] = useState(0); // bumped by Retry
   const [statusFilter, setStatusFilter] = useState("");
   const [autoRefresh, setAutoRefresh, tick] = useAutoRefresh(15);
   const freshRows = useNewIds(loading ? [] : incidents);
@@ -30,7 +31,7 @@ export default function Incidents() {
       })
       .catch((err) => setError(err.message || "Failed to load incidents"))
       .finally(() => setLoading(false));
-  }, [statusFilter, tick]);
+  }, [statusFilter, tick, reload]);
 
   return (
     <div>
@@ -47,7 +48,7 @@ export default function Incidents() {
         </div>
       </div>
 
-      {error && <p className="mb-3 text-sm text-red-400">{error}</p>}
+      <ErrorBanner message={error} onRetry={() => setReload((n) => n + 1)} />
 
       <div className="overflow-x-auto rounded border border-slate-800">
         <table className="w-full text-left text-sm">
@@ -63,20 +64,8 @@ export default function Incidents() {
             </tr>
           </thead>
           <tbody>
-            {loading && (
-              <tr>
-                <td colSpan={7} className="px-3 py-4">
-                  <Skeleton lines={4} />
-                </td>
-              </tr>
-            )}
-            {!loading && incidents.length === 0 && (
-              <tr>
-                <td colSpan={7} className="px-3 py-6 text-center text-slate-500">
-                  No incidents found.
-                </td>
-              </tr>
-            )}
+            {loading && <SkeletonRows cols={7} />}
+            {!loading && !error && incidents.length === 0 && <EmptyRow colSpan={7} title="No incidents" hint="Incidents group related detections on one host. Try another status filter, or look at Detections for new activity." action={{ to: "/detections", label: "View detections" }} />}
             {!loading &&
               incidents.map((inc) => (
                 <tr key={inc.id} className={`border-t border-slate-800 hover:bg-slate-900/60 ${freshRows.has(inc.id) ? "row-flash" : ""}`}>

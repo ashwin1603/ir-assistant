@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { get } from "../lib/api";
-import { Skeleton } from "../components/Skeleton";
 import { rowOpenProps } from "../lib/a11y";
 import { AnomalyDrawer } from "../components/DetailDrawers";
 import { TimeAgo } from "../components/TimeAgo";
+import { ErrorBanner, EmptyRow, SkeletonRows } from "../components/States";
 
 const CMD_PREVIEW = 160;
 
@@ -30,6 +30,7 @@ export default function Anomalies() {
   const [selectedId, setSelectedId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [reload, setReload] = useState(0); // bumped by Retry
 
   useEffect(() => {
     setLoading(true);
@@ -38,7 +39,7 @@ export default function Anomalies() {
       .then(setData)
       .catch((err) => setError(err.message || "Failed to load anomalies"))
       .finally(() => setLoading(false));
-  }, [limit]);
+  }, [limit, reload]);
 
   const items = data?.items || [];
 
@@ -70,7 +71,7 @@ export default function Anomalies() {
         </div>
       )}
 
-      {error && <p className="mb-3 text-sm text-red-400">{error}</p>}
+      <ErrorBanner message={error} onRetry={() => setReload((n) => n + 1)} />
 
       <div className="overflow-x-auto rounded border border-slate-800">
         <table className="w-full table-fixed text-left text-sm">
@@ -97,20 +98,8 @@ export default function Anomalies() {
             </tr>
           </thead>
           <tbody>
-            {loading && (
-              <tr>
-                <td colSpan={8} className="px-3 py-4">
-                  <Skeleton lines={4} />
-                </td>
-              </tr>
-            )}
-            {!loading && items.length === 0 && (
-              <tr>
-                <td colSpan={8} className="px-2 py-6 text-center text-slate-500">
-                  Not enough real 4688 events to train the model.
-                </td>
-              </tr>
-            )}
+            {loading && <SkeletonRows cols={8} />}
+            {!loading && !error && items.length === 0 && <EmptyRow colSpan={8} title="Not enough data to train yet" hint="The model needs at least 10 real process-creation (4688) events. Keep the collector running with process auditing on." action={{ to: "/devices", label: "Check devices" }} />}
             {!loading &&
               items.map((a) => (
                 <tr key={a.event_id} className="border-t border-slate-800 align-top hover:bg-slate-900/60"

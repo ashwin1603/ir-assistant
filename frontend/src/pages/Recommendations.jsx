@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { get, post, ApiError } from "../lib/api";
 import { useAuth } from "../auth/AuthContext";
-import { Skeleton } from "../components/Skeleton";
+import { EmptyRow, ErrorBanner, SkeletonRows } from "../components/States";
+
 import { useToast } from "../components/Toast";
 import { TimeAgo } from "../components/TimeAgo";
 
@@ -23,6 +24,7 @@ export default function Recommendations() {
 
   function load() {
     setLoading(true);
+    setError("");
     get("/actions")
       .then(setActions)
       .catch((err) => setError(err.message || "Failed to load recommendations"))
@@ -56,7 +58,7 @@ export default function Recommendations() {
         actually executed against the host.
       </p>
 
-      {error && <p className="mb-3 text-sm text-red-400">{error}</p>}
+      <ErrorBanner message={error} onRetry={load} />
 
       <div className="overflow-x-auto rounded border border-slate-800">
         <table className="w-full text-left text-sm">
@@ -70,19 +72,11 @@ export default function Recommendations() {
             </tr>
           </thead>
           <tbody>
-            {loading && (
-              <tr>
-                <td colSpan={5} className="px-3 py-4">
-                  <Skeleton lines={4} />
-                </td>
-              </tr>
-            )}
-            {!loading && actions.length === 0 && (
-              <tr>
-                <td colSpan={5} className="px-3 py-6 text-center text-slate-500">
-                  No recommendations yet. Run an AI analysis on an incident first.
-                </td>
-              </tr>
+            {loading && <SkeletonRows cols={5} />}
+            {!loading && !error && actions.length === 0 && (
+              <EmptyRow colSpan={5} title="No recommendations yet"
+                hint="Run an AI analysis on an incident; its recommended actions land here for analyst approval."
+                action={{ to: "/incidents", label: "Go to incidents" }} />
             )}
             {!loading &&
               actions.map((a) => (

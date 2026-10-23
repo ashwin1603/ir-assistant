@@ -4,6 +4,9 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { get } from "../lib/api";
 import { RiskBadge } from "../components/RiskBadge";
 import { TimeAgo } from "../components/TimeAgo";
+import { ErrorBanner, EmptyRow } from "../components/States";
+import { PageSkeleton } from "../components/Skeleton";
+
 
 // Warm neutral bar gradient; colours are theme tokens.
 const BAR_FILL = "url(#ir-bar-grad)";
@@ -51,6 +54,7 @@ export default function Network() {
   const [host, setHost] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [reload, setReload] = useState(0); // bumped by Retry
 
   useEffect(() => {
     setLoading(true);
@@ -60,7 +64,7 @@ export default function Network() {
       .then(setData)
       .catch((err) => setError(err.message || "Failed to load network data"))
       .finally(() => setLoading(false));
-  }, [host]);
+  }, [host, reload]);
 
   return (
     <div>
@@ -80,7 +84,8 @@ export default function Network() {
         {loading && <span className="skeleton inline-block" style={{ width: "6rem" }} />}
       </div>
 
-      {error && <p className="mb-3 text-sm text-red-400">{error}</p>}
+      <ErrorBanner message={error} onRetry={() => setReload((n) => n + 1)} />
+      {!data && !error && <PageSkeleton />}
 
       {data && (
         <>
@@ -106,7 +111,7 @@ export default function Network() {
               </thead>
               <tbody>
                 {data.detections.length === 0 && (
-                  <tr><td colSpan={6} className="px-3 py-4 text-center text-slate-500">No network detections.</td></tr>
+                  <EmptyRow colSpan={6} title="No network detections" hint="Network rules flag beaconing, unusual ports and threat-intel matches in connection events." />
                 )}
                 {data.detections.map((d) => (
                   <tr key={d.id} className="border-t border-slate-800 align-top">

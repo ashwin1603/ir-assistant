@@ -4,6 +4,7 @@ import { get } from "../lib/api";
 import { RiskBadge } from "../components/RiskBadge";
 import { Skeleton } from "../components/Skeleton";
 import { TimeAgo } from "../components/TimeAgo";
+import { ErrorBanner } from "../components/States";
 
 export default function TechniqueDetail() {
   const { techniqueId } = useParams();
@@ -11,17 +12,18 @@ export default function TechniqueDetail() {
   const host = searchParams.get("host") || "";
   const [technique, setTechnique] = useState(null);
   const [error, setError] = useState("");
+  const [reload, setReload] = useState(0); // bumped by Retry
 
   useEffect(() => {
     setError("");
     get(`/attack/techniques/${encodeURIComponent(techniqueId)}${host ? `?host=${encodeURIComponent(host)}` : ""}`)
       .then(setTechnique)
       .catch((err) => setError(err.message || "Failed to load technique"));
-  }, [techniqueId, host]);
+  }, [techniqueId, host, reload]);
 
   const backLink = `/attack${host ? `?host=${encodeURIComponent(host)}` : ""}`;
 
-  if (error) return <p className="text-sm text-red-400">{error}</p>;
+  if (error) return <ErrorBanner message={error} onRetry={() => setReload((n) => n + 1)} />;
   if (!technique) return <Skeleton lines={6} />;
 
   return (

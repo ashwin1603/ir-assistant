@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { get } from "../lib/api";
 import { useAuth } from "../auth/AuthContext";
-import { Skeleton } from "../components/Skeleton";
 import { TimeAgo } from "../components/TimeAgo";
+import { ErrorBanner, EmptyRow, SkeletonRows } from "../components/States";
 
 const PAGE_SIZE = 25;
 
@@ -15,6 +15,7 @@ export default function AuditLog() {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [reload, setReload] = useState(0); // bumped by Retry
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -26,7 +27,7 @@ export default function AuditLog() {
       })
       .catch((err) => setError(err.message || "Failed to load audit log"))
       .finally(() => setLoading(false));
-  }, [page, isAdmin]);
+  }, [page, isAdmin, reload]);
 
   if (!isAdmin) {
     return <p className="text-slate-500">Admins only.</p>;
@@ -38,7 +39,7 @@ export default function AuditLog() {
     <div>
       <h1 className="mb-4 text-xl font-semibold text-slate-100">Audit Log</h1>
 
-      {error && <p className="mb-3 text-sm text-red-400">{error}</p>}
+      <ErrorBanner message={error} onRetry={() => setReload((n) => n + 1)} />
 
       <div className="overflow-x-auto rounded border border-slate-800">
         <table className="w-full text-left text-sm">
@@ -52,20 +53,8 @@ export default function AuditLog() {
             </tr>
           </thead>
           <tbody>
-            {loading && (
-              <tr>
-                <td colSpan={5} className="px-3 py-4">
-                  <Skeleton lines={4} />
-                </td>
-              </tr>
-            )}
-            {!loading && entries.length === 0 && (
-              <tr>
-                <td colSpan={5} className="px-3 py-6 text-center text-slate-500">
-                  No audit entries found.
-                </td>
-              </tr>
-            )}
+            {loading && <SkeletonRows cols={5} />}
+            {!loading && !error && entries.length === 0 && <EmptyRow colSpan={5} title="No audit entries" hint="Logins, uploads, collections, AI calls and approvals are recorded here as they happen." />}
             {!loading &&
               entries.map((e) => (
                 <tr key={e.id} className="border-t border-slate-800 align-top hover:bg-slate-900/60">
