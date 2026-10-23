@@ -1,0 +1,20 @@
+title: Service installed from a temp or user folder
+id: 2f4a0220-a32b-4e9e-8440-4172e68aa166
+status: experimental
+description: A new service whose binary lives in a Temp, AppData or Public folder.
+author: ir-assistant project (sample)
+logsource:
+  product: windows
+  service: system
+detection:
+  selection:
+    EventID: 7045
+    ServiceFileName|contains:
+      - '\Temp\'
+      - '\AppData\'
+      - '\Users\Public\'
+  condition: selection
+level: high
+tags:
+  - attack.persistence
+  - attack.t1543.003

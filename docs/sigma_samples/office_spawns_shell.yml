@@ -1,0 +1,24 @@
+title: Office application spawned a command shell
+id: e9a9fbd1-c39a-45ce-9940-8f6b19cca3e8
+status: experimental
+description: Word/Excel/PowerPoint starting cmd.exe or powershell.exe, typical of a malicious macro.
+author: ir-assistant project (sample)
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection:
+    EventID: 4688
+    ParentImage|endswith:
+      - '\winword.exe'
+      - '\excel.exe'
+      - '\powerpnt.exe'
+    Image|endswith:
+      - '\cmd.exe'
+      - '\powershell.exe'
+  condition: selection
+level: high
+tags:
+  - attack.execution
+  - attack.t1204.002
+  - attack.t1059

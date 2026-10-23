@@ -14,6 +14,7 @@ from app.auth.security import hash_password
 from app.config import settings
 from app.db import get_db
 from app.detection.rules import RULES
+from app.detection.sigma_import import MAX_BYTES, SigmaImportError, import_sigma
 from app.models import AuditLog, RuleOverride, User
 from app.runtime_settings import get_ai_calls_per_hour, set_ai_calls_per_hour
 from app.schemas import (
@@ -23,6 +24,7 @@ from app.schemas import (
     PasswordReset,
     RuleSettingOut,
     RuleSettingUpdate,
+    SigmaImport,
     SystemSettingsUpdate,
     SystemStatusOut,
 )
@@ -102,7 +104,7 @@ def _rule_out(rule, override: RuleOverride | None) -> RuleSettingOut:
         level=rule.level,
         severity=rule.severity,
         technique_ids=list(rule.technique_ids),
-        enabled=override.enabled if override else True,
+        enabled=override.enabled if override else rule.enabled_by_default,
         min_count=(override and override.min_count or rule.min_count) if is_cluster else None,
         window_minutes=(override and override.window_minutes or rule.window_minutes) if is_cluster else None,
         default_min_count=rule.min_count,
@@ -140,6 +142,20 @@ def update_rule(rule_id: str, body: RuleSettingUpdate, db: Session = Depends(get
     db.add(override)
     log_action(db, actor=admin.username, action="rule_update", detail=f"rule={rule.name} {', '.join(changes) or 'no change'}")
     return _rule_out(rule, override)
+
+
+@router.post("/rules/import-sigma", response_model=RuleSettingOut, status_code=201)
+def import_sigma_rule(body: SigmaImport, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+    if len(body.yaml.encode("utf-8")) > MAX_BYTES:
+        log_action(db, actor=admin.username, action="sigma_import", detail="rejected: too large", success=False)
+        raise HTTPException(status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail="Rule too large (max 50 KB)")
+    try:
+        rule = import_sigma(body.yaml)
+    except SigmaImportError as e:
+        log_action(db, actor=admin.username, action="sigma_import", detail=f"rejected: {e}"[:500], success=False)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    log_action(db, actor=admin.username, action="sigma_import", detail=f"rule={rule.name} id={rule.id} (disabled)")
+    return _rule_out(rule, None)
 
 
 # ---------- System ----------

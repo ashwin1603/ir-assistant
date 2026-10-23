@@ -1,0 +1,19 @@
+title: Volume shadow copies deleted
+id: 7a151187-98d1-44ff-bf42-8827fbd92f7e
+status: experimental
+description: vssadmin or wmic used to delete shadow copies, often seen just before ransomware encryption.
+author: ir-assistant project (sample)
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection:
+    EventID: 4688
+    CommandLine|re: '(vssadmin|wmic)(\.exe)?\s.*shadow(copy)?\s+delete'
+  filter_list_only:
+    CommandLine|contains: 'list shadows'
+  condition: selection and not filter_list_only
+level: critical
+tags:
+  - attack.impact
+  - attack.t1490

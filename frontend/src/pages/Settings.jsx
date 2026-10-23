@@ -157,6 +157,52 @@ function RuleRow({ rule, onSaved, onError }) {
   );
 }
 
+const SIGMA_MAX_BYTES = 50 * 1024;
+
+function SigmaImport({ onImported, onError }) {
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function onFile(e) {
+    const file = e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!/\.ya?ml$/i.test(file.name)) return onError("Choose a .yml or .yaml file");
+    if (file.size > SIGMA_MAX_BYTES) return onError("Rule too large (max 50 KB)");
+    setText(await file.text());
+  }
+
+  async function submit() {
+    setBusy(true);
+    try {
+      onImported(await post("/settings/rules/import-sigma", { yaml: text }));
+      setText("");
+    } catch (err) {
+      onError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-6 rounded border border-slate-800 p-4">
+      <h2 className="mb-1 text-sm font-semibold text-slate-200">Import Sigma rule</h2>
+      <p className="mb-3 text-xs text-slate-500">
+        Paste YAML or choose a .yml file (max 50 KB). Fields: CommandLine, Image, ParentImage, EventID, User,
+        TargetUserName, ServiceFileName. Modifiers: contains, startswith, endswith, re, all. Imported rules start disabled.
+      </p>
+      <textarea value={text} onChange={(e) => setText(e.target.value)} rows={10} spellCheck={false}
+        placeholder="title: ...&#10;logsource: ...&#10;detection: ..." className={`${inputClass} w-full font-mono text-xs`} />
+      <div className="mt-2 flex items-center gap-3">
+        <input type="file" accept=".yml,.yaml" onChange={onFile} className="text-xs text-slate-400" />
+        <button onClick={submit} disabled={busy || !text.trim()} className={buttonClass}>
+          {busy ? "Importing..." : "Import"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function DetectionTab() {
   const [rules, setRules] = useState([]);
   const [error, setError] = useState("");
@@ -170,6 +216,12 @@ function DetectionTab() {
     setError("");
     setNotice(`${updated.name} saved; applies on the next detection run`);
     setRules((rs) => rs.map((r) => (r.id === updated.id ? updated : r)));
+  }
+
+  function onImported(rule) {
+    setError("");
+    setNotice(`Imported "${rule.name}" (disabled) - tick its box to enable it`);
+    setRules((rs) => [...rs, rule]);
   }
 
   return (
@@ -193,6 +245,7 @@ function DetectionTab() {
           </tbody>
         </table>
       </div>
+      <SigmaImport onImported={onImported} onError={(msg) => { setNotice(""); setError(msg); }} />
     </div>
   );
 }

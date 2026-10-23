@@ -1,0 +1,20 @@
+title: Certutil used to download a file
+id: 616e6cad-7aba-4b27-8629-130bb20533de
+status: experimental
+description: certutil.exe run with -urlcache and -f, a common way to pull a payload from a URL.
+author: ir-assistant project (sample)
+logsource:
+  product: windows
+  category: process_creation
+detection:
+  selection:
+    EventID: 4688
+    Image|endswith: '\certutil.exe'
+    CommandLine|contains|all:
+      - '-urlcache'
+      - '-f'
+  condition: selection
+level: high
+tags:
+  - attack.command_and_control
+  - attack.t1105

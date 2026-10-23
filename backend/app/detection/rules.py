@@ -3,10 +3,13 @@
 Add new rules as YAML files there, not in code. Supported subset of Sigma:
   detection:
     <name>:  {field: value, field|contains: [..], field|re: [..]}   -> all keys must match (AND)
+             (modifiers: contains, startswith, endswith, re; add |all to require every value)
     <name>:  [ {..}, {..} ]                                         -> any map may match (OR)
     condition: "selection and not filter_x and ..."                 -> terms ANDed, each optionally negated
     timeframe: 5m, group_by: [..], min_count: N                     -> optional: makes it a cluster rule
 A list of values means "any of". `field: null` means the field is empty.
+`enabled: false` makes a rule off until an admin enables it (used for imported Sigma rules,
+which live in backend/rules/imported/).
 """
 
 import re
@@ -19,6 +22,7 @@ from app.models import Event
 
 RULES_DIR = Path(__file__).resolve().parents[2] / "rules"
 ALLOWLIST_DIR = RULES_DIR / "allowlist"
+IMPORTED_DIR = RULES_DIR / "imported"
 
 _DETECTION_META_KEYS = {"condition", "timeframe", "group_by", "min_count"}
 
@@ -27,21 +31,32 @@ def _as_list(value) -> list:
     return value if isinstance(value, list) else [value]
 
 
+SUPPORTED_MODIFIERS = {"contains", "startswith", "endswith", "re", "all"}
+
+
 def _field_matches(event: Event, key: str, expected) -> bool:
-    field_name, _, modifier = key.partition("|")
+    field_name, *modifiers = key.split("|")
     actual = getattr(event, field_name)
+    combine = all if "all" in modifiers else any
+    modifier = next((m for m in modifiers if m != "all"), "")
 
     if expected is None:
         return not str(actual or "").strip()
 
     if modifier == "":
-        return actual in _as_list(expected)
+        return combine(actual == v for v in _as_list(expected))
 
-    text = str(actual or "")
+    raw = str(actual or "")
+    text = raw.lower()
+    values = [str(v) for v in _as_list(expected)]
     if modifier == "contains":
-        return any(str(v).lower() in text.lower() for v in _as_list(expected))
+        return combine(v.lower() in text for v in values)
+    if modifier == "startswith":
+        return combine(text.startswith(v.lower()) for v in values)
+    if modifier == "endswith":
+        return combine(text.endswith(v.lower()) for v in values)
     if modifier == "re":
-        return any(re.search(v, text, re.IGNORECASE) for v in _as_list(expected))
+        return combine(re.search(v, raw, re.IGNORECASE) is not None for v in values)
     raise ValueError(f"Unsupported modifier: {modifier}")
 
 
@@ -65,6 +80,7 @@ class Rule:
     window_minutes: int | None = None
     min_count: int | None = None
     group_by: tuple[str, ...] = ()
+    enabled_by_default: bool = True
 
     def matches(self, event: Event) -> bool:
         return all(_selection_matches(event, self.selections[name]) != negated for negated, name in self.condition)
@@ -107,11 +123,13 @@ def _rule_from_yaml(doc: dict) -> Rule:
         window_minutes=_parse_minutes(detection["timeframe"]) if is_cluster else None,
         min_count=detection.get("min_count") if is_cluster else None,
         group_by=tuple(detection.get("group_by", ())),
+        enabled_by_default=bool(doc.get("enabled", True)),
     )
 
 
-def load_rules(directory: Path = RULES_DIR) -> tuple[Rule, ...]:
-    rules = tuple(_rule_from_yaml(yaml.safe_load(p.read_text(encoding="utf-8"))) for p in sorted(directory.glob("*.yml")))
+def load_rules(directory: Path = RULES_DIR) -> list[Rule]:
+    paths = sorted(directory.glob("*.yml")) + sorted((directory / "imported").glob("*.yml"))
+    rules = [_rule_from_yaml(yaml.safe_load(p.read_text(encoding="utf-8"))) for p in paths]
     ids = [r.id for r in rules]
     if len(ids) != len(set(ids)):
         raise ValueError("Duplicate rule id in rules directory")
@@ -139,5 +157,6 @@ def is_allowlisted(rule: Rule, event: Event, allowlist: tuple[AllowlistEntry, ..
 
 
 # Loaded once at import (i.e. at app startup); a bad YAML file fails startup loudly.
-RULES: tuple[Rule, ...] = load_rules()
+# A list (not tuple) so a Sigma import can append to it without a restart.
+RULES: list[Rule] = load_rules()
 ALLOWLIST: tuple[AllowlistEntry, ...] = load_allowlist()

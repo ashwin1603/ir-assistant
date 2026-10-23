@@ -81,7 +81,8 @@ def effective_rules(db: Session) -> list[Rule]:
     for rule in RULES:
         override = overrides.get(rule.id)
         if override is None:
-            rules.append(rule)
+            if rule.enabled_by_default:
+                rules.append(rule)
             continue
         if not override.enabled:
             continue

@@ -79,6 +79,11 @@ class RuleSettingOut(BaseModel):
     default_window_minutes: int | None
 
 
+class SigmaImport(BaseModel):
+    # Hard cap on the request; the 50 KB rule limit is checked in the importer (413).
+    yaml: str = Field(min_length=1, max_length=1_000_000)
+
+
 class RuleSettingUpdate(BaseModel):
     enabled: bool | None = None
     min_count: int | None = Field(default=None, ge=1, le=1000)
