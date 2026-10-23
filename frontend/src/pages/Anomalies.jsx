@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { get } from "../lib/api";
 import { Skeleton } from "../components/Skeleton";
+import { rowOpenProps } from "../lib/a11y";
+import { AnomalyDrawer } from "../components/DetailDrawers";
 
 const CMD_PREVIEW = 160;
 
@@ -24,6 +26,7 @@ function CommandLine({ text }) {
 export default function Anomalies() {
   const [data, setData] = useState(null);
   const [limit, setLimit] = useState(50);
+  const [selectedId, setSelectedId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -109,7 +112,8 @@ export default function Anomalies() {
             )}
             {!loading &&
               items.map((a) => (
-                <tr key={a.event_id} className="border-t border-slate-800 align-top hover:bg-slate-900/60">
+                <tr key={a.event_id} className="border-t border-slate-800 align-top hover:bg-slate-900/60"
+                  {...rowOpenProps(() => setSelectedId(a.event_id), a.event_id === selectedId)}>
                   <td className="px-2 py-1.5 text-slate-400">{a.rank}</td>
                   <td className="px-2 py-1.5">
                     <span
@@ -144,6 +148,7 @@ export default function Anomalies() {
           </tbody>
         </table>
       </div>
+      <AnomalyDrawer anomaly={items.find((a) => a.event_id === selectedId)} onClose={() => setSelectedId(null)} />
     </div>
   );
 }

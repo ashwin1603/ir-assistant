@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { get } from "../lib/api";
+import { rowOpenProps } from "../lib/a11y";
+import { DetectionDrawer } from "../components/DetailDrawers";
 import { TIBadge } from "../components/TIBadge";
 import { Skeleton } from "../components/Skeleton";
 
@@ -11,8 +14,10 @@ const LEVEL_STYLES = {
 };
 
 export default function Detections() {
-  const [host, setHost] = useState("");
-  const [techniqueId, setTechniqueId] = useState("");
+  const [params] = useSearchParams();
+  const [host, setHost] = useState(params.get("host") || "");
+  const [techniqueId, setTechniqueId] = useState(params.get("technique") || "");
+  const [selectedId, setSelectedId] = useState(null);
   const [detections, setDetections] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -82,7 +87,7 @@ export default function Detections() {
             )}
             {!loading &&
               detections.map((d) => (
-                <tr key={d.id} className="border-t border-slate-800 hover:bg-slate-900/60">
+                <tr key={d.id} className="border-t border-slate-800 hover:bg-slate-900/60" {...rowOpenProps(() => setSelectedId(d.id), d.id === selectedId)}>
                   <td className="px-3 py-2 text-slate-200">
                     <div className="flex flex-wrap items-center gap-2">
                       {d.rule_name}
@@ -122,6 +127,7 @@ export default function Detections() {
           </tbody>
         </table>
       </div>
+      <DetectionDrawer detection={detections.find((d) => d.id === selectedId)} onClose={() => setSelectedId(null)} />
     </div>
   );
 }

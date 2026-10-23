@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { get } from "../lib/api";
+import { rowOpenProps } from "../lib/a11y";
+import { EventDrawer } from "../components/DetailDrawers";
 import { TIBadge } from "../components/TIBadge";
 import { Skeleton } from "../components/Skeleton";
 
@@ -16,23 +19,28 @@ const SOURCE_BADGE = {
 const CHANNELS = ["Security", "System", "Microsoft-Windows-PowerShell/Operational", "Network"];
 
 export default function LogExplorer() {
-  const [q, setQ] = useState("");
+  const [params] = useSearchParams();
+  const [q, setQ] = useState(params.get("q") || "");
   const [channel, setChannel] = useState("");
-  const [host, setHost] = useState("");
+  const [host, setHost] = useState(params.get("host") || "");
   const [eventId, setEventId] = useState("");
   const [page, setPage] = useState(1);
 
   const [data, setData] = useState({ total: 0, items: [] });
-  const [flaggedIds, setFlaggedIds] = useState(new Set());
+  // event id -> detections whose evidence includes it (flags rows, feeds the drawer)
+  const [flagged, setFlagged] = useState(new Map());
+  const [selectedId, setSelectedId] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     get("/detections")
       .then((detections) => {
-        const ids = new Set();
-        detections.forEach((d) => d.matched_event_ids.forEach((id) => ids.add(id)));
-        setFlaggedIds(ids);
+        const byEvent = new Map();
+        detections.forEach((d) =>
+          d.matched_event_ids.forEach((id) => byEvent.set(id, [...(byEvent.get(id) || []), d])),
+        );
+        setFlagged(byEvent);
       })
       .catch(() => {
         // Detections are a highlight-only enhancement; ignore failures here.
@@ -139,13 +147,14 @@ export default function LogExplorer() {
             )}
             {!loading &&
               data.items.map((ev) => {
-                const flagged = flaggedIds.has(ev.id);
+                const isFlagged = flagged.has(ev.id);
                 return (
                   <tr
                     key={ev.id}
                     className={`border-t border-slate-800 ${
-                      flagged ? "bg-red-950/40" : "hover:bg-slate-900/60"
+                      isFlagged ? "bg-red-950/40" : "hover:bg-slate-900/60"
                     }`}
+                    {...rowOpenProps(() => setSelectedId(ev.id), ev.id === selectedId)}
                   >
                     <td className="whitespace-nowrap px-3 py-2 text-slate-300">
                       {new Date(ev.timestamp).toLocaleString()}
@@ -163,7 +172,7 @@ export default function LogExplorer() {
                     <td className="px-3 py-2 text-slate-300">{ev.channel}</td>
                     <td className="px-3 py-2 text-slate-300">
                       <span className="inline-flex items-center gap-1.5">
-                        {flagged && <span className="h-1.5 w-1.5 rounded-full bg-red-500" />}
+                        {isFlagged && <span className="h-1.5 w-1.5 rounded-full bg-red-500" />}
                         {ev.event_id}
                       </span>
                     </td>
@@ -207,6 +216,15 @@ export default function LogExplorer() {
           </button>
         </div>
       </div>
+      <EventDrawer
+        event={data.items.find((ev) => ev.id === selectedId)}
+        detections={flagged.get(selectedId)}
+        onClose={() => setSelectedId(null)}
+        onFilterHost={(h) => {
+          setSelectedId(null);
+          resetToFirstPage(setHost)(h);
+        }}
+      />
     </div>
   );
 }
