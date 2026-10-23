@@ -265,6 +265,31 @@ class IncidentDetail(IncidentOut):
     notes: list[NoteOut] = []
 
 
+class GraphNode(BaseModel):
+    id: str
+    type: str  # host | user | detection
+    label: str
+    rule: str | None = None
+    technique: str | None = None
+    technique_ids: list[str] = []
+    tactic: str | None = None
+    risk_score: float | None = None
+    risk_level: str | None = None
+    first_seen: UTCDateTime | None = None
+
+
+class GraphEdge(BaseModel):
+    source: str
+    target: str
+    kind: str  # account | start | sequence | same_tactic
+
+
+class IncidentGraph(BaseModel):
+    incident_id: str
+    nodes: list[GraphNode]
+    edges: list[GraphEdge]
+
+
 class FindingOut(BaseModel):
     technique_id: str
     claim: str

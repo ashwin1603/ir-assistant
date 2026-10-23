@@ -5,6 +5,7 @@ import { RiskBadge } from "../components/RiskBadge";
 import { StatusBadge, INCIDENT_STATUSES } from "../components/StatusBadge";
 import { useAuth } from "../auth/AuthContext";
 import { AskPanel } from "../components/AskPanel";
+import { AttackGraph } from "../components/AttackGraph";
 
 const ANALYZE_TIMEOUT_MS = 40_000;
 
@@ -199,6 +200,9 @@ export default function IncidentDetail() {
           </form>
         )}
       </div>
+
+      <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">Attack graph</h2>
+      <AttackGraph incidentId={id} />
 
       <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">
         Timeline &amp; ATT&amp;CK mapping

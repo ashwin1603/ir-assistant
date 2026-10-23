@@ -7,13 +7,14 @@ from sqlalchemy.orm import Session
 from app.ai.ask import ask_incident, build_facts
 from app.ai.triage import analyze_incident, check_rate_limit
 from app.analysis.case_state import case_key, get_notes, get_status, status_map
+from app.analysis.graph import build_graph
 from app.analysis.timeline import build_timeline
 from app.audit import log_action
 from app.auth.deps import get_current_user, require_role
 from app.db import get_db
 from app.detection.engine import run_detection
 from app.models import Detection, Incident, IncidentCase, IncidentNote
-from app.schemas import AnalysisOut, AskRequest, AskResponse, IncidentDetail, IncidentOut, IncidentStatusUpdate, NoteCreate, NoteOut
+from app.schemas import AnalysisOut, AskRequest, AskResponse, IncidentDetail, IncidentGraph, IncidentOut, IncidentStatusUpdate, NoteCreate, NoteOut
 
 router = APIRouter(prefix="/api/incidents", tags=["incidents"])
 
@@ -64,6 +65,12 @@ def get_incident(incident_id: str, db: Session = Depends(get_db), _user=Depends(
         timeline=build_timeline(db, incident.id),
         notes=get_notes(db, incident),
     )
+
+
+@router.get("/{incident_id}/graph", response_model=IncidentGraph)
+def get_graph(incident_id: str, db: Session = Depends(get_db), _user=Depends(get_current_user)):
+    run_detection(db)
+    return build_graph(db, _get_or_404(db, incident_id))
 
 
 @router.put("/{incident_id}/status", response_model=IncidentOut)
