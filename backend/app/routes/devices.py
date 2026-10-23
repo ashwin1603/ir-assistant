@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.auth.deps import get_current_user, require_collector_key
+from app.auth.permissions import current_user
 from app.db import get_db
 from app.models import Device, Event
 from app.schemas import DeviceOut, HeartbeatIn
@@ -33,7 +33,7 @@ def device_status(last_seen: datetime | None, now: datetime) -> str:
 
 
 @router.post("/heartbeat")
-def heartbeat(payload: HeartbeatIn, db: Session = Depends(get_db), _collector=Depends(require_collector_key)):
+def heartbeat(payload: HeartbeatIn, db: Session = Depends(get_db)):
     # Not written to the audit log: one row per collector cycle would drown it.
     now = datetime.now(timezone.utc)
     device = db.query(Device).filter(Device.host == payload.host, Device.source == payload.source).first()
@@ -47,7 +47,7 @@ def heartbeat(payload: HeartbeatIn, db: Session = Depends(get_db), _collector=De
 
 
 @router.get("", response_model=list[DeviceOut])
-def list_devices(db: Session = Depends(get_db), _user=Depends(get_current_user)):
+def list_devices(db: Session = Depends(get_db), _user=Depends(current_user)):
     now = datetime.now(timezone.utc)
     # Events ingested in the last 5 minutes per (host, source); created_at = ingestion time.
     recent = {

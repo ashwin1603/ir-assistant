@@ -35,6 +35,9 @@ class LoginResponse(BaseModel):
     token_type: str = "bearer"
     role: str | None = None
     mfa_required: bool = False
+    # Admin MFA is required but not set up yet: mfa_token is then a setup-only token
+    # for /auth/mfa/setup and /auth/mfa/enable.
+    mfa_setup_required: bool = False
     mfa_token: str | None = None
 
 
@@ -63,6 +66,9 @@ class MfaEnableRequest(BaseModel):
 
 class MfaEnableOut(BaseModel):
     recovery_codes: list[str]
+    # Set only when enrolment was forced at login: the access token the login withheld.
+    access_token: str | None = None
+    role: str | None = None
 
 
 class MfaDisableRequest(BaseModel):
@@ -73,6 +79,12 @@ class MfaDisableRequest(BaseModel):
 class UserOut(BaseModel):
     username: str
     role: str
+    permissions: list[str] = []  # actions this role may perform (app/auth/permissions.py)
+
+
+class StepUpRequest(BaseModel):
+    password: str | None = Field(default=None, max_length=200)
+    code: str | None = Field(default=None, max_length=20)
 
 
 Role = Literal["admin", "analyst", "viewer"]
@@ -212,10 +224,12 @@ class SystemStatusOut(BaseModel):
     ai_calls_last_hour: int
     ollama: OllamaStatus | None  # None when the provider isn't ollama
     collector_last_seen: UTCDateTime | None
+    require_admin_mfa: bool = False
 
 
 class SystemSettingsUpdate(BaseModel):
-    ai_calls_per_hour: int = Field(ge=1, le=1000)
+    ai_calls_per_hour: int | None = Field(default=None, ge=1, le=1000)
+    require_admin_mfa: bool | None = None
 
 
 class AuditLogOut(BaseModel):

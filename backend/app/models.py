@@ -24,6 +24,8 @@ class User(Base):
     mfa_pending_secret: Mapped[str | None] = mapped_column(String, nullable=True)
     mfa_last_step: Mapped[int | None] = mapped_column(Integer, nullable=True)  # replay protection
     mfa_recovery_codes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Last successful step-up re-authentication (app/auth/step_up.py).
+    step_up_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 

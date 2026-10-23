@@ -133,12 +133,14 @@ def test_malicious_ip_field_never_reaches_script(client, seed_users):
     assert "Nothing to block" in script
 
 
-def test_viewer_gets_iocs_but_not_scripts(client, seed_users):
+def test_viewer_gets_neither_iocs_nor_scripts(client, seed_users):
+    # Least privilege: IOC downloads are analyst+ (download_artifacts), like the scripts.
     analyst = _analyst(client)
     incident_id = _seed_incident(client, analyst)
     viewer = _login(client, "test_viewer", "TestViewerPass123!")
 
-    assert client.get(f"/api/incidents/{incident_id}/iocs", headers=viewer).status_code == 200
+    assert client.get(f"/api/incidents/{incident_id}/iocs", headers=viewer).status_code == 403
+    assert client.get(f"/api/incidents/{incident_id}/iocs?format=csv", headers=viewer).status_code == 403
     assert client.get(f"/api/incidents/{incident_id}/scripts/firewall", headers=viewer).status_code == 403
 
 

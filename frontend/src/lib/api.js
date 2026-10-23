@@ -55,6 +55,11 @@ export function post(path, body, timeoutMs) {
   return request(path, { method: "POST", body: JSON.stringify(body) }, timeoutMs);
 }
 
+// For the forced MFA enrolment at login: uses the setup-only token, not the session token.
+export function postWithToken(path, body, token) {
+  return request(path, { method: "POST", body: JSON.stringify(body), headers: { Authorization: `Bearer ${token}` } });
+}
+
 export function put(path, body) {
   return request(path, { method: "PUT", body: JSON.stringify(body) });
 }

@@ -139,6 +139,9 @@ def test_admin_can_reset_mfa_and_events_are_audited(client, seed_users, db_sessi
 
     viewer = _login(client, "test_viewer", "TestViewerPass123!")["access_token"]
     assert client.post(f"/api/settings/users/{analyst_id}/reset-mfa", headers=_auth(viewer)).status_code == 403
+    # MFA reset is a step-up action: refused until the admin re-enters their password.
+    assert client.post(f"/api/settings/users/{analyst_id}/reset-mfa", headers=_auth(admin)).status_code == 403
+    assert client.post("/api/auth/step-up", json={"password": "TestAdminPass123!"}, headers=_auth(admin)).status_code == 204
     assert client.post(f"/api/settings/users/{analyst_id}/reset-mfa", headers=_auth(admin)).status_code == 204
     assert "access_token" in _login(client)
 

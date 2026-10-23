@@ -2,7 +2,7 @@ import asyncio
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -12,6 +12,7 @@ from slowapi.errors import RateLimitExceeded
 logger = logging.getLogger("ir_assistant")
 
 from app.ai.client import warm_up
+from app.auth.permissions import authorize
 from app.auth.routes import router as auth_router
 from app.config import settings
 from app.db import Base, SessionLocal, add_missing_columns, engine
@@ -49,7 +50,8 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="IR Assistant API", lifespan=lifespan)
+# authorize runs before every route: role checks come from the one table in app/auth/permissions.py.
+app = FastAPI(title="IR Assistant API", lifespan=lifespan, dependencies=[Depends(authorize)])
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)

@@ -15,13 +15,11 @@ const navItems = [
 ];
 
 export default function Layout() {
-  const { session, logout } = useAuth();
+  const { session, can, logout } = useAuth();
   const location = useLocation();
   const items = [...navItems];
-  if (session?.role === "admin" || session?.role === "analyst") items.push({ to: "/upload", label: "Upload" });
-  if (session?.role === "admin") {
-    items.push({ to: "/audit", label: "Audit Log" });
-  }
+  if (can("upload")) items.push({ to: "/upload", label: "Upload" });
+  if (can("read_audit")) items.push({ to: "/audit", label: "Audit Log" });
   items.push({ to: "/settings", label: "Settings" }); // non-admins see only "My account"
 
   return (

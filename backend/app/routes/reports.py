@@ -9,7 +9,8 @@ from app.analysis.case_state import get_notes, get_status
 from app.analysis.investigation import cached_investigation, to_out
 from app.analysis.report import attack_table, impact_text, is_simulated, top_actions, what_happened
 from app.analysis.timeline import build_timeline
-from app.auth.deps import get_current_user
+from app.auth.permissions import can, current_user
+from app.auth.redaction import redactor_for, sees_command_lines
 from app.db import get_db
 from app.models import Action, AIAnalysis, Detection, Incident
 from app.schemas import AnalysisOut, ExecutiveSummary, IncidentDetail, ReportOut
@@ -18,7 +19,7 @@ router = APIRouter(prefix="/api/incidents", tags=["reports"])
 
 
 @router.get("/{incident_id}/report", response_model=ReportOut)
-def get_report(incident_id: str, db: Session = Depends(get_db), user=Depends(get_current_user)):
+def get_report(incident_id: str, db: Session = Depends(get_db), user=Depends(current_user)):
     incident = db.query(Incident).filter(Incident.id == incident_id).first()
     if not incident:
         raise HTTPException(status_code=404, detail="Incident not found")
@@ -70,12 +71,13 @@ def get_report(incident_id: str, db: Session = Depends(get_db), user=Depends(get
     detections = db.query(Detection).filter(Detection.incident_id == incident.id).all()
     investigation = cached_investigation(db, incident.id, detections)
 
-    return ReportOut(
+    report = ReportOut(
         incident=incident_detail,
         analysis=analysis_out,
         actions=actions,
         attack=attack_table(timeline),
-        iocs=extract_iocs(db, incident.id),
+        # IOCs are analyst+ (download_artifacts); viewers get the report without them.
+        iocs=extract_iocs(db, incident.id) if can(user, "download_artifacts") else [],
         ti_matches=list({(m["type"], m["value"]): m for e in timeline for m in e["ti_matches"]}.values()),
         executive=executive,
         investigation=to_out(investigation) if investigation else None,
@@ -83,3 +85,10 @@ def get_report(incident_id: str, db: Session = Depends(get_db), user=Depends(get
         generated_at=datetime.now(timezone.utc),
         generated_by=user.username,
     )
+    if not sees_command_lines(user):
+        # AI narrative, findings and investigation steps can quote commands from the evidence.
+        event_ids = [i for entry in timeline for i in entry["event_ids"]]
+        if investigation:
+            event_ids += [i for step in json.loads(investigation.steps) for i in step["evidence_event_ids"]]
+        report = ReportOut.model_validate(redactor_for(db, event_ids).apply(report.model_dump()))
+    return report

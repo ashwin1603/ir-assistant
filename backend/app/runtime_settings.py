@@ -7,6 +7,7 @@ from app.config import settings
 from app.models import AppSetting
 
 AI_CALLS_PER_HOUR = "ai_calls_per_hour"
+REQUIRE_ADMIN_MFA = "require_admin_mfa"
 
 
 def get_ai_calls_per_hour(db: Session) -> int:
@@ -15,9 +16,23 @@ def get_ai_calls_per_hour(db: Session) -> int:
 
 
 def set_ai_calls_per_hour(db: Session, value: int) -> None:
-    row = db.get(AppSetting, AI_CALLS_PER_HOUR)
+    _set(db, AI_CALLS_PER_HOUR, str(value))
+
+
+def get_require_admin_mfa(db: Session) -> bool:
+    """Default OFF. When ON, an admin without MFA is sent through MFA setup at login."""
+    row = db.get(AppSetting, REQUIRE_ADMIN_MFA)
+    return row is not None and row.value == "true"
+
+
+def set_require_admin_mfa(db: Session, value: bool) -> None:
+    _set(db, REQUIRE_ADMIN_MFA, "true" if value else "false")
+
+
+def _set(db: Session, key: str, value: str) -> None:
+    row = db.get(AppSetting, key)
     if row:
-        row.value = str(value)
+        row.value = value
     else:
-        db.add(AppSetting(key=AI_CALLS_PER_HOUR, value=str(value)))
+        db.add(AppSetting(key=key, value=value))
     db.commit()

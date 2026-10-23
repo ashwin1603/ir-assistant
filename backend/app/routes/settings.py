@@ -12,7 +12,8 @@ from sqlalchemy.orm import Session
 
 from app.ai.client import ollama_status
 from app.audit import log_action
-from app.auth.deps import require_role
+from app.auth.permissions import current_user
+from app.auth.step_up import require_step_up
 from app.auth.routes import clear_mfa
 from app.auth.security import hash_password
 from app.config import settings
@@ -25,7 +26,7 @@ from app.detection.rules import RULES
 from app.detection.sigma_import import MAX_BYTES, SigmaImportError, import_sigma
 from app.detection.threat_intel import MAX_IMPORT_BYTES, import_indicators, parse_import
 from app.models import AuditLog, RuleOverride, ThreatIndicator, User
-from app.runtime_settings import get_ai_calls_per_hour, set_ai_calls_per_hour
+from app.runtime_settings import get_ai_calls_per_hour, get_require_admin_mfa, set_ai_calls_per_hour, set_require_admin_mfa
 from app.schemas import (
     AdminUserCreate,
     CustomRuleIn,
@@ -45,8 +46,6 @@ from app.schemas import (
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 
-require_admin = require_role("admin")
-
 
 # ---------- Users ----------
 
@@ -59,12 +58,12 @@ def _get_user_or_404(db: Session, user_id: str) -> User:
 
 
 @router.get("/users", response_model=list[AdminUserOut])
-def list_users(db: Session = Depends(get_db), _admin: User = Depends(require_admin)):
+def list_users(db: Session = Depends(get_db), _admin: User = Depends(current_user)):
     return db.query(User).order_by(User.username).all()
 
 
 @router.post("/users", response_model=AdminUserOut, status_code=201)
-def create_user(body: AdminUserCreate, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+def create_user(body: AdminUserCreate, db: Session = Depends(get_db), admin: User = Depends(require_step_up)):
     if db.query(User).filter(User.username == body.username).first():
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Username already exists")
     user = User(username=body.username, password_hash=hash_password(body.password), role=body.role)
@@ -75,7 +74,7 @@ def create_user(body: AdminUserCreate, db: Session = Depends(get_db), admin: Use
 
 
 @router.patch("/users/{user_id}", response_model=AdminUserOut)
-def update_user(user_id: str, body: AdminUserUpdate, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+def update_user(user_id: str, body: AdminUserUpdate, db: Session = Depends(get_db), admin: User = Depends(require_step_up)):
     user = _get_user_or_404(db, user_id)
     new_role = body.role if body.role is not None else user.role
     new_active = body.is_active if body.is_active is not None else user.is_active
@@ -100,14 +99,14 @@ def update_user(user_id: str, body: AdminUserUpdate, db: Session = Depends(get_d
 
 
 @router.post("/users/{user_id}/reset-password", status_code=204)
-def reset_password(user_id: str, body: PasswordReset, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+def reset_password(user_id: str, body: PasswordReset, db: Session = Depends(get_db), admin: User = Depends(require_step_up)):
     user = _get_user_or_404(db, user_id)
     user.password_hash = hash_password(body.new_password)
     log_action(db, actor=admin.username, action="user_password_reset", detail=f"user={user.username}")
 
 
 @router.post("/users/{user_id}/reset-mfa", status_code=204)
-def reset_mfa(user_id: str, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+def reset_mfa(user_id: str, db: Session = Depends(get_db), admin: User = Depends(require_step_up)):
     """For a user who lost their authenticator and recovery codes."""
     user = _get_user_or_404(db, user_id)
     clear_mfa(user)
@@ -160,7 +159,7 @@ def _validated_params(network_rule, params: dict[str, float]) -> dict[str, float
 
 
 @router.get("/rules", response_model=list[RuleSettingOut])
-def list_rules(db: Session = Depends(get_db), _admin: User = Depends(require_admin)):
+def list_rules(db: Session = Depends(get_db), _admin: User = Depends(current_user)):
     overrides = {o.rule_id: o for o in db.query(RuleOverride).all()}
     return [_rule_out(r, overrides.get(r.id)) for r in RULES] + [
         _network_rule_out(n, overrides.get(n.rule.id)) for n in NETWORK_RULES
@@ -168,7 +167,7 @@ def list_rules(db: Session = Depends(get_db), _admin: User = Depends(require_adm
 
 
 @router.patch("/rules/{rule_id}", response_model=RuleSettingOut)
-def update_rule(rule_id: str, body: RuleSettingUpdate, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+def update_rule(rule_id: str, body: RuleSettingUpdate, db: Session = Depends(get_db), admin: User = Depends(current_user)):
     network_rule = find_network_rule(rule_id)
     rule = network_rule.rule if network_rule else next((r for r in RULES if r.id == rule_id), None)
     if not rule:
@@ -201,7 +200,7 @@ def update_rule(rule_id: str, body: RuleSettingUpdate, db: Session = Depends(get
 
 
 @router.post("/rules/import-sigma", response_model=RuleSettingOut, status_code=201)
-def import_sigma_rule(body: SigmaImport, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+def import_sigma_rule(body: SigmaImport, db: Session = Depends(get_db), admin: User = Depends(require_step_up)):
     if len(body.yaml.encode("utf-8")) > MAX_BYTES:
         log_action(db, actor=admin.username, action="sigma_import", detail="rejected: too large", success=False)
         raise HTTPException(status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail="Rule too large (max 50 KB)")
@@ -227,7 +226,7 @@ def _custom_rule_or_error(rule_id: str):
 
 
 @router.get("/rules/{rule_id}/form", response_model=CustomRuleIn)
-def rule_form(rule_id: str, _admin: User = Depends(require_admin)):
+def rule_form(rule_id: str, _admin: User = Depends(current_user)):
     """The editor form for a rule: to edit a custom rule, or as the starting point for a clone."""
     rule = custom_rules.find_rule(rule_id)
     if not rule:
@@ -239,7 +238,7 @@ def rule_form(rule_id: str, _admin: User = Depends(require_admin)):
 
 
 @router.post("/rules/custom", response_model=RuleSettingOut, status_code=201)
-def create_custom_rule(body: CustomRuleIn, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+def create_custom_rule(body: CustomRuleIn, db: Session = Depends(get_db), admin: User = Depends(current_user)):
     try:
         rule = custom_rules.create(body)
     except CustomRuleError as e:
@@ -250,7 +249,7 @@ def create_custom_rule(body: CustomRuleIn, db: Session = Depends(get_db), admin:
 
 
 @router.put("/rules/custom/{rule_id}", response_model=RuleSettingOut)
-def update_custom_rule(rule_id: str, body: CustomRuleIn, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+def update_custom_rule(rule_id: str, body: CustomRuleIn, db: Session = Depends(get_db), admin: User = Depends(current_user)):
     _custom_rule_or_error(rule_id)
     try:
         rule = custom_rules.update(rule_id, body)
@@ -262,7 +261,7 @@ def update_custom_rule(rule_id: str, body: CustomRuleIn, db: Session = Depends(g
 
 
 @router.delete("/rules/custom/{rule_id}", status_code=204)
-def delete_custom_rule(rule_id: str, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+def delete_custom_rule(rule_id: str, db: Session = Depends(get_db), admin: User = Depends(current_user)):
     rule = _custom_rule_or_error(rule_id)
     custom_rules.delete(rule_id)
     override = db.get(RuleOverride, rule_id)
@@ -272,7 +271,7 @@ def delete_custom_rule(rule_id: str, db: Session = Depends(get_db), admin: User 
 
 
 @router.post("/rules/custom/test", response_model=RuleTestResult)
-def test_custom_rule(body: CustomRuleIn, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+def test_custom_rule(body: CustomRuleIn, db: Session = Depends(get_db), admin: User = Depends(current_user)):
     """Dry run against stored events: never saves the rule, never creates detections."""
     try:
         result = custom_rules.dry_run(db, body)
@@ -292,7 +291,7 @@ TI_LIST_LIMIT = 500
 @router.get("/ti", response_model=list[TIIndicatorOut])
 def list_indicators(
     db: Session = Depends(get_db),
-    _admin: User = Depends(require_admin),
+    _admin: User = Depends(current_user),
     q: str | None = Query(default=None, max_length=200),
     type: str | None = Query(default=None, pattern="^(ip|domain|sha256)$"),
 ):
@@ -306,7 +305,7 @@ def list_indicators(
 
 
 @router.post("/ti/import", response_model=TIImportResult, status_code=201)
-def import_ti(file: UploadFile = File(...), db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+def import_ti(file: UploadFile = File(...), db: Session = Depends(get_db), admin: User = Depends(current_user)):
     name = PurePath((file.filename or "").replace("\\", "/")).name[:255]
 
     def reject(code: int, message: str):
@@ -330,7 +329,7 @@ def import_ti(file: UploadFile = File(...), db: Session = Depends(get_db), admin
 
 
 @router.delete("/ti/{indicator_id}", status_code=204)
-def delete_indicator(indicator_id: str, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+def delete_indicator(indicator_id: str, db: Session = Depends(get_db), admin: User = Depends(current_user)):
     indicator = db.get(ThreatIndicator, indicator_id)
     if not indicator:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Indicator not found")
@@ -342,7 +341,7 @@ def delete_indicator(indicator_id: str, db: Session = Depends(get_db), admin: Us
 
 
 @router.get("/system", response_model=SystemStatusOut)
-def system_status(db: Session = Depends(get_db), _admin: User = Depends(require_admin)):
+def system_status(db: Session = Depends(get_db), _admin: User = Depends(current_user)):
     since = datetime.now(timezone.utc) - timedelta(hours=1)
     calls_last_hour = db.query(AuditLog).filter(AuditLog.action == "ai_analyze", AuditLog.timestamp >= since).count()
     last_ingest = (
@@ -358,11 +357,17 @@ def system_status(db: Session = Depends(get_db), _admin: User = Depends(require_
         ai_calls_last_hour=calls_last_hour,
         ollama=ollama_status() if settings.llm_provider == "ollama" else None,
         collector_last_seen=last_ingest.timestamp if last_ingest else None,
+        require_admin_mfa=get_require_admin_mfa(db),
     )
 
 
 @router.put("/system", status_code=204)
-def update_system(body: SystemSettingsUpdate, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
-    old = get_ai_calls_per_hour(db)
-    set_ai_calls_per_hour(db, body.ai_calls_per_hour)
-    log_action(db, actor=admin.username, action="system_update", detail=f"ai_calls_per_hour {old} -> {body.ai_calls_per_hour}")
+def update_system(body: SystemSettingsUpdate, db: Session = Depends(get_db), admin: User = Depends(current_user)):
+    if body.ai_calls_per_hour is not None:
+        old = get_ai_calls_per_hour(db)
+        set_ai_calls_per_hour(db, body.ai_calls_per_hour)
+        log_action(db, actor=admin.username, action="system_update", detail=f"ai_calls_per_hour {old} -> {body.ai_calls_per_hour}")
+    if body.require_admin_mfa is not None:
+        old_mfa = get_require_admin_mfa(db)
+        set_require_admin_mfa(db, body.require_admin_mfa)
+        log_action(db, actor=admin.username, action="system_update", detail=f"require_admin_mfa {old_mfa} -> {body.require_admin_mfa}")

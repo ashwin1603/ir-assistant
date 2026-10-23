@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.audit import log_action
-from app.auth.deps import get_current_user, require_role
+from app.auth.permissions import current_user
 from app.db import get_db
 from app.models import Action, Incident
 from app.schemas import ActionOut
@@ -30,7 +30,7 @@ def _to_out(action: Action, incident: Incident) -> ActionOut:
 @router.get("", response_model=list[ActionOut])
 def list_actions(
     db: Session = Depends(get_db),
-    _user=Depends(get_current_user),
+    _user=Depends(current_user),
     incident_id: str | None = Query(default=None, max_length=64),
     status: str | None = Query(default=None, pattern="^(pending|approved|rejected)$"),
 ):
@@ -67,10 +67,10 @@ def _decide(action_id: str, new_status: str, db: Session, user) -> ActionOut:
 
 
 @router.post("/{action_id}/approve", response_model=ActionOut)
-def approve_action(action_id: str, db: Session = Depends(get_db), user=Depends(require_role("admin", "analyst"))):
+def approve_action(action_id: str, db: Session = Depends(get_db), user=Depends(current_user)):
     return _decide(action_id, "approved", db, user)
 
 
 @router.post("/{action_id}/reject", response_model=ActionOut)
-def reject_action(action_id: str, db: Session = Depends(get_db), user=Depends(require_role("admin", "analyst"))):
+def reject_action(action_id: str, db: Session = Depends(get_db), user=Depends(current_user)):
     return _decide(action_id, "rejected", db, user)

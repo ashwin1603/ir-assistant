@@ -5,7 +5,7 @@ import json
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from app.auth.deps import get_current_user
+from app.auth.permissions import current_user
 from app.db import get_db
 from app.detection.attack_map import DESCRIPTIONS, MITIGATIONS, TACTIC_ORDER, TACTICS, TECHNIQUE_NAMES
 from app.detection.engine import effective_network_rules, effective_rules, run_detection
@@ -54,7 +54,7 @@ def _cell(technique_id: str, detections: list[Detection]) -> TechniqueCell:
 @router.get("/matrix", response_model=AttackMatrixOut)
 def attack_matrix(
     db: Session = Depends(get_db),
-    _user=Depends(get_current_user),
+    _user=Depends(current_user),
     host: str | None = Query(default=None, max_length=255),
 ):
     run_detection(db)
@@ -77,7 +77,7 @@ def attack_matrix(
 def technique_detail(
     technique_id: str,
     db: Session = Depends(get_db),
-    _user=Depends(get_current_user),
+    _user=Depends(current_user),
     host: str | None = Query(default=None, max_length=255),
 ):
     run_detection(db)

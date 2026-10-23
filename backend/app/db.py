@@ -32,6 +32,7 @@ def add_missing_columns() -> None:
         "mfa_pending_secret": "ALTER TABLE users ADD COLUMN mfa_pending_secret VARCHAR",
         "mfa_last_step": "ALTER TABLE users ADD COLUMN mfa_last_step INTEGER",
         "mfa_recovery_codes": "ALTER TABLE users ADD COLUMN mfa_recovery_codes TEXT",
+        "step_up_at": "ALTER TABLE users ADD COLUMN step_up_at DATETIME",
     }
     event_columns = {c["name"] for c in inspect(engine).get_columns("events")}
     new_event_columns = {

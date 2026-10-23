@@ -23,6 +23,7 @@ def verify_password(password: str, password_hash: str) -> bool:
 
 
 MFA_TOKEN_MINUTES = 5
+MFA_SETUP_TOKEN_MINUTES = 10
 
 
 def create_access_token(subject: str, role: str) -> str:
@@ -33,9 +34,18 @@ def create_access_token(subject: str, role: str) -> str:
 
 def create_mfa_token(subject: str) -> str:
     """Short-lived token proving only "password was correct". Its purpose claim is
-    "mfa", so get_current_user rejects it on every route except /auth/mfa/verify."""
+    "mfa", so app/auth/permissions.py rejects it on every route except /auth/mfa/verify."""
     expire = datetime.now(timezone.utc) + timedelta(minutes=MFA_TOKEN_MINUTES)
     payload = {"sub": subject, "purpose": "mfa", "exp": expire}
+    return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+
+
+def create_mfa_setup_token(subject: str) -> str:
+    """Short-lived token for an admin who must enrol in MFA before getting an access
+    token (Settings -> System -> Require MFA for admin). Only /auth/mfa/setup and
+    /auth/mfa/enable accept it."""
+    expire = datetime.now(timezone.utc) + timedelta(minutes=MFA_SETUP_TOKEN_MINUTES)
+    payload = {"sub": subject, "purpose": "mfa_setup", "exp": expire}
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
 
 
@@ -52,3 +62,7 @@ def decode_access_token(token: str) -> dict:
 
 def decode_mfa_token(token: str) -> dict:
     return _decode(token, "mfa")
+
+
+def decode_mfa_setup_token(token: str) -> dict:
+    return _decode(token, "mfa_setup")

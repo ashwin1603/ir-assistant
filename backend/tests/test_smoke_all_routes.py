@@ -16,7 +16,7 @@ from app.models import Event
 PASSWORDS = {"admin": "TestAdminPass123!", "analyst": "TestAnalystPass123!", "viewer": "TestViewerPass123!"}
 
 ADMIN_ONLY_PREFIXES = ("/api/audit", "/api/settings")
-ADMIN_ANALYST = {"/api/incidents/{incident_id}/scripts/{kind}"}
+ADMIN_ANALYST = {"/api/incidents/{incident_id}/scripts/{kind}", "/api/incidents/{incident_id}/iocs"}
 PUBLIC = {"/api/health"}
 
 TRACE_MARKERS = ("Traceback", 'File "', "sqlalchemy.exc", "Exception:")

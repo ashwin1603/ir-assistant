@@ -11,7 +11,8 @@ from app.analysis.graph import build_graph
 from app.analysis.investigation import cached_investigation, investigate, to_out
 from app.analysis.timeline import build_timeline
 from app.audit import log_action
-from app.auth.deps import get_current_user, require_role
+from app.auth.permissions import current_user
+from app.auth.redaction import redactor_for, sees_command_lines
 from app.config import settings
 from app.db import get_db
 from app.detection.engine import run_detection
@@ -19,6 +20,19 @@ from app.models import Detection, Incident, IncidentCase, IncidentNote
 from app.schemas import AnalysisOut, AskRequest, AskResponse, IncidentDetail, IncidentGraph, IncidentOut, InvestigationOut, IncidentStatusUpdate, NoteCreate, NoteOut
 
 router = APIRouter(prefix="/api/incidents", tags=["incidents"])
+
+
+def _incident_event_ids(db: Session, incident_id: str) -> list[str]:
+    ids: list[str] = []
+    for (matched,) in db.query(Detection.matched_event_ids).filter(Detection.incident_id == incident_id).all():
+        ids.extend(json.loads(matched))
+    return ids
+
+
+def redact_investigation(db: Session, out: InvestigationOut, event_ids: list[str]) -> InvestigationOut:
+    """Viewer copy: step evidence includes nearby process events, so their command lines are masked too."""
+    ids = event_ids + [i for step in out.steps for i in step.evidence_event_ids]
+    return InvestigationOut.model_validate(redactor_for(db, ids).apply(out.model_dump()))
 
 
 def _to_out(incident: Incident, status: str) -> IncidentOut:
@@ -44,7 +58,7 @@ def _get_or_404(db: Session, incident_id: str) -> Incident:
 @router.get("", response_model=list[IncidentOut])
 def list_incidents(
     db: Session = Depends(get_db),
-    _user=Depends(get_current_user),
+    _user=Depends(current_user),
     status: str | None = Query(default=None, pattern="^(new|investigating|contained|closed)$"),
 ):
     run_detection(db)
@@ -59,7 +73,7 @@ def list_incidents(
 
 
 @router.get("/{incident_id}", response_model=IncidentDetail)
-def get_incident(incident_id: str, db: Session = Depends(get_db), _user=Depends(get_current_user)):
+def get_incident(incident_id: str, db: Session = Depends(get_db), _user=Depends(current_user)):
     run_detection(db)
     incident = _get_or_404(db, incident_id)
     return IncidentDetail(
@@ -70,9 +84,13 @@ def get_incident(incident_id: str, db: Session = Depends(get_db), _user=Depends(
 
 
 @router.get("/{incident_id}/graph", response_model=IncidentGraph)
-def get_graph(incident_id: str, db: Session = Depends(get_db), _user=Depends(get_current_user)):
+def get_graph(incident_id: str, db: Session = Depends(get_db), user=Depends(current_user)):
     run_detection(db)
-    return build_graph(db, _get_or_404(db, incident_id))
+    incident = _get_or_404(db, incident_id)
+    graph = build_graph(db, incident)
+    if not sees_command_lines(user):
+        graph = redactor_for(db, _incident_event_ids(db, incident.id)).apply(graph)
+    return graph
 
 
 @router.put("/{incident_id}/status", response_model=IncidentOut)
@@ -80,7 +98,7 @@ def set_status(
     incident_id: str,
     body: IncidentStatusUpdate,
     db: Session = Depends(get_db),
-    user=Depends(require_role("admin", "analyst")),
+    user=Depends(current_user),
 ):
     incident = _get_or_404(db, incident_id)
     key = case_key(incident)
@@ -100,7 +118,7 @@ def add_note(
     incident_id: str,
     body: NoteCreate,
     db: Session = Depends(get_db),
-    user=Depends(require_role("admin", "analyst")),
+    user=Depends(current_user),
 ):
     incident = _get_or_404(db, incident_id)
     note = IncidentNote(case_key=case_key(incident), author=user.username, text=body.text)
@@ -115,7 +133,7 @@ def add_note(
 def analyze(
     incident_id: str,
     db: Session = Depends(get_db),
-    user=Depends(require_role("admin", "analyst")),
+    user=Depends(current_user),
 ):
     run_detection(db)
     incident = db.query(Incident).filter(Incident.id == incident_id).first()
@@ -148,7 +166,7 @@ def ask(
     incident_id: str,
     body: AskRequest,
     db: Session = Depends(get_db),
-    user=Depends(get_current_user),
+    user=Depends(current_user),
 ):
     run_detection(db)
     incident = _get_or_404(db, incident_id)
@@ -157,6 +175,8 @@ def ask(
         raise HTTPException(status_code=429, detail="AI rate limit exceeded, try again later")
 
     result = ask_incident(build_facts(db, incident), body.question)
+    if not sees_command_lines(user):
+        result = {**result, "answer": redactor_for(db, _incident_event_ids(db, incident.id)).text(result["answer"])}
     # The question may contain sensitive text; only its length is audited.
     log_action(
         db,
@@ -168,20 +188,25 @@ def ask(
 
 
 @router.get("/{incident_id}/investigate", response_model=InvestigationOut | None)
-def get_investigation(incident_id: str, db: Session = Depends(get_db), _user=Depends(get_current_user)):
+def get_investigation(incident_id: str, db: Session = Depends(get_db), user=Depends(current_user)):
     """Cached result for the current detections (any role), or null if none/stale."""
     run_detection(db)
     incident = _get_or_404(db, incident_id)
     detections = db.query(Detection).filter(Detection.incident_id == incident.id).all()
     record = cached_investigation(db, incident.id, detections)
-    return to_out(record) if record else None
+    if not record:
+        return None
+    out = to_out(record)
+    if not sees_command_lines(user):
+        out = redact_investigation(db, out, _incident_event_ids(db, incident.id))
+    return out
 
 
 @router.post("/{incident_id}/investigate", response_model=InvestigationOut)
 def run_investigation(
     incident_id: str,
     db: Session = Depends(get_db),
-    user=Depends(require_role("admin", "analyst")),
+    user=Depends(current_user),
 ):
     run_detection(db)
     incident = _get_or_404(db, incident_id)

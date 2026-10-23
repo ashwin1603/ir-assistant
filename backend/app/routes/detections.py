@@ -3,7 +3,7 @@ import json
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.auth.deps import get_current_user
+from app.auth.permissions import current_user
 from app.db import get_db
 from app.detection.engine import run_detection
 from app.detection.threat_intel import matches_for_event_ids, unique_matches
@@ -38,7 +38,7 @@ def _to_out(detection: Detection, ti_by_event: dict[str, list[dict]] | None = No
 @router.get("", response_model=list[DetectionOut])
 def list_detections(
     db: Session = Depends(get_db),
-    _user=Depends(get_current_user),
+    _user=Depends(current_user),
     host: str | None = Query(default=None, max_length=255),
     technique_id: str | None = Query(default=None, max_length=32),
 ):

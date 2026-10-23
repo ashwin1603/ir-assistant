@@ -5,8 +5,8 @@ import { useAuth } from "../auth/AuthContext";
 const PAGE_SIZE = 25;
 
 export default function AuditLog() {
-  const { session } = useAuth();
-  const isAdmin = session?.role === "admin";
+  const { can } = useAuth();
+  const isAdmin = can("read_audit");
 
   const [entries, setEntries] = useState([]);
   const [total, setTotal] = useState(0);

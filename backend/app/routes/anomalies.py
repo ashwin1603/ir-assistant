@@ -4,7 +4,8 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.analysis.iforest import ANOMALY_THRESHOLD, IsolationForest, extract_features, top_features
-from app.auth.deps import get_current_user
+from app.auth.permissions import current_user
+from app.auth.redaction import redact_command, sees_command_lines
 from app.db import get_db
 from app.detection.engine import run_detection
 from app.models import Detection, Event
@@ -56,8 +57,12 @@ def score_anomalies(db: Session, limit: int) -> AnomalyReport:
 @router.get("", response_model=AnomalyReport)
 def list_anomalies(
     db: Session = Depends(get_db),
-    _user=Depends(get_current_user),
+    user=Depends(current_user),
     limit: int = Query(default=50, ge=1, le=500),
 ):
     run_detection(db)
-    return score_anomalies(db, limit)
+    report = score_anomalies(db, limit)
+    if not sees_command_lines(user):
+        for item in report.items:
+            item.command_line = redact_command(item.command_line, item.process)
+    return report

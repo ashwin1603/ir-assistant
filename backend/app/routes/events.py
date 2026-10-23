@@ -3,7 +3,8 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.audit import log_action
-from app.auth.deps import get_current_user, require_collector_key
+from app.auth.permissions import current_user
+from app.auth.redaction import TextRedactor, redact_command, sees_command_lines
 from app.db import get_db
 from app.detection.threat_intel import load_index, match_event
 from app.models import Event
@@ -16,7 +17,6 @@ router = APIRouter(prefix="/api/events", tags=["events"])
 def ingest_events(
     payload: EventIngestRequest,
     db: Session = Depends(get_db),
-    _collector=Depends(require_collector_key),
 ):
     inserted = 0
     skipped = 0
@@ -44,7 +44,6 @@ def ingest_events(
 @router.delete("/simulated")
 def wipe_simulated_events(
     db: Session = Depends(get_db),
-    _collector=Depends(require_collector_key),
     host: str | None = Query(default=None, max_length=255),
 ):
     # Only ever removes synthetic demo events (scripts/seed_simulated_events.py);
@@ -61,7 +60,7 @@ def wipe_simulated_events(
 @router.get("", response_model=EventPage)
 def list_events(
     db: Session = Depends(get_db),
-    _user=Depends(get_current_user),
+    user=Depends(current_user),
     q: str | None = Query(default=None, max_length=200),
     channel: str | None = Query(default=None, max_length=255),
     event_id: int | None = Query(default=None),
@@ -90,7 +89,10 @@ def list_events(
     total = query.count()
     items = query.order_by(Event.timestamp.desc()).offset((page - 1) * page_size).limit(page_size).all()
     index = load_index(db)
-    return EventPage(
-        total=total,
-        items=[EventOut.model_validate({**EventOut.model_validate(e).model_dump(), "ti_matches": match_event(e, index)}) for e in items],
-    )
+    out = [EventOut.model_validate({**EventOut.model_validate(e).model_dump(), "ti_matches": match_event(e, index)}) for e in items]
+    if not sees_command_lines(user):
+        # Viewers: the 4688 message repeats the command line, so it is redacted too.
+        for e, o in zip(items, out):
+            o.command_line = redact_command(e.command_line, e.process)
+            o.message = TextRedactor([e]).text(o.message) if o.message else o.message
+    return EventPage(total=total, items=out)

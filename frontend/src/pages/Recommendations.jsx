@@ -10,8 +10,8 @@ const STATUS_STYLES = {
 };
 
 export default function Recommendations() {
-  const { session } = useAuth();
-  const canDecide = session?.role === "admin" || session?.role === "analyst";
+  const { can } = useAuth();
+  const canDecide = can("decide_actions");
 
   const [actions, setActions] = useState([]);
   const [loading, setLoading] = useState(true);

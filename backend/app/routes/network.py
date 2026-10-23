@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.auth.deps import get_current_user
+from app.auth.permissions import current_user
 from app.collector.network import NETWORK_CHANNEL
 from app.db import get_db
 from app.detection.engine import run_detection
@@ -22,7 +22,7 @@ TOP_N = 10
 @router.get("/summary", response_model=NetworkSummaryOut)
 def network_summary(
     db: Session = Depends(get_db),
-    _user=Depends(get_current_user),
+    _user=Depends(current_user),
     host: str | None = Query(default=None, max_length=255),
 ):
     run_detection(db)

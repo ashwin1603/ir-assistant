@@ -7,7 +7,7 @@ from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from app.audit import log_action
-from app.auth.deps import require_role
+from app.auth.permissions import current_user
 from app.collector.upload_parser import (
     ALLOWED_EXTENSIONS,
     UploadParseError,
@@ -71,7 +71,7 @@ def upload_log_file(
     request: Request,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    user=Depends(require_role("admin", "analyst")),
+    user=Depends(current_user),
 ):
     # Only the basename's extension is used; the client-supplied name never
     # becomes part of a filesystem path, so "../../x.json" cannot escape.

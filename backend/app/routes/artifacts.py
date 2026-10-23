@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.analysis.artifacts import extract_iocs, firewall_block_script, iocs_to_csv, isolation_script
 from app.audit import log_action
-from app.auth.deps import get_current_user, require_role
+from app.auth.permissions import current_user
 from app.db import get_db
 from app.models import Incident
 
@@ -31,7 +31,7 @@ def download_iocs(
     incident_id: str,
     format: str = Query(default="json", pattern="^(json|csv)$"),
     db: Session = Depends(get_db),
-    user=Depends(get_current_user),
+    user=Depends(current_user),
 ):
     incident = _get_or_404(db, incident_id)
     iocs = extract_iocs(db, incident.id)
@@ -46,7 +46,7 @@ def download_script(
     incident_id: str,
     kind: str = Path(pattern="^(firewall|isolation)$"),
     db: Session = Depends(get_db),
-    user=Depends(require_role("admin", "analyst")),
+    user=Depends(current_user),
 ):
     # Text only: the script is returned for human review and is never executed by the app.
     incident = _get_or_404(db, incident_id)

@@ -2,8 +2,15 @@ import { useCallback, useEffect, useState } from "react";
 import { del, get, patch, post, put, upload } from "../lib/api";
 import { useAuth } from "../auth/AuthContext";
 import RuleEditor, { EMPTY_RULE } from "../components/RuleEditor";
+import { useStepUp } from "../components/StepUp";
 
-const ADMIN_TABS = ["Users", "Detection", "Threat intel", "System"];
+// Admin tabs and the permission (from /auth/me) that shows each one.
+const ADMIN_TABS = [
+  ["Users", "manage_users"],
+  ["Detection", "manage_rules"],
+  ["Threat intel", "manage_threat_intel"],
+  ["System", "manage_settings"],
+];
 const TI_MAX_BYTES = 1024 * 1024;
 const ROLES = ["admin", "analyst", "viewer"];
 
@@ -23,6 +30,7 @@ function UsersTab() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [form, setForm] = useState({ username: "", password: "", role: "viewer" });
+  const [stepUpDialog, withStepUp] = useStepUp();
 
   const load = useCallback(() => {
     get("/settings/users").then(setUsers).catch((err) => setError(err.message));
@@ -33,7 +41,7 @@ function UsersTab() {
     setError("");
     setNotice("");
     try {
-      await fn();
+      await withStepUp(fn);
       setNotice(successMessage);
       load();
     } catch (err) {
@@ -57,6 +65,7 @@ function UsersTab() {
 
   return (
     <div>
+      {stepUpDialog}
       <Message error={error} notice={notice} />
 
       <form onSubmit={createUser} className="mb-4 flex flex-wrap items-end gap-2 rounded border border-slate-800 p-3">
@@ -207,6 +216,7 @@ const SIGMA_MAX_BYTES = 50 * 1024;
 function SigmaImport({ onImported, onError }) {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
+  const [stepUpDialog, withStepUp] = useStepUp();
 
   async function onFile(e) {
     const file = e.target.files[0];
@@ -220,7 +230,7 @@ function SigmaImport({ onImported, onError }) {
   async function submit() {
     setBusy(true);
     try {
-      onImported(await post("/settings/rules/import-sigma", { yaml: text }));
+      onImported(await withStepUp(() => post("/settings/rules/import-sigma", { yaml: text })));
       setText("");
     } catch (err) {
       onError(err.message);
@@ -231,6 +241,7 @@ function SigmaImport({ onImported, onError }) {
 
   return (
     <div className="mt-6 rounded border border-slate-800 p-4">
+      {stepUpDialog}
       <h2 className="mb-1 text-sm font-semibold text-slate-200">Import Sigma rule</h2>
       <p className="mb-3 text-xs text-slate-500">
         Paste YAML or choose a .yml file (max 50 KB). Fields: CommandLine, Image, ParentImage, EventID, User,
@@ -249,6 +260,7 @@ function SigmaImport({ onImported, onError }) {
 }
 
 function DetectionTab() {
+  const { can } = useAuth();
   const [rules, setRules] = useState([]);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -331,7 +343,7 @@ function DetectionTab() {
       ) : (
         <button className={`${buttonClass} mt-4`} onClick={() => setEditor({ initial: EMPTY_RULE, ruleId: null })}>New rule</button>
       )}
-      <SigmaImport onImported={onImported} onError={showError} />
+      {can("import_sigma") && <SigmaImport onImported={onImported} onError={showError} />}
     </div>
   );
 }
@@ -476,6 +488,17 @@ function SystemTab() {
   }, []);
   useEffect(load, [load]);
 
+  async function saveRequireMfa(value) {
+    setError("");
+    try {
+      await put("/settings/system", { require_admin_mfa: value });
+      setNotice(value ? "Admins must now use MFA (enforced at their next login)" : "Admin MFA requirement turned off");
+      load();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   async function saveCap() {
     setError("");
     try {
@@ -505,6 +528,18 @@ function SystemTab() {
             Save
           </button>
         </div>
+      </section>
+
+      <section className="rounded border border-slate-800 p-4">
+        <h2 className="mb-2 font-semibold text-slate-100">Security</h2>
+        <label className="flex items-center gap-2">
+          <input type="checkbox" checked={status.require_admin_mfa} onChange={(e) => saveRequireMfa(e.target.checked)} />
+          Require MFA for admin
+        </label>
+        <p className="mt-1 text-xs text-slate-500">
+          When on, an admin without MFA must set it up at their next login, and admins cannot turn MFA off.
+          Locked out? Run <code>python scripts/admin_recovery.py</code> on the server.
+        </p>
       </section>
 
       <section className="rounded border border-slate-800 p-4">
@@ -626,10 +661,9 @@ function MyAccountTab() {
 }
 
 export default function Settings() {
-  const { session } = useAuth();
-  const isAdmin = session?.role === "admin";
-  // Every user gets "My account"; the admin tabs are also enforced by the backend.
-  const tabs = isAdmin ? ["My account", ...ADMIN_TABS] : ["My account"];
+  const { can } = useAuth();
+  // Every user gets "My account"; the other tabs follow /auth/me and are enforced by the backend.
+  const tabs = ["My account", ...ADMIN_TABS.filter(([, action]) => can(action)).map(([name]) => name)];
   const [tab, setTab] = useState("My account");
 
   return (
@@ -644,10 +678,10 @@ export default function Settings() {
         ))}
       </div>
       {tab === "My account" && <MyAccountTab />}
-      {isAdmin && tab === "Users" && <UsersTab />}
-      {isAdmin && tab === "Detection" && <DetectionTab />}
-      {isAdmin && tab === "Threat intel" && <ThreatIntelTab />}
-      {isAdmin && tab === "System" && <SystemTab />}
+      {tabs.includes(tab) && tab === "Users" && <UsersTab />}
+      {tabs.includes(tab) && tab === "Detection" && <DetectionTab />}
+      {tabs.includes(tab) && tab === "Threat intel" && <ThreatIntelTab />}
+      {tabs.includes(tab) && tab === "System" && <SystemTab />}
     </div>
   );
 }

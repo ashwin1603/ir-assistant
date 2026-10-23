@@ -28,7 +28,10 @@ def test_me_with_valid_token(client, seed_users):
     token = login.json()["access_token"]
     resp = client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})
     assert resp.status_code == 200
-    assert resp.json() == {"username": "test_analyst", "role": "analyst"}
+    body = resp.json()
+    assert (body["username"], body["role"]) == ("test_analyst", "analyst")
+    # /me also lists what the role may do, so the UI can hide controls (enforcement stays server-side).
+    assert "upload" in body["permissions"] and "manage_users" not in body["permissions"]
 
 
 def test_audit_log_rejects_non_admin(client, seed_users):

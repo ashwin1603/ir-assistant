@@ -27,8 +27,10 @@ export default function IncidentDetail() {
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzeError, setAnalyzeError] = useState("");
 
-  const { session } = useAuth();
-  const canEdit = session?.role === "admin" || session?.role === "analyst";
+  const { can } = useAuth();
+  const canEdit = can("update_incident"); // status and notes
+  const canRunAi = can("run_ai");
+  const canDownload = can("download_artifacts"); // IOCs and scripts (analyst+)
   const [noteText, setNoteText] = useState("");
   const [caseError, setCaseError] = useState("");
 
@@ -130,6 +132,7 @@ export default function IncidentDetail() {
 
       {caseError && <p className="mb-3 text-sm text-red-400">{caseError}</p>}
 
+      {canDownload && (<>
       <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">Artifacts</h2>
       <div className="mb-6 rounded border border-slate-800 bg-slate-900/40 p-4">
         <div className="flex flex-wrap gap-2">
@@ -145,7 +148,7 @@ export default function IncidentDetail() {
           >
             IOCs (JSON)
           </button>
-          {canEdit && (
+          {canDownload && (
             <>
               <button
                 onClick={() => downloadArtifact("scripts/firewall", `firewall-${id.slice(0, 8)}.ps1.txt`)}
@@ -162,12 +165,11 @@ export default function IncidentDetail() {
             </>
           )}
         </div>
-        {canEdit && (
-          <p className="mt-2 text-xs text-amber-400">
-            Scripts are text only and are never executed by this app. Review before use.
-          </p>
-        )}
+        <p className="mt-2 text-xs text-amber-400">
+          Scripts are text only and are never executed by this app. Review before use.
+        </p>
       </div>
+      </>)}
 
       <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">Analyst notes</h2>
       <div className="mb-6 rounded border border-slate-800 bg-slate-900/40 p-4">
@@ -259,7 +261,7 @@ export default function IncidentDetail() {
       </div>
 
       <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">Investigate</h2>
-      <InvestigatePanel incidentId={id} canRun={canEdit} />
+      <InvestigatePanel incidentId={id} canRun={canRunAi} />
 
       <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">
         Ask about this incident
@@ -270,7 +272,8 @@ export default function IncidentDetail() {
         <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">AI analysis</h2>
         <button
           onClick={runAnalysis}
-          disabled={analyzing}
+          disabled={analyzing || !canRunAi}
+          title={canRunAi ? undefined : "Analysts and admins only"}
           className="rounded bg-sky-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-sky-500 disabled:opacity-50"
         >
           {analyzing ? "Analyzing... (up to 35s)" : "Run AI analysis"}

@@ -37,7 +37,11 @@ def isolated_rules(tmp_path, monkeypatch):
 
 @pytest.fixture()
 def admin(client, seed_users):
-    return _login(client, "test_admin", "TestAdminPass123!")
+    # Already stepped up, so step-up-protected routes can be tested on their own logic
+    # (step-up itself is covered in tests/test_step_up.py).
+    headers = _login(client, "test_admin", "TestAdminPass123!")
+    assert client.post("/api/auth/step-up", json={"password": "TestAdminPass123!"}, headers=headers).status_code == 204
+    return headers
 
 
 def test_valid_import_saved_disabled_with_tags(client, admin, db_session, isolated_rules):
