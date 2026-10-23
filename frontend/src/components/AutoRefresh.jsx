@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { Switch } from "./Switch";
+import { usePref } from "../lib/prefs";
 
 // Returns [enabled, setEnabled, tick]; tick increments every `seconds` while enabled,
 // so pages can add it to a useEffect dependency list to reload their data.
+// The on/off choice is one app-wide preference (the command palette can toggle it).
 export function useAutoRefresh(seconds = 15) {
-  const [enabled, setEnabled] = useState(false);
+  const [enabled, setEnabled] = usePref("autoRefresh", false);
   const [tick, setTick] = useState(0);
   useEffect(() => {
     if (!enabled) return undefined;

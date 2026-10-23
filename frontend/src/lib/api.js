@@ -2,8 +2,18 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000
 
 let authToken = null;
 
+// Last response of a few list endpoints, so the command palette can search what pages
+// already loaded without new requests. Memory only; cleared on logout.
+const CACHED_PATHS = new Set(["/incidents", "/detections", "/devices"]);
+const responseCache = new Map();
+
+export function cached(path) {
+  return responseCache.get(path);
+}
+
 export function setAuthToken(token) {
   authToken = token;
+  if (!token) responseCache.clear();
 }
 
 export class ApiError extends Error {
@@ -47,8 +57,10 @@ async function request(path, options = {}, timeoutMs) {
   return res.json();
 }
 
-export function get(path) {
-  return request(path, { method: "GET" });
+export async function get(path) {
+  const data = await request(path, { method: "GET" });
+  if (CACHED_PATHS.has(path)) responseCache.set(path, data);
+  return data;
 }
 
 export function post(path, body, timeoutMs) {

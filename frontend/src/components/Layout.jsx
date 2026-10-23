@@ -4,6 +4,8 @@ import { useAuth } from "../auth/AuthContext";
 import ErrorBoundary from "./ErrorBoundary";
 import Logo from "./Logo";
 import { useDocumentTitle } from "./Toast";
+import { CommandPalette } from "./CommandPalette";
+import { navItemsFor } from "../lib/nav";
 
 // Browser tab title per page, e.g. "Detections · IR Assistant".
 const PAGE_TITLES = [
@@ -18,20 +20,8 @@ const PAGE_TITLES = [
 function pageTitle(pathname) {
   const match = PAGE_TITLES.find(([re]) => re.test(pathname));
   if (match) return match[1];
-  return navItems.find((item) => pathname.startsWith(item.to))?.label || "";
+  return navItemsFor(() => true).find((item) => pathname.startsWith(item.to))?.label || "";
 }
-
-const navItems = [
-  { to: "/dashboard", label: "Dashboard" },
-  { to: "/events", label: "Log Explorer" },
-  { to: "/detections", label: "Detections" },
-  { to: "/anomalies", label: "Anomalies" },
-  { to: "/network", label: "Network" },
-  { to: "/devices", label: "Devices" },
-  { to: "/attack", label: "ATT&CK" },
-  { to: "/incidents", label: "Incidents" },
-  { to: "/recommendations", label: "Recommendations" },
-];
 
 const navClass = ({ isActive }) => `ir-navlink${isActive ? " active" : ""}`;
 
@@ -56,10 +46,20 @@ export default function Layout() {
   const online = useOnline();
   useDocumentTitle(pageTitle(location.pathname));
   const [menuOpen, setMenuOpen] = useState(false);
-  const items = [...navItems];
-  if (can("upload")) items.push({ to: "/upload", label: "Upload" });
-  if (can("read_audit")) items.push({ to: "/audit", label: "Audit Log" });
-  items.push({ to: "/settings", label: "Settings" }); // non-admins see only "My account"
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const items = navItemsFor(can);
+
+  // Ctrl+K / Cmd+K opens the command palette from anywhere.
+  useEffect(() => {
+    function onKey(e) {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setPaletteOpen((o) => !o);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   return (
     <div className="min-h-screen text-slate-100 print:bg-white print:text-black">
@@ -75,6 +75,16 @@ export default function Layout() {
               ))}
             </nav>
             <div className="flex shrink-0 items-center gap-2.5 text-[13px] text-slate-300">
+              <button
+                type="button"
+                onClick={() => setPaletteOpen(true)}
+                aria-label="Open command palette (Ctrl+K)"
+                title="Search and commands (Ctrl+K)"
+                className="ir-kbd-btn"
+              >
+                <span aria-hidden="true">⌕</span>
+                <kbd className="hidden sm:inline">Ctrl K</kbd>
+              </button>
               <span className={`live-dot${online ? "" : " off"}`} title={online ? "Online" : "Offline"} />
               <span className="hidden max-w-[10rem] truncate 2xl:inline">{session?.username}</span>
               <span className="ir-role">{session?.role}</span>
@@ -110,12 +120,14 @@ export default function Layout() {
         </header>
       </div>
       <main className="ir-container print:max-w-none print:p-0">
-        <ErrorBoundary key={location.pathname}>
+        {/* Keyed on path + query, so /events?host=X from the palette or a drawer remounts the page with that filter. */}
+        <ErrorBoundary key={location.pathname + location.search}>
           <div className="page-enter">
             <Outlet />
           </div>
         </ErrorBoundary>
       </main>
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </div>
   );
 }
