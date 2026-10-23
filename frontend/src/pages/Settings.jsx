@@ -7,6 +7,7 @@ import { Switch } from "../components/Switch";
 import { Segmented } from "../components/Segmented";
 import { useCopy, useToast } from "../components/Toast";
 import { TimeAgo } from "../components/TimeAgo";
+import { useDemoMode } from "../components/DemoMode";
 
 // Admin tabs and the permission (from /auth/me) that shows each one.
 const ADMIN_TABS = [
@@ -480,6 +481,7 @@ function StatusDot({ ok, label }) {
 }
 
 function SystemTab() {
+  const [demo] = useDemoMode(); // demo mode hides the collector panel
   const [status, setStatus] = useState(null);
   const [cap, setCap] = useState("");
   const [error, setError] = useState("");
@@ -561,16 +563,33 @@ function SystemTab() {
         )}
       </section>
 
-      <section className="rounded border border-slate-800 p-4">
-        <h2 className="mb-2 font-semibold text-slate-100">Collector</h2>
-        <p>
-          Last seen:{" "}
-          {status.collector_last_seen ? <TimeAgo ts={status.collector_last_seen} /> : "never"}
-        </p>
-      </section>
+      {!demo && (
+        <section className="rounded border border-slate-800 p-4">
+          <h2 className="mb-2 font-semibold text-slate-100">Collector</h2>
+          <p>
+            Last seen:{" "}
+            {status.collector_last_seen ? <TimeAgo ts={status.collector_last_seen} /> : "never"}
+          </p>
+        </section>
+      )}
 
       <button className={buttonClass} onClick={load}>Refresh</button>
     </div>
+  );
+}
+
+// Presenter switch: ribbon, hidden collector controls, guided demo checklist (this browser only).
+function DemoCard() {
+  const [demo, setDemo] = useDemoMode();
+  return (
+    <section className="rounded border border-slate-800 p-4">
+      <h2 className="mb-2 font-semibold text-slate-100">Demo mode</h2>
+      <p className="mb-3 text-slate-400">
+        Shows a &ldquo;Demo / simulated data&rdquo; ribbon, hides collector controls and adds a guided path
+        (Dashboard &rarr; Incident &rarr; Investigate &rarr; Report). Only changes this browser&rsquo;s view.
+      </p>
+      <Switch checked={demo} onChange={setDemo}>Demo mode</Switch>
+    </section>
   );
 }
 
@@ -697,6 +716,7 @@ function MyAccountTab() {
         )}
       </section>
       <AccountCard />
+      <DemoCard />
       </div>
     </div>
   );

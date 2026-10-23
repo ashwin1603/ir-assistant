@@ -9,6 +9,7 @@ import { TooltipLayer } from "./TooltipLayer";
 import { NotificationBell } from "./NotificationBell";
 import { STATUS_TEXT, liveDotClass, useAutoRefresh } from "./AutoRefresh";
 import { useLive } from "./LiveProvider";
+import { DemoChecklist, DemoRibbon } from "./DemoMode";
 import { navItemsFor } from "../lib/nav";
 
 // Browser tab title per page, e.g. "Detections · IR Assistant".
@@ -137,6 +138,8 @@ export default function Layout() {
       </main>
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
       <TooltipLayer />
+      <DemoRibbon />
+      <DemoChecklist />
     </div>
   );
 }

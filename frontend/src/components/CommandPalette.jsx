@@ -6,6 +6,7 @@ import { cached } from "../lib/api";
 import { trapTab } from "../lib/a11y";
 import { navItemsFor } from "../lib/nav";
 import { useLive } from "./LiveProvider";
+import { useDemoMode } from "./DemoMode";
 
 const MAX_PER_GROUP = 6;
 
@@ -16,6 +17,7 @@ export function CommandPalette({ open, onClose }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { enabled: autoRefresh, setEnabled: setAutoRefresh } = useLive();
+  const [demo, setDemo] = useDemoMode();
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const panel = useRef(null);
@@ -38,6 +40,7 @@ export function CommandPalette({ open, onClose }) {
         hint: currentIncident ? "this incident" : `highest-risk incident · ${top.host}`,
         run: go(`/incidents/${reportId}/report`),
       },
+      { group: "Actions", label: `Turn demo mode ${demo ? "off" : "on"}`, hint: "ribbon + guided path", run: () => setDemo(!demo) },
       { group: "Actions", label: "Log out", run: logout },
     ].filter(Boolean);
     const pages = navItemsFor(can).map((p) => ({ group: "Pages", label: p.label, hint: p.to, run: go(p.to) }));
@@ -65,7 +68,7 @@ export function CommandPalette({ open, onClose }) {
       ...incidentItems.filter(matches).slice(0, MAX_PER_GROUP),
       ...hosts.filter(matches).slice(0, MAX_PER_GROUP),
     ];
-  }, [open, query, can, logout, navigate, location.pathname, autoRefresh, setAutoRefresh]);
+  }, [open, query, can, logout, navigate, location.pathname, autoRefresh, setAutoRefresh, demo, setDemo]);
 
   useEffect(() => {
     if (!open) return undefined;

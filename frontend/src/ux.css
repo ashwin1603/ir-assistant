@@ -547,6 +547,75 @@ main .ir-density-comfortable table tbody td {
   animation: none;
 }
 
+/* ---------- Demo mode ---------- */
+
+.ir-demo-ribbon {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  z-index: 80;
+  padding: 0 0.9rem;
+  transform: translateX(-50%);
+  border-radius: 0 0 10px 10px;
+  background: #f5b544;
+  color: #1a1410;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.1rem;
+  text-transform: uppercase;
+}
+
+.ir-demo-panel {
+  position: fixed;
+  bottom: 16px;
+  left: 16px;
+  z-index: 50;
+  width: 15rem;
+  padding: 0.75rem;
+  border: 1px solid var(--ir-border);
+  border-radius: var(--ir-radius-sm);
+  background-color: rgba(28, 25, 23, 0.8);
+  backdrop-filter: var(--ir-glass-blur);
+  -webkit-backdrop-filter: var(--ir-glass-blur);
+  box-shadow: var(--ir-glass-shadow);
+}
+
+.ir-demo-step {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.4rem;
+  border-radius: 8px;
+  color: var(--color-slate-200);
+  font-size: 0.8125rem;
+}
+
+.ir-demo-step:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.ir-demo-step.done {
+  color: var(--ir-muted);
+}
+
+.ir-demo-check {
+  display: inline-flex;
+  width: 1.2rem;
+  height: 1.2rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--ir-border-strong);
+  border-radius: 9999px;
+  font-size: 0.65rem;
+}
+
+.ir-demo-step.done .ir-demo-check {
+  border-color: transparent;
+  background: var(--color-emerald-700);
+  color: #fff;
+}
+
 /* Clickable rows that open the drawer. */
 
 
