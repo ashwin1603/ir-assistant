@@ -207,7 +207,7 @@ function ExecutiveView({ incident, executive }) {
   );
 }
 
-function TechnicalView({ incident, analysis, actions, attack, iocs, tiMatches }) {
+function TechnicalView({ incident, analysis, actions, attack, iocs, tiMatches, investigation }) {
   return (
     <div>
       <Section title="Timeline" long>
@@ -331,6 +331,31 @@ function TechnicalView({ incident, analysis, actions, attack, iocs, tiMatches })
         )}
       </Section>
 
+      {investigation && (
+        <Section title="Investigation (code-driven, model wording only)" long>
+          <p className="mb-2 whitespace-pre-wrap text-sm">{investigation.summary}</p>
+          <Table headers={["Step", "Result", "Counts", "Evidence event ids"]}>
+            {investigation.steps.map((s) => (
+              <tr key={s.key} className={rowClass}>
+                <td className={cell}>{s.name}</td>
+                <td className={cell}>{s.status}</td>
+                <td className={`${cell} text-xs`}>
+                  {Object.entries(s.counts)
+                    .map(([k, v]) => `${k.replaceAll("_", " ")}: ${v}`)
+                    .join(", ")}
+                </td>
+                <td className={`${cell} evidence mono font-mono text-xs`}>
+                  <EventIds ids={s.evidence_event_ids} />
+                </td>
+              </tr>
+            ))}
+          </Table>
+          <p className={`mt-1 text-xs ${muted}`}>
+            Run by {investigation.created_by} on {fmt(investigation.created_at)}; summary wording: {investigation.summary_mode}.
+          </p>
+        </Section>
+      )}
+
       <Section title="Recommended actions" long>
         {actions.length === 0 ? (
           <p className={`text-sm ${muted}`}>No recommended actions for this incident.</p>
@@ -442,6 +467,7 @@ export default function Report() {
           attack={report.attack}
           iocs={report.iocs}
           tiMatches={report.ti_matches || []}
+          investigation={report.investigation}
         />
       )}
 

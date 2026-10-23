@@ -6,6 +6,7 @@ import { TIBadge } from "../components/TIBadge";
 import { StatusBadge, INCIDENT_STATUSES } from "../components/StatusBadge";
 import { useAuth } from "../auth/AuthContext";
 import { AskPanel } from "../components/AskPanel";
+import { InvestigatePanel } from "../components/InvestigatePanel";
 import { AttackGraph } from "../components/AttackGraph";
 
 const ANALYZE_TIMEOUT_MS = 40_000;
@@ -256,6 +257,9 @@ export default function IncidentDetail() {
           </tbody>
         </table>
       </div>
+
+      <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">Investigate</h2>
+      <InvestigatePanel incidentId={id} canRun={canEdit} />
 
       <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">
         Ask about this incident

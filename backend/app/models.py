@@ -132,6 +132,23 @@ class AIAnalysis(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
+class Investigation(Base):
+    """Cached result of the code-driven 'Investigate' steps. Reused until the
+    incident's detection set changes (same detections_hash as AIAnalysis)."""
+
+    __tablename__ = "investigations"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    incident_id: Mapped[str] = mapped_column(String, ForeignKey("incidents.id"), index=True)
+    detections_hash: Mapped[str] = mapped_column(String, index=True)
+    steps: Mapped[str] = mapped_column(Text)  # JSON list[{key, name, status, counts, items, evidence_event_ids}]
+    summary: Mapped[str] = mapped_column(Text)
+    summary_mode: Mapped[str] = mapped_column(String)  # ai | template | fallback
+    next_actions: Mapped[str] = mapped_column(Text)  # JSON list[str], from the playbook only
+    created_by: Mapped[str] = mapped_column(String)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
 INCIDENT_STATUSES = ("new", "investigating", "contained", "closed")
 
 

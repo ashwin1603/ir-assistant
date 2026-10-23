@@ -166,13 +166,13 @@ def build_recommended_actions(technique_ids: set[str]) -> list[str]:
 
 def check_rate_limit(db: Session, actor: str) -> bool:
     """Returns True if the actor is still under the hourly AI-call cap.
-    Analyze and ask-about-incident calls share the same cap."""
+    Analyze, ask-about-incident and model-worded investigation summaries share the same cap."""
     since = datetime.now(timezone.utc) - timedelta(hours=1)
     count = (
         db.query(AuditLog)
         .filter(
             AuditLog.actor == actor,
-            AuditLog.action.in_(("ai_analyze", "ai_ask")),
+            AuditLog.action.in_(("ai_analyze", "ai_ask", "ai_investigate")),
             AuditLog.timestamp >= since,
         )
         .count()

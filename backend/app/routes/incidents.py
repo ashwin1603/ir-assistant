@@ -8,13 +8,15 @@ from app.ai.ask import ask_incident, build_facts
 from app.ai.triage import analyze_incident, check_rate_limit
 from app.analysis.case_state import case_key, get_notes, get_status, status_map
 from app.analysis.graph import build_graph
+from app.analysis.investigation import cached_investigation, investigate, to_out
 from app.analysis.timeline import build_timeline
 from app.audit import log_action
 from app.auth.deps import get_current_user, require_role
+from app.config import settings
 from app.db import get_db
 from app.detection.engine import run_detection
 from app.models import Detection, Incident, IncidentCase, IncidentNote
-from app.schemas import AnalysisOut, AskRequest, AskResponse, IncidentDetail, IncidentGraph, IncidentOut, IncidentStatusUpdate, NoteCreate, NoteOut
+from app.schemas import AnalysisOut, AskRequest, AskResponse, IncidentDetail, IncidentGraph, IncidentOut, InvestigationOut, IncidentStatusUpdate, NoteCreate, NoteOut
 
 router = APIRouter(prefix="/api/incidents", tags=["incidents"])
 
@@ -163,3 +165,40 @@ def ask(
         detail=json.dumps({"incident_id": incident_id, "question_length": len(body.question), "mode": result["mode"]}),
     )
     return AskResponse(**result)
+
+
+@router.get("/{incident_id}/investigate", response_model=InvestigationOut | None)
+def get_investigation(incident_id: str, db: Session = Depends(get_db), _user=Depends(get_current_user)):
+    """Cached result for the current detections (any role), or null if none/stale."""
+    run_detection(db)
+    incident = _get_or_404(db, incident_id)
+    detections = db.query(Detection).filter(Detection.incident_id == incident.id).all()
+    record = cached_investigation(db, incident.id, detections)
+    return to_out(record) if record else None
+
+
+@router.post("/{incident_id}/investigate", response_model=InvestigationOut)
+def run_investigation(
+    incident_id: str,
+    db: Session = Depends(get_db),
+    user=Depends(require_role("admin", "analyst")),
+):
+    run_detection(db)
+    incident = _get_or_404(db, incident_id)
+    detections = db.query(Detection).filter(Detection.incident_id == incident.id).all()
+
+    record = cached_investigation(db, incident.id, detections)
+    if record:
+        log_action(db, actor=user.username, action="investigate_cached", detail=json.dumps({"incident_id": incident_id}))
+        return to_out(record)
+
+    # The steps are code-only; the hourly AI cap applies only when the model words the summary.
+    use_model = settings.llm_provider != "template" and check_rate_limit(db, user.username)
+    record = investigate(db, incident, detections, actor=user.username, use_model=use_model)
+    log_action(
+        db,
+        actor=user.username,
+        action="ai_investigate" if use_model else "investigate",
+        detail=json.dumps({"incident_id": incident_id, "summary_mode": record.summary_mode}),
+    )
+    return to_out(record)

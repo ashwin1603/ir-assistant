@@ -6,11 +6,12 @@ from sqlalchemy.orm import Session
 
 from app.analysis.artifacts import extract_iocs
 from app.analysis.case_state import get_notes, get_status
+from app.analysis.investigation import cached_investigation, to_out
 from app.analysis.report import attack_table, impact_text, is_simulated, top_actions, what_happened
 from app.analysis.timeline import build_timeline
 from app.auth.deps import get_current_user
 from app.db import get_db
-from app.models import Action, AIAnalysis, Incident
+from app.models import Action, AIAnalysis, Detection, Incident
 from app.schemas import AnalysisOut, ExecutiveSummary, IncidentDetail, ReportOut
 
 router = APIRouter(prefix="/api/incidents", tags=["reports"])
@@ -66,6 +67,9 @@ def get_report(incident_id: str, db: Session = Depends(get_db), user=Depends(get
         top_actions=top_actions(actions),
     )
 
+    detections = db.query(Detection).filter(Detection.incident_id == incident.id).all()
+    investigation = cached_investigation(db, incident.id, detections)
+
     return ReportOut(
         incident=incident_detail,
         analysis=analysis_out,
@@ -74,6 +78,7 @@ def get_report(incident_id: str, db: Session = Depends(get_db), user=Depends(get
         iocs=extract_iocs(db, incident.id),
         ti_matches=list({(m["type"], m["value"]): m for e in timeline for m in e["ti_matches"]}.values()),
         executive=executive,
+        investigation=to_out(investigation) if investigation else None,
         simulated=is_simulated(db, incident.id),
         generated_at=datetime.now(timezone.utc),
         generated_by=user.username,

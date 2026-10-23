@@ -533,6 +533,25 @@ class ExecutiveSummary(BaseModel):
     top_actions: list[ReportAction]
 
 
+class InvestigationStep(BaseModel):
+    key: str
+    name: str
+    status: str  # found | not found
+    counts: dict[str, int]
+    items: list[str]
+    evidence_event_ids: list[str]
+
+
+class InvestigationOut(BaseModel):
+    incident_id: str
+    steps: list[InvestigationStep]
+    summary: str
+    summary_mode: str  # ai | template | fallback
+    next_actions: list[str]
+    created_by: str
+    created_at: UTCDateTime
+
+
 class ReportOut(BaseModel):
     incident: IncidentDetail
     analysis: AnalysisOut | None
@@ -541,6 +560,7 @@ class ReportOut(BaseModel):
     iocs: list[IOCOut]
     ti_matches: list[TIMatch] = []  # imported threat-intel indicators seen in the evidence
     executive: ExecutiveSummary
+    investigation: InvestigationOut | None = None
     simulated: bool  # evidence came from the attack simulator, not real activity
     generated_at: UTCDateTime
     generated_by: str
