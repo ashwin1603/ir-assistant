@@ -80,6 +80,7 @@ ROUTE_PERMISSIONS: dict[tuple[str, str], str] = {
     ("GET", "/api/incidents/{incident_id}/investigate"): "read",
     ("GET", "/api/incidents/{incident_id}/report"): "read",
     ("GET", "/api/actions"): "read",
+    ("GET", "/api/stream"): "read",  # live-update signals: counts and ids only
     ("POST", "/api/incidents/{incident_id}/ask"): "chat",
     ("PUT", "/api/incidents/{incident_id}/status"): "update_incident",
     ("POST", "/api/incidents/{incident_id}/notes"): "update_incident",

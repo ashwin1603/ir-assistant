@@ -3,7 +3,8 @@ import { Link } from "react-router-dom";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { get } from "../lib/api";
 import { useAuth } from "../auth/AuthContext";
-import { AutoRefreshToggle, useAutoRefresh } from "../components/AutoRefresh";
+import { AutoRefreshToggle, liveDotClass, useAutoRefresh } from "../components/AutoRefresh";
+import { useLive } from "../components/LiveProvider";
 import { Skeleton } from "../components/Skeleton";
 import { CountUp } from "../components/CountUp";
 import { RiskBadge } from "../components/RiskBadge";
@@ -362,7 +363,8 @@ export default function Dashboard() {
   const [data, setData] = useState({});
   const [error, setError] = useState("");
   const [reload, setReload] = useState(0); // bumped by Retry
-  const [autoRefresh, setAutoRefresh, tick] = useAutoRefresh(15);
+  const [autoRefresh, setAutoRefresh, tick] = useAutoRefresh();
+  const { status: liveStatus } = useLive();
 
   useEffect(() => {
     // Fetch on mount and on every auto-refresh tick; widgets update in place.
@@ -440,7 +442,7 @@ export default function Dashboard() {
           <RecentIncidents incidents={incidents} />
         </Panel>
         <Panel title="Live event feed" span="span-4"
-          action={<span className={`live-dot${autoRefresh ? "" : " off"}`} title={autoRefresh ? "Auto-refresh on" : "Auto-refresh off"} />}>
+          action={<span className={`live-dot ${liveDotClass(liveStatus)}`} data-tip={autoRefresh ? `Live updates: ${liveStatus}` : "Live updates off"} />}>
           <EventFeed events={events} />
         </Panel>
         <Panel title="Devices" span="span-3"

@@ -16,7 +16,7 @@ export default function Devices() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [reload, setReload] = useState(0); // bumped by Retry
-  const [autoRefresh, setAutoRefresh, tick] = useAutoRefresh(15);
+  const [autoRefresh, setAutoRefresh, tick] = useAutoRefresh();
   const freshRows = useNewIds(devices, (d) => `${d.host}|${d.source}`);
 
   useEffect(() => {

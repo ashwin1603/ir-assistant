@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { get } from "../lib/api";
 import { rowOpenProps } from "../lib/a11y";
@@ -7,6 +7,8 @@ import { TIBadge } from "../components/TIBadge";
 import { TimeAgo } from "../components/TimeAgo";
 import { ErrorBanner, EmptyRow, SkeletonRows } from "../components/States";
 import { TableToolbar, useCsvExport, useTableView } from "../components/TableTools";
+import { useAutoRefresh } from "../components/AutoRefresh";
+import { useNewIds } from "../components/useNewIds";
 
 const PAGE_SIZE = 25;
 
@@ -86,6 +88,9 @@ export default function LogExplorer() {
   const [reload, setReload] = useState(0); // bumped by Retry
   const view = useTableView("events", COLUMNS);
   const [exporting, runExport] = useCsvExport();
+  const [, , tick] = useAutoRefresh(); // live signal: reload in place
+  const lastQuery = useRef(null);
+  const fresh = useNewIds(loading ? [] : data.items); // a filter change flashes nothing
 
   useEffect(() => {
     get("/detections")
@@ -99,7 +104,7 @@ export default function LogExplorer() {
       .catch(() => {
         // Detections are a highlight-only enhancement; ignore failures here.
       });
-  }, []);
+  }, [tick]);
 
   const filterParams = useMemo(() => {
     const p = new URLSearchParams();
@@ -111,13 +116,16 @@ export default function LogExplorer() {
   }, [q, channel, host, eventId]);
 
   useEffect(() => {
-    setLoading(true);
+    // Skeleton only when the query changed; a live refresh updates rows in place.
+    const query = `${filterParams}|${page}|${reload}`;
+    if (lastQuery.current !== query) setLoading(true);
+    lastQuery.current = query;
     setError("");
     get(`/events?${filterParams}&page=${page}&page_size=${PAGE_SIZE}`)
       .then(setData)
       .catch((err) => setError(err.message || "Failed to load events"))
       .finally(() => setLoading(false));
-  }, [filterParams, page, reload]);
+  }, [filterParams, page, reload, tick]);
 
   const totalPages = useMemo(
     () => Math.max(1, Math.ceil(data.total / PAGE_SIZE)),
@@ -222,7 +230,7 @@ export default function LogExplorer() {
                 return (
                   <tr
                     key={ev.id}
-                    className={`border-t border-slate-800 ${isFlagged ? "bg-red-950/40" : "hover:bg-slate-900/60"}`}
+                    className={`border-t border-slate-800 ${isFlagged ? "bg-red-950/40" : "hover:bg-slate-900/60"}${fresh.has(ev.id) ? " row-flash" : ""}`}
                     {...rowOpenProps(() => setSelectedId(ev.id), ev.id === selectedId)}
                   >
                     {view.visible.map((c) => (

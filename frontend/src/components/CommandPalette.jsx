@@ -5,7 +5,7 @@ import { useAuth } from "../auth/AuthContext";
 import { cached } from "../lib/api";
 import { trapTab } from "../lib/a11y";
 import { navItemsFor } from "../lib/nav";
-import { usePref } from "../lib/prefs";
+import { useLive } from "./LiveProvider";
 
 const MAX_PER_GROUP = 6;
 
@@ -15,7 +15,7 @@ export function CommandPalette({ open, onClose }) {
   const { can, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [autoRefresh, setAutoRefresh] = usePref("autoRefresh", false);
+  const { enabled: autoRefresh, setEnabled: setAutoRefresh } = useLive();
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const panel = useRef(null);
@@ -31,7 +31,7 @@ export function CommandPalette({ open, onClose }) {
     const reportId = currentIncident || top?.id;
 
     const actions = [
-      { group: "Actions", label: `Turn auto-refresh ${autoRefresh ? "off" : "on"}`, run: () => setAutoRefresh(!autoRefresh) },
+      { group: "Actions", label: `Turn live updates ${autoRefresh ? "off" : "on"}`, hint: "auto-refresh", run: () => setAutoRefresh(!autoRefresh) },
       reportId && {
         group: "Actions",
         label: "Open report",

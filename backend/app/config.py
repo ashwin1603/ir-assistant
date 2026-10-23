@@ -29,6 +29,10 @@ class Settings(BaseSettings):
 
     rate_limit_enabled: bool = True
 
+    # Live-update stream (GET /api/stream): poll interval and maximum stream lifetime.
+    stream_poll_seconds: float = 5
+    stream_max_seconds: int = 60
+
     upload_dir: str = "uploads"  # outside any served directory; git-ignored
     upload_max_mb: int = 20
 

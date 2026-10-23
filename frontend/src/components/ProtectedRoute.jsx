@@ -1,5 +1,6 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { LiveProvider } from "./LiveProvider";
 
 export default function ProtectedRoute() {
   const { isAuthenticated } = useAuth();
@@ -9,5 +10,10 @@ export default function ProtectedRoute() {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  return <Outlet />;
+  // Live updates only exist for a signed-in session (the stream needs the token).
+  return (
+    <LiveProvider>
+      <Outlet />
+    </LiveProvider>
+  );
 }

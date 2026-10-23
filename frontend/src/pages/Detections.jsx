@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { get } from "../lib/api";
 import { rowOpenProps } from "../lib/a11y";
@@ -8,6 +8,8 @@ import { TIBadge } from "../components/TIBadge";
 import { TimeAgo } from "../components/TimeAgo";
 import { ErrorBanner, EmptyRow, SkeletonRows } from "../components/States";
 import { TableToolbar, useCsvExport, useTableView } from "../components/TableTools";
+import { useAutoRefresh } from "../components/AutoRefresh";
+import { useNewIds } from "../components/useNewIds";
 
 // Table columns. `exports` = the server's CSV columns for it (GET /detections/export).
 const COLUMNS = [
@@ -56,6 +58,9 @@ export default function Detections() {
   const [reload, setReload] = useState(0); // bumped by Retry
   const view = useTableView("detections", COLUMNS);
   const [exporting, runExport] = useCsvExport();
+  const [, , tick] = useAutoRefresh(); // live signal: reload in place
+  const lastQuery = useRef(null);
+  const fresh = useNewIds(loading ? [] : detections); // a filter change flashes nothing
 
   const filterParams = useMemo(() => {
     const p = new URLSearchParams();
@@ -65,13 +70,16 @@ export default function Detections() {
   }, [host, techniqueId]);
 
   useEffect(() => {
-    setLoading(true);
+    // Skeleton only when the query changed; a live refresh updates rows in place.
+    const query = `${filterParams}|${reload}`;
+    if (lastQuery.current !== query) setLoading(true);
+    lastQuery.current = query;
     setError("");
     get(`/detections?${filterParams}`)
       .then(setDetections)
       .catch((err) => setError(err.message || "Failed to load detections"))
       .finally(() => setLoading(false));
-  }, [filterParams, reload]);
+  }, [filterParams, reload, tick]);
 
   function applyFilters(f) {
     setHost(f.host || "");
@@ -135,7 +143,8 @@ export default function Detections() {
             )}
             {!loading &&
               detections.map((d) => (
-                <tr key={d.id} className="border-t border-slate-800 hover:bg-slate-900/60" {...rowOpenProps(() => setSelectedId(d.id), d.id === selectedId)}>
+                <tr key={d.id} className={`border-t border-slate-800 hover:bg-slate-900/60${fresh.has(d.id) ? " row-flash" : ""}`}
+                  {...rowOpenProps(() => setSelectedId(d.id), d.id === selectedId)}>
                   {view.visible.map((c) => (
                     <td key={c.key} className={`px-3 py-2 ${c.className || ""}`}>{c.cell(d)}</td>
                   ))}

@@ -2,6 +2,9 @@ import os
 
 os.environ["RATE_LIMIT_ENABLED"] = "false"
 os.environ["COLLECTOR_API_KEY"] = "test-collector-key"
+# Live stream: short-lived in tests (TestClient reads a response to its end).
+os.environ["STREAM_POLL_SECONDS"] = "0.05"
+os.environ["STREAM_MAX_SECONDS"] = "1"
 
 import pytest
 from fastapi.testclient import TestClient

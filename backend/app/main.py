@@ -29,6 +29,7 @@ from app.routes.incidents import router as incidents_router
 from app.routes.network import router as network_router
 from app.routes.reports import router as reports_router
 from app.routes.settings import router as settings_router
+from app.routes.stream import router as stream_router
 from app.routes.uploads import router as uploads_router
 from app.detection.threat_intel import seed_demo_indicators
 from app.seed import seed_admin_user
@@ -98,6 +99,7 @@ app.include_router(artifacts_router)
 app.include_router(actions_router)
 app.include_router(uploads_router)
 app.include_router(settings_router)
+app.include_router(stream_router)
 
 
 @app.get("/api/health")

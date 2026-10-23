@@ -541,6 +541,12 @@ main .ir-density-comfortable table tbody td {
   background: var(--ir-accent-hover);
 }
 
+/* Live dot: amber while reconnecting or polling instead of streaming. */
+.live-dot.warn {
+  background: var(--color-amber-400, #f5b544);
+  animation: none;
+}
+
 /* Clickable rows that open the drawer. */
 
 

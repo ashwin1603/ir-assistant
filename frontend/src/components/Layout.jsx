@@ -7,7 +7,8 @@ import { useDocumentTitle } from "./Toast";
 import { CommandPalette } from "./CommandPalette";
 import { TooltipLayer } from "./TooltipLayer";
 import { NotificationBell } from "./NotificationBell";
-import { useAutoRefresh } from "./AutoRefresh";
+import { STATUS_TEXT, liveDotClass, useAutoRefresh } from "./AutoRefresh";
+import { useLive } from "./LiveProvider";
 import { navItemsFor } from "../lib/nav";
 
 // Browser tab title per page, e.g. "Detections · IR Assistant".
@@ -51,7 +52,9 @@ export default function Layout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const items = navItemsFor(can);
-  const [, , refreshTick] = useAutoRefresh(15); // bell reloads with the app-wide auto-refresh
+  const [, , refreshTick] = useAutoRefresh(); // bell reloads on live signals
+  const { status: liveStatus } = useLive();
+  const dotTitle = online ? `Live updates: ${STATUS_TEXT[liveStatus]}` : "Offline";
 
   // Ctrl+K / Cmd+K opens the command palette from anywhere.
   useEffect(() => {
@@ -90,7 +93,7 @@ export default function Layout() {
                 <kbd className="hidden sm:inline">Ctrl K</kbd>
               </button>
               <NotificationBell signal={refreshTick} />
-              <span className={`live-dot${online ? "" : " off"}`} title={online ? "Online" : "Offline"} />
+              <span className={`live-dot ${online ? liveDotClass(liveStatus) : "off"}`} title={dotTitle} role="img" aria-label={dotTitle} />
               <span className="hidden max-w-[10rem] truncate 2xl:inline">{session?.username}</span>
               <span className="ir-role">{session?.role}</span>
               <button

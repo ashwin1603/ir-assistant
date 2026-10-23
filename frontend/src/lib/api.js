@@ -84,6 +84,13 @@ export function del(path) {
   return request(path, { method: "DELETE" });
 }
 
+// Opens a streaming response (GET /stream). The token goes in the Authorization header,
+// never in the URL, which is why this uses fetch and not EventSource.
+export function openStream(path, signal) {
+  const headers = authToken ? { Authorization: `Bearer ${authToken}` } : {};
+  return fetch(`${API_BASE_URL}${path}`, { headers, signal, cache: "no-store" });
+}
+
 // Authenticated file download: fetch with the bearer token, then save the blob.
 // Returns the CSV export headers ({ rows, truncated }) when the server sends them.
 export async function download(path, filename) {

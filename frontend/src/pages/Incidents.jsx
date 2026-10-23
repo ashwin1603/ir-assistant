@@ -15,7 +15,7 @@ export default function Incidents() {
   const [error, setError] = useState("");
   const [reload, setReload] = useState(0); // bumped by Retry
   const [statusFilter, setStatusFilter] = useState("");
-  const [autoRefresh, setAutoRefresh, tick] = useAutoRefresh(15);
+  const [autoRefresh, setAutoRefresh, tick] = useAutoRefresh();
   const freshRows = useNewIds(loading ? [] : incidents);
 
   // Show "Loading..." only when the filter changes, not on every auto-refresh.
