@@ -63,6 +63,16 @@ function Table({ headers, children }) {
   );
 }
 
+// Full ids on screen; in print, first 8 chars only so evidence cells stay one or two lines.
+function EventIds({ ids }) {
+  return (
+    <>
+      <span className="print:hidden">{ids.join(", ")}</span>
+      <span className="evidence-short hidden print:inline">{ids.map((id) => id.slice(0, 8)).join(", ")}</span>
+    </>
+  );
+}
+
 const rowClass = "border-t border-slate-800 align-top print:border-neutral-200";
 const cell = "px-3 py-2";
 const muted = "text-slate-500 print:text-neutral-600";
@@ -212,7 +222,9 @@ function TechnicalView({ incident, analysis, actions, attack, iocs }) {
               <td className={`${cell} whitespace-nowrap`}>
                 {e.risk_level} &middot; {Math.round(e.risk_score)}
               </td>
-              <td className={`${cell} mono font-mono text-xs`}>{e.event_ids.join(", ")}</td>
+              <td className={`${cell} evidence mono font-mono text-xs`}>
+                <EventIds ids={e.event_ids} />
+              </td>
             </tr>
           ))}
         </Table>
@@ -227,7 +239,9 @@ function TechnicalView({ incident, analysis, actions, attack, iocs }) {
               <td className={cell}>{r.tactic}</td>
               <td className={cell}>{r.rule_names.join("; ")}</td>
               <td className={cell}>{r.detection_count}</td>
-              <td className={`${cell} mono font-mono text-xs`}>{r.event_ids.join(", ")}</td>
+              <td className={`${cell} evidence mono font-mono text-xs`}>
+                <EventIds ids={r.event_ids} />
+              </td>
             </tr>
           ))}
         </Table>
@@ -243,7 +257,9 @@ function TechnicalView({ incident, analysis, actions, attack, iocs }) {
                 <td className={`${cell} whitespace-nowrap`}>{i.type}</td>
                 <td className={`${cell} mono font-mono text-xs`}>{i.value}</td>
                 <td className={cell}>{i.event_count}</td>
-                <td className={`${cell} mono font-mono text-xs`}>{i.event_ids.join(", ")}</td>
+                <td className={`${cell} evidence mono font-mono text-xs`}>
+                <EventIds ids={i.event_ids} />
+              </td>
               </tr>
             ))}
           </Table>
@@ -285,7 +301,7 @@ function TechnicalView({ incident, analysis, actions, attack, iocs }) {
                   {analysis.findings.map((f, i) => (
                     <li key={i}>
                       <span className="font-medium">{f.technique_id}</span> &mdash; {f.claim}{" "}
-                      <span className={`mono font-mono text-xs ${muted}`}>[{f.event_ids.join(", ")}]</span>
+                      <span className={`mono font-mono text-xs ${muted}`}>[<EventIds ids={f.event_ids} />]</span>
                     </li>
                   ))}
                 </ul>
