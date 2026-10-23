@@ -5,7 +5,7 @@ export function TIBadge({ matches }) {
   const sources = [...new Set(matches.map((m) => m.source))].join(", ");
   const title = matches.map((m) => `${m.type} ${m.value} (${m.source}${m.tags ? `: ${m.tags}` : ""})`).join("\n");
   return (
-    <span title={title} className="whitespace-nowrap rounded bg-fuchsia-900/60 px-1.5 py-0.5 text-xs font-medium text-fuchsia-300">
+    <span title={title} className="badge whitespace-nowrap rounded bg-fuchsia-900/60 px-1.5 py-0.5 text-xs font-medium text-fuchsia-300">
       TI match · {sources}
     </span>
   );

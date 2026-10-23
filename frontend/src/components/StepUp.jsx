@@ -29,7 +29,7 @@ function StepUpDialog({ onDone, onCancel }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-      <form onSubmit={submit} className="w-full max-w-sm rounded-lg border border-slate-700 bg-slate-900 p-6">
+      <form onSubmit={submit} className="ir-dialog w-full max-w-sm rounded-lg border p-6">
         <h2 className="mb-1 font-semibold text-slate-100">Confirm it's you</h2>
         <p className="mb-4 text-sm text-slate-400">
           This action needs re-authentication (valid for 5 minutes).{" "}

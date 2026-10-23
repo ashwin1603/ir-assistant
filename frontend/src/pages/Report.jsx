@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { get } from "../lib/api";
 import { PageSkeleton } from "../components/Skeleton";
+import { Segmented } from "../components/Segmented";
 
 // Screen colours first, then lighter print colours so the PDF stays readable on white paper.
 const RISK_STYLES = {
@@ -426,21 +427,13 @@ export default function Report() {
           &larr; Back to incident
         </Link>
         <div className="flex items-center gap-3">
-          <div className="flex rounded border border-slate-700 p-0.5 text-sm" role="tablist">
-            {VIEWS.map((v) => (
-              <button
-                key={v.key}
-                role="tab"
-                aria-selected={view === v.key}
-                onClick={() => setSearchParams({ view: v.key }, { replace: true })}
-                className={`rounded px-3 py-1 ${
-                  view === v.key ? "bg-slate-700 text-white" : "text-slate-400 hover:text-slate-200"
-                }`}
-              >
-                {v.label}
-              </button>
-            ))}
-          </div>
+          <Segmented
+            tabs
+            label="Report view"
+            value={view}
+            onChange={(key) => setSearchParams({ view: key }, { replace: true })}
+            options={VIEWS.map((v) => ({ value: v.key, label: v.label }))}
+          />
           <button
             onClick={() => window.print()}
             className="rounded bg-sky-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-sky-500"

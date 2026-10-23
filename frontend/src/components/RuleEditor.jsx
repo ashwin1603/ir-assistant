@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { post, put } from "../lib/api";
+import { Switch } from "./Switch";
 
 // Admin-only custom rule editor (Settings -> Detection). The server re-validates
 // everything; the limits here only give early feedback.
@@ -110,11 +111,12 @@ export default function RuleEditor({ initial, ruleId, onSaved, onCancel, onError
             <input className={`${inputClass} mt-1 block w-24`} type="number" min={0} max={65535}
               value={form.event_id ?? ""} onChange={(e) => set({ event_id: e.target.value })} />
           </label>
-          <label className="flex items-end gap-2 text-xs text-slate-400">
-            <input type="checkbox" checked={!!form.threshold}
-              onChange={(e) => set({ threshold: e.target.checked ? { count: 5, minutes: 5 } : null })} />
-            Threshold
-          </label>
+          <div className="flex items-end pb-1 text-xs text-slate-400">
+            <Switch checked={!!form.threshold}
+              onChange={(on) => set({ threshold: on ? { count: 5, minutes: 5 } : null })}>
+              Threshold
+            </Switch>
+          </div>
           {form.threshold && (
             <div className="flex items-end gap-2 text-xs text-slate-400">
               <input className={`${inputClass} w-16`} type="number" min={2} max={1000} value={form.threshold.count}

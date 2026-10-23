@@ -3,6 +3,8 @@ import { del, get, patch, post, put, upload } from "../lib/api";
 import { useAuth } from "../auth/AuthContext";
 import RuleEditor, { EMPTY_RULE } from "../components/RuleEditor";
 import { useStepUp } from "../components/StepUp";
+import { Switch } from "../components/Switch";
+import { Segmented } from "../components/Segmented";
 
 // Admin tabs and the permission (from /auth/me) that shows each one.
 const ADMIN_TABS = [
@@ -171,7 +173,7 @@ function RuleRow({ rule, onSaved, onError, onEdit, onClone, onDelete }) {
   return (
     <tr className="border-t border-slate-800">
       <td className="px-3 py-2">
-        <input type="checkbox" checked={rule.enabled} onChange={(e) => save({ enabled: e.target.checked })} />
+        <Switch checked={rule.enabled} label={`Enable ${rule.name}`} onChange={(on) => save({ enabled: on })} />
       </td>
       <td className="px-3 py-2 text-slate-200">
         {rule.name}
@@ -532,10 +534,9 @@ function SystemTab() {
 
       <section className="rounded border border-slate-800 p-4">
         <h2 className="mb-2 font-semibold text-slate-100">Security</h2>
-        <label className="flex items-center gap-2">
-          <input type="checkbox" checked={status.require_admin_mfa} onChange={(e) => saveRequireMfa(e.target.checked)} />
+        <Switch checked={status.require_admin_mfa} onChange={saveRequireMfa}>
           Require MFA for admin
-        </label>
+        </Switch>
         <p className="mt-1 text-xs text-slate-500">
           When on, an admin without MFA must set it up at their next login, and admins cannot turn MFA off.
           Locked out? Run <code>python scripts/admin_recovery.py</code> on the server.
@@ -669,13 +670,9 @@ export default function Settings() {
   return (
     <div>
       <h1 className="mb-4 text-xl font-semibold text-slate-100">Settings</h1>
-      <div className="mb-4 flex gap-2">
-        {tabs.map((t) => (
-          <button key={t} onClick={() => setTab(t)}
-            className={`rounded px-3 py-1.5 text-sm ${tab === t ? "bg-slate-800 text-white" : "text-slate-400 hover:text-slate-200"}`}>
-            {t}
-          </button>
-        ))}
+      <div className="mb-4">
+        <Segmented tabs label="Settings sections" value={tab} onChange={setTab}
+          options={tabs.map((t) => ({ value: t, label: t }))} />
       </div>
       {tab === "My account" && <MyAccountTab />}
       {tabs.includes(tab) && tab === "Users" && <UsersTab />}

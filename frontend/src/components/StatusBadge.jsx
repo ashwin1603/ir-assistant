@@ -9,7 +9,7 @@ const STYLES = {
 
 export function StatusBadge({ status }) {
   return (
-    <span className={`rounded px-2 py-0.5 text-xs font-medium uppercase ${STYLES[status] || STYLES.new}`}>
+    <span className={`badge rounded px-2 py-0.5 text-xs font-medium uppercase ${STYLES[status] || STYLES.new}`}>
       {status}
     </span>
   );

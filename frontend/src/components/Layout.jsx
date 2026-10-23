@@ -29,7 +29,7 @@ export default function Layout() {
   return (
     <div className="min-h-screen text-slate-100 print:bg-white print:text-black">
       <header className="ir-topbar sticky top-0 z-20 print:hidden">
-        <div className="mx-auto flex max-w-screen-2xl items-center justify-between gap-4 px-4 py-2.5">
+        <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-4 px-4 py-2.5">
           <div className="flex min-w-0 items-center gap-5">
             <span className="flex shrink-0 items-center gap-2 text-sm font-semibold tracking-tight text-slate-100">
               <span className="inline-block h-2.5 w-2.5 rounded-sm bg-sky-600" aria-hidden="true" />
@@ -77,7 +77,7 @@ export default function Layout() {
           </nav>
         )}
       </header>
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 print:max-w-none print:p-0">
+      <main className="mx-auto max-w-[1400px] px-4 py-6 sm:px-6 print:max-w-none print:p-0">
         <ErrorBoundary key={location.pathname}>
           <div className="page-enter">
             <Outlet />

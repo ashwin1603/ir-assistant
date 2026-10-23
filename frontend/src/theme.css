@@ -5,26 +5,44 @@
    colours are untouched so they stay distinct from the accent. */
 
 :root {
-  --ir-bg: #161513;
+  --ir-bg: #14120f;
   --ir-bg-raised: #1f1d1a;
-  --ir-surface: rgba(43, 40, 36, 0.55);
-  --ir-surface-strong: rgba(31, 29, 26, 0.85);
-  --ir-border: rgba(255, 244, 230, 0.08);
-  --ir-border-strong: rgba(255, 244, 230, 0.14);
+  --ir-surface: rgba(255, 255, 255, 0.055);
+  --ir-surface-nested: rgba(255, 255, 255, 0.035);
+  --ir-surface-solid: rgba(34, 31, 28, 0.96); /* fallback when backdrop-filter is unsupported */
+  --ir-border: rgba(255, 255, 255, 0.1);
+  --ir-border-strong: rgba(255, 255, 255, 0.16);
+  --ir-separator: rgba(255, 255, 255, 0.06);
+  --ir-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.12);
   --ir-text: #f2f0ec;
-  --ir-muted: #a59e93;
+  --ir-muted: #aaa398; /* AA on the glass surfaces */
   --ir-accent: #c74634;
   --ir-accent-hover: #d4584a;
-  --ir-accent-soft: rgba(199, 70, 52, 0.18);
-  --ir-ring: rgba(199, 70, 52, 0.55);
+  --ir-accent-soft: rgba(199, 70, 52, 0.22);
+  --ir-accent-grad: linear-gradient(180deg, #d4584a 0%, #b53b2b 100%);
+  --ir-ring: rgba(224, 117, 99, 0.7);
   --ir-live: #3fb950;
-  --ir-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), 0 1px 0 rgba(255, 255, 255, 0.03) inset;
-  --ir-shadow-hover: 0 12px 32px rgba(0, 0, 0, 0.45), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
-  --ir-blur: blur(14px) saturate(140%);
+  --ir-shadow: var(--ir-highlight), 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.28),
+    0 24px 48px -12px rgba(0, 0, 0, 0.35);
+  --ir-shadow-hover: var(--ir-highlight), 0 2px 4px rgba(0, 0, 0, 0.3), 0 14px 32px rgba(0, 0, 0, 0.36),
+    0 32px 64px -16px rgba(0, 0, 0, 0.45);
+  --ir-inset: inset 0 1px 2px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+  --ir-blur: blur(20px) saturate(140%);
+  --ir-radius: 15px;
+  --ir-radius-sm: 10px;
   --ir-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
   --ir-fast: 150ms;
   --ir-med: 240ms;
   --ir-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* Spacing scale for the custom components. */
+  --ir-space-1: 0.25rem;
+  --ir-space-2: 0.5rem;
+  --ir-space-3: 0.75rem;
+  --ir-space-4: 1rem;
+  --ir-space-6: 1.5rem;
+  /* Film grain (SVG feTurbulence): strong copy for the page overlay, faint copy baked into surfaces. */
+  --ir-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --ir-grain-soft: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
 }
 
 @theme {
@@ -58,17 +76,55 @@
 /* ---------- Screen only (print keeps the original report styling) ---------- */
 
 @media screen {
-/* ---------- Base ---------- */
+/* ---------- Base + fixed background ---------- */
+
+html {
+  color-scheme: dark;
+  background-color: var(--ir-bg);
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+/* Three large, soft colour orbs (red, amber, deep teal) drifting slowly behind everything.
+   Two live on html::before, one on html::after so they can drift in different directions. */
+html::before,
+html::after {
+  content: "";
+  position: fixed;
+  inset: -25vmax;
+  z-index: -2;
+  pointer-events: none;
+  filter: blur(40px);
+  will-change: transform;
+}
+
+html::before {
+  background:
+    radial-gradient(38vmax 38vmax at 22% 24%, rgba(199, 70, 52, 0.25), transparent 70%),
+    radial-gradient(34vmax 34vmax at 80% 70%, rgba(214, 150, 70, 0.2), transparent 70%);
+  animation: ir-drift-a 40s ease-in-out infinite alternate;
+}
+
+html::after {
+  background: radial-gradient(40vmax 40vmax at 70% 18%, rgba(28, 110, 112, 0.25), transparent 70%);
+  animation: ir-drift-b 40s ease-in-out infinite alternate;
+}
 
 body {
   font-family: var(--ir-font);
-  background-color: var(--ir-bg);
-  background-image:
-    radial-gradient(1200px 600px at 10% -10%, rgba(199, 70, 52, 0.08), transparent 60%),
-    radial-gradient(900px 500px at 110% 10%, rgba(255, 214, 170, 0.05), transparent 60%);
-  background-attachment: fixed;
+  background: transparent;
   color: var(--ir-text);
   -webkit-font-smoothing: antialiased;
+}
+
+/* Fine film grain over the background (surfaces carry their own faint grain). */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: var(--ir-grain);
+  opacity: 0.04;
 }
 
 h1,
@@ -91,17 +147,93 @@ h1 {
   outline-offset: 2px;
 }
 
+/* ---------- Scrollbars (dark, no white tracks) ---------- */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border: 2px solid transparent;
+  border-radius: 9999px;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.28);
+}
+
+/* ---------- Inputs: glass inset with focus glow ---------- */
+
+input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="color"]),
+select,
+textarea {
+  background-color: rgba(0, 0, 0, 0.24);
+  border: 1px solid var(--ir-border);
+  border-radius: 0.5rem;
+  box-shadow: var(--ir-inset);
+  color: var(--ir-text);
+  transition: border-color var(--ir-fast) ease, box-shadow var(--ir-fast) ease, background-color var(--ir-fast) ease;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #8a8379;
+}
+
+input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="color"]):hover,
+select:hover,
+textarea:hover {
+  border-color: var(--ir-border-strong);
+}
+
 input:focus,
 select:focus,
 textarea:focus {
+  outline: none;
   border-color: var(--ir-accent);
-  box-shadow: 0 0 0 3px var(--ir-accent-soft);
+  background-color: rgba(0, 0, 0, 0.3);
+  box-shadow: var(--ir-inset), 0 0 0 3px var(--ir-accent-soft), 0 0 18px rgba(199, 70, 52, 0.18);
 }
 
-input,
-select,
-textarea {
-  transition: border-color var(--ir-fast) ease, box-shadow var(--ir-fast) ease;
+input:disabled,
+select:disabled,
+textarea:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Custom select chevron. */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 2rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5' fill='none' stroke='%23aaa398' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.6rem center;
+  background-size: 12px;
+}
+
+select[multiple] {
+  background-image: none;
+  padding-right: 0.5rem;
+}
+
+option {
+  background-color: #1f1d1a;
+  color: var(--ir-text);
 }
 
 input[type="checkbox"],
@@ -109,27 +241,210 @@ input[type="radio"] {
   accent-color: var(--ir-accent);
 }
 
-/* Buttons: short press feedback. */
+input[type="file"]::file-selector-button {
+  margin-right: 0.75rem;
+  padding: 0.35rem 0.8rem;
+  border: 1px solid var(--ir-border-strong);
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--ir-text);
+  cursor: pointer;
+}
+
+/* ---------- Buttons ---------- */
+
 button {
   transition: background-color var(--ir-fast) ease, border-color var(--ir-fast) ease,
-    color var(--ir-fast) ease, transform var(--ir-fast) ease, box-shadow var(--ir-fast) ease;
+    color var(--ir-fast) ease, transform var(--ir-fast) ease, box-shadow var(--ir-fast) ease,
+    filter var(--ir-fast) ease;
 }
 
 button:not(:disabled):active {
   transform: translateY(1px) scale(0.98);
 }
 
-button[class*="bg-sky-600"]:not(:disabled) {
-  box-shadow: 0 4px 14px rgba(199, 70, 52, 0.28);
+button:disabled {
+  cursor: not-allowed;
+}
+
+/* Primary: pages use bg-sky-600 (remapped to the red accent) -> subtle red gradient. */
+button[class*="bg-sky-6"],
+a[class*="bg-sky-6"] {
+  background-image: var(--ir-accent-grad);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 0.55rem;
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 4px 14px rgba(199, 70, 52, 0.28);
+}
+
+button[class*="bg-sky-6"]:not(:disabled):hover,
+a[class*="bg-sky-6"]:hover {
+  filter: brightness(1.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 6px 20px rgba(199, 70, 52, 0.36);
+}
+
+button[class*="bg-sky-6"]:disabled {
+  filter: saturate(0.4);
+  box-shadow: none;
+}
+
+/* Secondary: outlined buttons become small glass buttons (no blur, just tinted fill). */
+button.border:not([class*="bg-"], [class*="border-red"], [class*="border-emerald"], .ir-switch, .ir-seg-btn) {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: var(--ir-border-strong);
+  border-radius: 0.55rem;
+  box-shadow: var(--ir-highlight), 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+button.border:not([class*="bg-"], [class*="border-red"], [class*="border-emerald"], .ir-switch, .ir-seg-btn):not(:disabled):hover {
+  background-color: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.24);
+  color: var(--ir-text);
+}
+
+/* Danger (red outline / red fill) and approve (emerald outline). */
+button[class*="border-red"],
+button[class*="bg-red-6"],
+button[class*="bg-red-7"] {
+  background-color: rgba(220, 70, 55, 0.1);
+  border-color: rgba(239, 100, 85, 0.45);
+  border-radius: 0.55rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+button[class*="border-red"]:not(:disabled):hover,
+button[class*="bg-red-6"]:not(:disabled):hover,
+button[class*="bg-red-7"]:not(:disabled):hover {
+  background-color: rgba(220, 70, 55, 0.22);
+  border-color: rgba(239, 100, 85, 0.7);
+}
+
+button[class*="border-emerald"] {
+  background-color: rgba(52, 180, 120, 0.08);
+  border-radius: 0.55rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* ---------- Switch (role="switch") ---------- */
+
+.ir-switch {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 1.25rem;
+  border-radius: 9999px;
+  border: 1px solid var(--ir-border-strong);
+  background-color: rgba(0, 0, 0, 0.3);
+  box-shadow: var(--ir-inset);
+  cursor: pointer;
+  transition: background-color var(--ir-med) ease, border-color var(--ir-med) ease, box-shadow var(--ir-med) ease;
+}
+
+.ir-switch-knob {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 9999px;
+  background: #d9d4cc;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  transition: transform var(--ir-med) var(--ir-ease), background-color var(--ir-med) ease;
+}
+
+.ir-switch[aria-checked="true"] {
+  background-image: var(--ir-accent-grad);
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25), 0 0 12px rgba(199, 70, 52, 0.35);
+}
+
+.ir-switch[aria-checked="true"] .ir-switch-knob {
+  transform: translateX(1rem);
+  background: #fff;
+}
+
+.ir-switch:not(:disabled):hover {
+  border-color: rgba(255, 255, 255, 0.26);
+}
+
+.ir-switch:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ir-switch:not(:disabled):active {
+  transform: none;
+}
+
+.ir-switch:not(:disabled):active .ir-switch-knob {
+  width: 1.2rem;
+}
+
+.ir-switch[aria-checked="true"]:not(:disabled):active .ir-switch-knob {
+  transform: translateX(0.8rem);
+}
+
+/* ---------- Segmented control (tabs, view and status filters) ---------- */
+
+.ir-seg {
+  display: inline-flex;
+  flex-wrap: wrap;
+  max-width: 100%;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 0.7rem;
+  border: 1px solid var(--ir-border);
+  background-color: rgba(0, 0, 0, 0.26);
+  box-shadow: var(--ir-inset);
+}
+
+.ir-seg-btn {
+  padding: 0.3rem 0.85rem;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  line-height: 1.25rem;
+  color: var(--ir-muted);
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.ir-seg-btn:hover {
+  color: var(--ir-text);
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+.ir-seg-btn[aria-selected="true"],
+.ir-seg-btn[aria-checked="true"] {
+  color: var(--ir-text);
+  background-color: rgba(255, 255, 255, 0.1);
+  box-shadow: var(--ir-highlight), 0 1px 3px rgba(0, 0, 0, 0.4), inset 0 -2px 0 var(--ir-accent);
+}
+
+/* ---------- Badges ---------- */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 9999px;
+  padding: 0.1rem 0.55rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.1rem;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 /* ---------- Top bar ---------- */
 
 .ir-topbar {
-  background: rgba(22, 21, 19, 0.72);
+  background-color: rgba(20, 18, 15, 0.6);
+  background-image: var(--ir-grain-soft);
   backdrop-filter: var(--ir-blur);
   -webkit-backdrop-filter: var(--ir-blur);
   border-bottom: 1px solid var(--ir-border);
+  box-shadow: var(--ir-highlight), 0 8px 24px rgba(0, 0, 0, 0.25);
 }
 
 .ir-navlink {
@@ -179,19 +494,47 @@ button[class*="bg-sky-600"]:not(:disabled) {
   transform: scaleY(1);
 }
 
-/* ---------- Glass panels ---------- */
+/* ---------- Glass surfaces ---------- */
 
-/* Every bordered panel that uses a slate-900/950 surface becomes a glass card. */
-.glass,
-main [class*="bg-slate-900/"].border,
-main [class*="bg-slate-950/"].border,
-main .overflow-x-auto.rounded.border {
+/* Every bordered panel, card, section and table container becomes frosted matte glass. */
+:is(.glass, .ir-dialog, main [class*="bg-slate-900/"].border, main [class*="bg-slate-950/"].border,
+  main .overflow-x-auto.rounded.border, main section.rounded.border):not(button, input, select, textarea) {
   background-color: var(--ir-surface);
-  border-color: var(--ir-border);
+  background-image: var(--ir-grain-soft);
+  border: 1px solid var(--ir-border);
+  border-radius: var(--ir-radius);
   backdrop-filter: var(--ir-blur);
   -webkit-backdrop-filter: var(--ir-blur);
   box-shadow: var(--ir-shadow);
-  border-radius: 0.6rem;
+}
+
+/* No nested backdrop-filter: glass inside glass is a flat, lighter tint. */
+:is(.glass, main [class*="bg-slate-900/"].border, main [class*="bg-slate-950/"].border,
+  main .overflow-x-auto.rounded.border, main section.rounded.border)
+  :is(.glass, main [class*="bg-slate-900/"].border, main [class*="bg-slate-950/"].border,
+  main .overflow-x-auto.rounded.border, main section.rounded.border):not(button, input, select, textarea) {
+  background-color: var(--ir-surface-nested);
+  background-image: none;
+  border-radius: var(--ir-radius-sm);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* Dialogs sit on a dark scrim, so they get a denser fill for legibility. */
+.ir-dialog {
+  background-color: rgba(30, 27, 24, 0.78) !important;
+  box-shadow: var(--ir-highlight), 0 30px 80px rgba(0, 0, 0, 0.55) !important;
+}
+
+/* Solid fallback where backdrop-filter is unsupported. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .ir-topbar,
+  .ir-dialog,
+  :is(.glass, main [class*="bg-slate-900/"].border, main [class*="bg-slate-950/"].border,
+    main .overflow-x-auto.rounded.border, main section.rounded.border):not(button, input, select, textarea) {
+    background-color: var(--ir-surface-solid);
+  }
 }
 
 .lift {
@@ -219,32 +562,58 @@ main .overflow-x-auto:has(> table) {
   overflow-y: auto;
 }
 
+/* Sticky header: tinted glass without its own blur (it sits inside a glass container). */
+main table thead,
+main table thead tr {
+  background: transparent;
+}
+
 main table thead th {
   position: sticky;
   top: 0;
   z-index: 1;
-  background: var(--ir-surface-strong);
-  backdrop-filter: var(--ir-blur);
-  -webkit-backdrop-filter: var(--ir-blur);
+  background-color: rgba(28, 26, 23, 0.92);
+  background-image: var(--ir-grain-soft);
+  box-shadow: inset 0 -1px 0 var(--ir-border-strong);
   font-size: 0.72rem;
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--ir-muted);
-  border-bottom: 1px solid var(--ir-border-strong);
 }
 
+/* Rows: transparent, hairline separators, hover highlight (no per-row blur). */
 main table tbody tr {
-  border-color: var(--ir-border);
+  background-color: transparent;
+  border-color: var(--ir-separator);
   transition: background-color var(--ir-fast) ease;
 }
 
-main table tbody tr:nth-child(even):not([class*="bg-red-"]):not([class*="bg-amber-"]) {
-  background-color: rgba(255, 244, 230, 0.018);
+main table tbody tr + tr {
+  border-top: 1px solid var(--ir-separator);
 }
 
 main table tbody tr:hover:not([class*="bg-red-"]):not([class*="bg-amber-"]) {
-  background-color: rgba(255, 244, 230, 0.05);
+  background-color: rgba(255, 255, 255, 0.045);
+}
+
+/* Empty states: a "nothing here" row gets space and a faint dashed ring. */
+main tbody > tr:only-child > td[colspan]:only-child:not(:has(.skeleton)) {
+  padding-top: 2.25rem;
+  padding-bottom: 2.25rem;
+  text-align: center;
+  color: var(--ir-muted);
+}
+
+main tbody > tr:only-child > td[colspan]:only-child:not(:has(.skeleton))::before {
+  content: "";
+  display: block;
+  width: 2.25rem;
+  height: 2.25rem;
+  margin: 0 auto 0.75rem;
+  border-radius: 9999px;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.06) 0 30%, transparent 32%);
 }
 
 /* Links (rendered as sky-400 text) get the accent and a soft underline on hover. */
@@ -253,6 +622,29 @@ main a[class*="text-sky-4"] {
   text-underline-offset: 3px;
 }
 
+/* Skeletons inside glass read as frosted bars. */
+.skeleton {
+  border-radius: 0.4rem;
+}
+
+}
+
+@keyframes ir-drift-a {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(6vmax, 4vmax, 0) scale(1.08);
+  }
+}
+
+@keyframes ir-drift-b {
+  from {
+    transform: translate3d(0, 0, 0) scale(1.05);
+  }
+  to {
+    transform: translate3d(-7vmax, 5vmax, 0) scale(0.95);
+  }
 }
 
 /* ---------- Animations ---------- */
@@ -330,7 +722,7 @@ main a[class*="text-sky-4"] {
   animation: ir-flash 1.2s ease-out;
 }
 
-/* Skeleton loaders (replace "Loading..." text). */
+/* Skeleton loaders (replace "Loading..." text): frosted bars. */
 .skeleton {
   display: block;
   height: 0.8rem;
@@ -395,7 +787,9 @@ main a[class*="text-sky-4"] {
     transition-duration: 1ms !important;
   }
 
-  .live-dot {
+  .live-dot,
+  html::before,
+  html::after {
     animation: none !important;
   }
 

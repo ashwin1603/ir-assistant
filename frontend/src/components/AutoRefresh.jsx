@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Switch } from "./Switch";
 
 // Returns [enabled, setEnabled, tick]; tick increments every `seconds` while enabled,
 // so pages can add it to a useEffect dependency list to reload their data.
@@ -15,10 +16,11 @@ export function useAutoRefresh(seconds = 15) {
 
 export function AutoRefreshToggle({ enabled, onChange, seconds = 15 }) {
   return (
-    <label className="flex items-center gap-2 text-sm text-slate-400">
-      <input type="checkbox" checked={enabled} onChange={(e) => onChange(e.target.checked)} />
+    <div className="flex items-center gap-2 text-sm text-slate-400">
+      <Switch checked={enabled} onChange={onChange}>
+        Auto-refresh ({seconds}s)
+      </Switch>
       <span className={`live-dot${enabled ? "" : " off"}`} aria-hidden="true" />
-      Auto-refresh ({seconds}s)
-    </label>
+    </div>
   );
 }

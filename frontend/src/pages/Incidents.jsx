@@ -5,6 +5,7 @@ import { AutoRefreshToggle, useAutoRefresh } from "../components/AutoRefresh";
 import { RiskBadge } from "../components/RiskBadge";
 import { StatusBadge, INCIDENT_STATUSES } from "../components/StatusBadge";
 import { Skeleton } from "../components/Skeleton";
+import { Segmented } from "../components/Segmented";
 import { useNewIds } from "../components/useNewIds";
 
 export default function Incidents() {
@@ -32,22 +33,16 @@ export default function Incidents() {
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold text-slate-100">Incidents</h1>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-4">
           <AutoRefreshToggle enabled={autoRefresh} onChange={setAutoRefresh} />
-          <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded border border-slate-700 bg-slate-900 px-2 py-1 text-sm text-slate-200"
-        >
-          <option value="">All statuses</option>
-          {INCIDENT_STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-          </select>
+          <Segmented
+            label="Filter by status"
+            value={statusFilter}
+            onChange={setStatusFilter}
+            options={[{ value: "", label: "All" }, ...INCIDENT_STATUSES.map((s) => ({ value: s, label: s }))]}
+          />
         </div>
       </div>
 

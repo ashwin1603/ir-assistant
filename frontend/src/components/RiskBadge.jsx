@@ -8,7 +8,7 @@ const LEVEL_STYLES = {
 export function RiskBadge({ level, score }) {
   return (
     <span
-      className={`rounded px-2 py-0.5 text-xs font-medium ${
+      className={`badge rounded px-2 py-0.5 text-xs font-medium ${
         LEVEL_STYLES[level] || "bg-slate-800 text-slate-300"
       }`}
     >
