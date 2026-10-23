@@ -3,6 +3,7 @@ import { get } from "../lib/api";
 import { AutoRefreshToggle, useAutoRefresh } from "../components/AutoRefresh";
 import { Skeleton } from "../components/Skeleton";
 import { useNewIds } from "../components/useNewIds";
+import { TimeAgo } from "../components/TimeAgo";
 
 const STATUS_STYLES = {
   online: "bg-emerald-900/60 text-emerald-300",
@@ -84,7 +85,7 @@ export default function Devices() {
                     </span>
                   </td>
                   <td className="whitespace-nowrap px-3 py-2 text-slate-400">
-                    {d.last_seen ? new Date(d.last_seen).toLocaleString() : "-"}
+                    {d.last_seen ? <TimeAgo ts={d.last_seen} /> : "-"}
                   </td>
                   <td className="px-3 py-2 text-slate-300">{d.total_events}</td>
                   <td className="px-3 py-2 text-slate-300">{d.events_last_5m}</td>

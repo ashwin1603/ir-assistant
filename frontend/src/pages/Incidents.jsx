@@ -7,6 +7,7 @@ import { StatusBadge, INCIDENT_STATUSES } from "../components/StatusBadge";
 import { Skeleton } from "../components/Skeleton";
 import { Segmented } from "../components/Segmented";
 import { useNewIds } from "../components/useNewIds";
+import { TimeAgo } from "../components/TimeAgo";
 
 export default function Incidents() {
   const [incidents, setIncidents] = useState([]);
@@ -81,10 +82,10 @@ export default function Incidents() {
                 <tr key={inc.id} className={`border-t border-slate-800 hover:bg-slate-900/60 ${freshRows.has(inc.id) ? "row-flash" : ""}`}>
                   <td className="px-3 py-2 text-slate-200">{inc.host}</td>
                   <td className="whitespace-nowrap px-3 py-2 text-slate-400">
-                    {new Date(inc.started_at).toLocaleString()}
+                    <TimeAgo ts={inc.started_at} />
                   </td>
                   <td className="whitespace-nowrap px-3 py-2 text-slate-400">
-                    {new Date(inc.ended_at).toLocaleString()}
+                    <TimeAgo ts={inc.ended_at} />
                   </td>
                   <td className="px-3 py-2 text-slate-300">{inc.detection_count}</td>
                   <td className="px-3 py-2">

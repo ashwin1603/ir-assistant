@@ -4,6 +4,7 @@ import { Drawer } from "./Drawer";
 import { RiskBadge } from "./RiskBadge";
 import { TIBadge } from "./TIBadge";
 import { useCopy } from "./Toast";
+import { TimeAgo } from "./TimeAgo";
 
 // Drawer contents for one detection, event or anomaly. Everything shown comes from data the
 // page already loaded, so viewers see exactly what the API redacted for them.
@@ -97,8 +98,9 @@ export function DetectionDrawer({ detection: d, onClose }) {
             ["Rule", d.rule_name],
             ["Severity", `${d.severity}/10`],
             ["Confidence", `${Math.round(d.confidence * 100)}%`],
-            ["First seen", new Date(d.first_seen).toLocaleString()],
-            ["Last seen", new Date(d.last_seen).toLocaleString()],
+            ["First seen", <TimeAgo key="f" ts={d.first_seen} />],
+            ["Last seen", <TimeAgo key="l" ts={d.last_seen} />],
+
           ]}
         />
       </Section>

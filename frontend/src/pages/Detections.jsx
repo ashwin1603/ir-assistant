@@ -5,6 +5,7 @@ import { rowOpenProps } from "../lib/a11y";
 import { DetectionDrawer } from "../components/DetailDrawers";
 import { TIBadge } from "../components/TIBadge";
 import { Skeleton } from "../components/Skeleton";
+import { TimeAgo } from "../components/TimeAgo";
 
 const LEVEL_STYLES = {
   Low: "bg-slate-800 text-slate-300",
@@ -120,7 +121,7 @@ export default function Detections() {
                     </span>
                   </td>
                   <td className="whitespace-nowrap px-3 py-2 text-slate-400">
-                    {new Date(d.last_seen).toLocaleString()}
+                    <TimeAgo ts={d.last_seen} />
                   </td>
                 </tr>
               ))}

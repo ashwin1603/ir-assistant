@@ -6,6 +6,7 @@ import { useStepUp } from "../components/StepUp";
 import { Switch } from "../components/Switch";
 import { Segmented } from "../components/Segmented";
 import { useCopy, useToast } from "../components/Toast";
+import { TimeAgo } from "../components/TimeAgo";
 
 // Admin tabs and the permission (from /auth/me) that shows each one.
 const ADMIN_TABS = [
@@ -114,7 +115,7 @@ function UsersTab() {
                   </span>
                 </td>
                 <td className="px-3 py-2 text-slate-400">{u.mfa_enabled ? "On" : "Off"}</td>
-                <td className="px-3 py-2 text-slate-400">{new Date(u.created_at).toLocaleDateString()}</td>
+                <td className="px-3 py-2 text-slate-400"><TimeAgo ts={u.created_at} /></td>
                 <td className="flex gap-2 px-3 py-2">
                   <button className={buttonClass}
                     onClick={() => run(() => patch(`/settings/users/${u.id}`, { is_active: !u.is_active }),
@@ -456,7 +457,7 @@ function ThreatIntelTab() {
                 <td className="max-w-[24rem] truncate px-3 py-2 font-mono text-xs text-slate-200" title={i.value}>{i.value}</td>
                 <td className="px-3 py-2 text-slate-300">{i.source}</td>
                 <td className="px-3 py-2 text-slate-400">{i.tags || "—"}</td>
-                <td className="whitespace-nowrap px-3 py-2 text-slate-400">{new Date(i.added_at).toLocaleString()}</td>
+                <td className="whitespace-nowrap px-3 py-2 text-slate-400"><TimeAgo ts={i.added_at} /></td>
                 <td className="px-3 py-2">
                   <button onClick={() => remove(i)} className={buttonClass}>Delete</button>
                 </td>
@@ -564,7 +565,7 @@ function SystemTab() {
         <h2 className="mb-2 font-semibold text-slate-100">Collector</h2>
         <p>
           Last seen:{" "}
-          {status.collector_last_seen ? new Date(status.collector_last_seen).toLocaleString() : "never"}
+          {status.collector_last_seen ? <TimeAgo ts={status.collector_last_seen} /> : "never"}
         </p>
       </section>
 

@@ -3,6 +3,7 @@ import { get } from "../lib/api";
 import { Skeleton } from "../components/Skeleton";
 import { rowOpenProps } from "../lib/a11y";
 import { AnomalyDrawer } from "../components/DetailDrawers";
+import { TimeAgo } from "../components/TimeAgo";
 
 const CMD_PREVIEW = 160;
 
@@ -140,8 +141,7 @@ export default function Anomalies() {
                   <td className="px-2 py-1.5 text-xs text-slate-300">{a.also_matched_rule ? "yes" : "no"}</td>
                   <td className="truncate px-2 py-1.5 text-xs text-slate-300" title={a.host}>{a.host}</td>
                   <td className="px-2 py-1.5 text-xs text-slate-400">
-                    <div>{new Date(a.timestamp).toLocaleDateString()}</div>
-                    <div>{new Date(a.timestamp).toLocaleTimeString()}</div>
+                    <TimeAgo ts={a.timestamp} />
                   </td>
                 </tr>
               ))}

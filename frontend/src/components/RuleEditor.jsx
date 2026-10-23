@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { post, put } from "../lib/api";
 import { Switch } from "./Switch";
+import { TimeAgo } from "./TimeAgo";
 
 // Admin-only custom rule editor (Settings -> Detection). The server re-validates
 // everything; the limits here only give early feedback.
@@ -184,7 +185,7 @@ export default function RuleEditor({ initial, ruleId, onSaved, onCancel, onError
               <tbody>
                 {testResult.samples.map((s) => (
                   <tr key={s.id} className="border-t border-slate-800 text-slate-400">
-                    <td className="pr-2">{new Date(s.timestamp).toLocaleString()}</td>
+                    <td className="pr-2"><TimeAgo ts={s.timestamp} /></td>
                     <td className="pr-2">{s.host}</td>
                     <td className="pr-2">{s.event_id}</td>
                     <td className="break-all font-mono">{s.command_line || s.process}</td>

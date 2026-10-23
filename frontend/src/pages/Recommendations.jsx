@@ -4,6 +4,7 @@ import { get, post, ApiError } from "../lib/api";
 import { useAuth } from "../auth/AuthContext";
 import { Skeleton } from "../components/Skeleton";
 import { useToast } from "../components/Toast";
+import { TimeAgo } from "../components/TimeAgo";
 
 const STATUS_STYLES = {
   pending: "bg-slate-800 text-slate-300",
@@ -89,7 +90,7 @@ export default function Recommendations() {
                   <td className="px-3 py-2 text-slate-200">{a.action_text}</td>
                   <td className="whitespace-nowrap px-3 py-2">
                     <Link to={`/incidents/${a.incident_id}`} className="text-sky-400 hover:text-sky-300">
-                      {a.incident_host} &middot; {new Date(a.incident_started_at).toLocaleString()}
+                      {a.incident_host} &middot; <TimeAgo ts={a.incident_started_at} />
                     </Link>
                   </td>
                   <td className="px-3 py-2">

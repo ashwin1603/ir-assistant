@@ -9,6 +9,8 @@ import { CountUp } from "../components/CountUp";
 import { RiskBadge } from "../components/RiskBadge";
 import { StatusBadge } from "../components/StatusBadge";
 import { useNewIds } from "../components/useNewIds";
+import { TimeAgo } from "../components/TimeAgo";
+import { Sparkline } from "../components/Sparkline";
 
 const LEVEL_ORDER = ["Low", "Medium", "High", "Critical"];
 
@@ -33,8 +35,30 @@ const SOURCES = {
   matrix: "/attack/matrix",
 };
 
-const fmtTime = (ts) => new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
 const basename = (path) => (path ? path.split(/[\\/]/).pop() : "—");
+
+// Counts of timestamps in `buckets` equal slices from the oldest one up to now (sparklines).
+function bucketCounts(timestamps, buckets = 12) {
+  if (!timestamps.length) return [];
+  const times = timestamps.map((t) => new Date(t).getTime());
+  const end = Date.now();
+  const start = Math.min(...times);
+  const size = Math.max(1, (end - start) / buckets);
+  const counts = Array(buckets).fill(0);
+  for (const t of times) counts[Math.min(buckets - 1, Math.floor((t - start) / size))] += 1;
+  return counts;
+}
+
+// Values seen on earlier refreshes this session (events total, online devices), for the
+// sparklines of numbers the API only reports as a current total. Module-level so it
+// survives navigating away and back.
+const HISTORY_SIZE = 20;
+const history = { events: [], online: [] };
+function remember(key, value) {
+  if (value === null || value === undefined) return;
+  history[key] = [...history[key], value].slice(-HISTORY_SIZE);
+}
 
 function Panel({ title, span, action, children }) {
   return (
@@ -52,15 +76,16 @@ function Empty({ children }) {
   return <p className="dash-empty">{children}</p>;
 }
 
-function StatTile({ label, value, children }) {
+function StatTile({ label, value, spark, sparkTip, sparkColor, children }) {
   return (
-    <div className="glass rounded border p-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
+    <div className="glass dash-stat rounded border p-4">
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{label}</p>
       {value === null ? (
         <span className="skeleton mt-2" style={{ width: "4rem", height: "1.6rem" }} />
       ) : (
         <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-100">{children ?? <CountUp value={value} />}</p>
       )}
+      <Sparkline values={spark} tip={sparkTip} color={sparkColor} />
     </div>
   );
 }
@@ -84,7 +109,7 @@ function SeverityChart({ detections }) {
   return (
     <div className="dash-cols" role="list" aria-label="Detections by severity">
       {data.map((d) => (
-        <div key={d.name} className="dash-col" role="listitem" title={`${d.name}: ${d.count}`}>
+        <div key={d.name} className="dash-col" role="listitem" data-tip={`${d.name}: ${d.count} detection${d.count === 1 ? "" : "s"}`}>
           <span className="text-sm font-semibold tabular-nums text-slate-200">{d.count}</span>
           <div className="dash-col-track">
             <span style={{ height: `${(d.count / max) * 100}%`, background: LEVEL_COLORS[d.name] }} />
@@ -108,10 +133,16 @@ function TechniqueChart({ detections }) {
     .slice(0, 8);
   if (data.length === 0) return <Empty>No techniques observed yet.</Empty>;
   const max = data[0].count;
+  const riskiest = detections.reduce((best, d) => (!best || d.risk_score > best.risk_score ? d : best), null);
+  const tacticCounts = {};
+  for (const d of detections) for (const t of d.tactics) tacticCounts[t] = (tacticCounts[t] || 0) + 1;
+  const tactics = Object.entries(tacticCounts).sort((a, b) => b[1] - a[1]);
+  const tacticTotal = tactics.reduce((sum, [, n]) => sum + n, 0);
   return (
+    <div className="flex h-full flex-col gap-4">
     <ul className="space-y-2 text-sm">
       {data.map((d) => (
-        <li key={d.name} className="dash-hbar" title={`${d.name}: ${d.count}`}>
+        <li key={d.name} className="dash-hbar" data-tip={`${d.name}: ${d.count} detection${d.count === 1 ? "" : "s"}`}>
           <Link to={`/attack/${d.name}`} className="truncate font-mono text-xs text-slate-300 hover:text-sky-300">{d.name}</Link>
           <div className="dash-bar">
             <span className="ir-bar-fill" style={{ width: `${(d.count / max) * 100}%` }} />
@@ -120,6 +151,26 @@ function TechniqueChart({ detections }) {
         </li>
       ))}
     </ul>
+    {/* Fills the rest of the card: the riskiest technique and the tactic mix. */}
+    <div className="dash-subcard mt-auto">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-sm">
+        <span className="text-xs uppercase tracking-wide text-slate-400">Highest-risk technique</span>
+        <span className="flex items-center gap-2">
+          <Link to={`/attack/${riskiest.technique_ids[0]}`} className="font-mono text-xs text-slate-200 hover:text-sky-300">
+            {riskiest.technique_ids[0]}
+          </Link>
+          <RiskBadge level={riskiest.risk_level} score={riskiest.risk_score} />
+        </span>
+      </div>
+      <p className="mb-1.5 text-xs uppercase tracking-wide text-slate-400">Tactic mix</p>
+      <div className="dash-mix" role="img" aria-label={tactics.map(([t, n]) => `${t} ${n}`).join(", ")}>
+        {tactics.map(([t, n], i) => (
+          <span key={t} data-tip={`${t}: ${n} (${Math.round((n / tacticTotal) * 100)}%)`}
+            style={{ width: `${(n / tacticTotal) * 100}%`, opacity: 1 - (i % 6) * 0.13 }} />
+        ))}
+      </div>
+    </div>
+    </div>
   );
 }
 
@@ -127,8 +178,8 @@ function TechniqueChart({ detections }) {
 function RiskDonut({ incidents }) {
   if (!incidents) return <Skeleton lines={5} />;
   if (incidents.length === 0) return <Empty>No incidents yet.</Empty>;
-  const data = LEVEL_ORDER.map((level) => ({ name: level, count: incidents.filter((i) => i.risk_level === level).length }))
-    .filter((d) => d.count > 0);
+  const legend = LEVEL_ORDER.map((level) => ({ name: level, count: incidents.filter((i) => i.risk_level === level).length }));
+  const data = legend.filter((d) => d.count > 0); // zero slices are not drawn, but stay in the legend
   return (
     <div className="flex h-full flex-col">
       <div className="relative min-h-0 flex-1">
@@ -146,8 +197,8 @@ function RiskDonut({ incidents }) {
         </div>
       </div>
       <ul className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 text-xs text-slate-400">
-        {data.map((d) => (
-          <li key={d.name} className="flex items-center gap-1.5">
+        {legend.map((d) => (
+          <li key={d.name} className={`flex items-center gap-1.5${d.count ? "" : " opacity-60"}`}>
             <span className="h-2 w-2 rounded-full" style={{ background: LEVEL_COLORS[d.name] }} aria-hidden="true" />
             {d.name} {d.count}
           </li>
@@ -168,6 +219,7 @@ function RecentIncidents({ incidents }) {
           <th className="px-2 py-1.5">Host</th>
           <th className="px-2 py-1.5">Risk</th>
           <th className="px-2 py-1.5">Status</th>
+          <th className="px-2 py-1.5">Started</th>
           <th className="px-2 py-1.5"><span className="sr-only">Open</span></th>
         </tr>
       </thead>
@@ -177,6 +229,7 @@ function RecentIncidents({ incidents }) {
             <td className="max-w-[14rem] truncate px-2 py-1.5 text-slate-200" title={i.host}>{i.host}</td>
             <td className="px-2 py-1.5"><RiskBadge level={i.risk_level} score={i.risk_score} /></td>
             <td className="px-2 py-1.5"><StatusBadge status={i.status} /></td>
+            <td className="px-2 py-1.5 text-xs text-slate-400"><TimeAgo ts={i.started_at} /></td>
             <td className="px-2 py-1.5 text-right">
               <Link to={`/incidents/${i.id}`} className="text-sky-400 hover:text-sky-300">Open &rarr;</Link>
             </td>
@@ -197,7 +250,7 @@ function EventFeed({ events }) {
     <ul className="dash-feed text-sm">
       {items.map((ev) => (
         <li key={ev.id} className={`dash-feed-row ${fresh.has(ev.id) ? "row-flash" : ""}`}>
-          <span className="font-mono text-xs tabular-nums text-slate-500">{fmtTime(ev.timestamp)}</span>
+          <TimeAgo ts={ev.timestamp} className="text-xs tabular-nums text-slate-400" />
           <span className="font-mono text-xs text-sky-300">{ev.event_id}</span>
           <span className="min-w-0 truncate text-slate-200" title={`${ev.host} · ${ev.channel}`}>
             {ev.host} <span className="text-slate-500">· {basename(ev.process) !== "—" ? basename(ev.process) : ev.channel}</span>
@@ -215,7 +268,8 @@ function DeviceTiles({ devices }) {
   return (
     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
       {devices.map((d) => (
-        <div key={`${d.host}|${d.source}`} className="dash-tile rounded border p-2.5">
+        <div key={`${d.host}|${d.source}`} className="dash-tile rounded border p-2.5"
+          data-tip={`${d.host} · ${d.source} · last seen ${d.last_seen ? new Date(d.last_seen).toLocaleString() : "never"}`}>
           <div className="flex items-center gap-2">
             <span
               className={d.status === "online" ? "live-dot" : "inline-block h-2 w-2 rounded-full"}
@@ -247,7 +301,7 @@ function TopHosts({ incidents }) {
   return (
     <ul className="space-y-2.5 text-sm">
       {hosts.map((h) => (
-        <li key={h.host}>
+        <li key={h.host} data-tip={`${h.host}: highest risk ${Math.round(h.score)} (${h.level}), ${h.count} incident${h.count === 1 ? "" : "s"}`}>
           <div className="mb-1 flex justify-between gap-2">
             <span className="truncate text-slate-200" title={h.host}>{h.host}</span>
             <span className="shrink-0 tabular-nums text-slate-400">
@@ -283,7 +337,7 @@ function TacticStrip({ matrix }) {
           to="/attack"
           className="dash-tactic rounded border"
           style={t.worst ? { borderColor: LEVEL_COLORS[t.worst], boxShadow: `inset 0 3px 0 ${LEVEL_COLORS[t.worst]}` } : undefined}
-          title={`${t.tactic}: ${t.hits} detection hit${t.hits === 1 ? "" : "s"}`}
+          data-tip={`${t.tactic}: ${t.hits} detection hit${t.hits === 1 ? "" : "s"}${t.worst ? `, worst ${t.worst}` : ""}`}
         >
           <span className={`text-xl font-semibold tabular-nums ${t.hits ? "text-slate-100" : "text-slate-600"}`}>{t.hits}</span>
           <span className="text-xs leading-tight text-slate-400">{t.tactic}</span>
@@ -310,6 +364,8 @@ export default function Dashboard() {
         if (r.status === "fulfilled") next[keys[i]] = r.value;
         else failed += 1;
       });
+      remember("events", next.events?.total);
+      remember("online", next.devices?.filter((d) => d.status === "online").length);
       setData((prev) => ({ ...prev, ...next }));
       setError(failed ? "Some dashboard data could not be loaded." : "");
     });
@@ -331,10 +387,14 @@ export default function Dashboard() {
 
       <div className="dash-grid">
         <div className="dash-stats span-12">
-          <StatTile label="Incidents" value={incidents && incidents.length} />
-          <StatTile label="Detections" value={detections && detections.length} />
-          <StatTile label="Events collected" value={events && events.total} />
-          <StatTile label="Online devices" value={online}>
+          <StatTile label="Incidents" value={incidents && incidents.length}
+            spark={incidents && bucketCounts(incidents.map((i) => i.started_at))} sparkTip="New incidents over time" />
+          <StatTile label="Detections" value={detections && detections.length}
+            spark={detections && bucketCounts(detections.map((d) => d.first_seen))} sparkTip="New detections over time" />
+          <StatTile label="Events collected" value={events && events.total}
+            spark={history.events} sparkTip="Total events at each refresh this session" />
+          <StatTile label="Online devices" value={online}
+            spark={history.online} sparkTip="Online devices at each refresh this session" sparkColor="var(--ir-live)">
             {online === 0 ? (
               <span className="text-lg font-medium text-slate-500" title="Run collector.py --watch to stream live events">
                 Collector idle
@@ -346,7 +406,10 @@ export default function Dashboard() {
               </>
             )}
           </StatTile>
-          <StatTile label="Highest risk" value={incidents && (top ? top.risk_score : 0)}>
+          <StatTile label="Highest risk" value={incidents && (top ? top.risk_score : 0)}
+            spark={incidents && [...incidents].sort((a, b) => new Date(a.started_at) - new Date(b.started_at)).map((i) => i.risk_score)}
+            sparkTip="Risk score of each incident, oldest first" sparkColor={top ? LEVEL_COLORS[top.risk_level] : undefined}>
+
             {top ? (
               <span style={{ color: LEVEL_COLORS[top.risk_level] }}>
                 <CountUp value={Math.round(top.risk_score)} />

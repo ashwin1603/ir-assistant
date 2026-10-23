@@ -3,6 +3,7 @@ import { Link, useParams, useSearchParams } from "react-router-dom";
 import { get } from "../lib/api";
 import { RiskBadge } from "../components/RiskBadge";
 import { Skeleton } from "../components/Skeleton";
+import { TimeAgo } from "../components/TimeAgo";
 
 export default function TechniqueDetail() {
   const { techniqueId } = useParams();
@@ -80,7 +81,7 @@ export default function TechniqueDetail() {
                     <td className="px-3 py-2">
                       <RiskBadge level={d.risk_level} score={d.risk_score} />
                     </td>
-                    <td className="whitespace-nowrap px-3 py-2 text-slate-400">{new Date(d.last_seen).toLocaleString()}</td>
+                    <td className="whitespace-nowrap px-3 py-2 text-slate-400"><TimeAgo ts={d.last_seen} /></td>
                     <td className="px-3 py-2">
                       {d.incident_id ? (
                         <Link to={`/incidents/${d.incident_id}`} className="text-sky-400 hover:underline">

@@ -5,6 +5,7 @@ import ErrorBoundary from "./ErrorBoundary";
 import Logo from "./Logo";
 import { useDocumentTitle } from "./Toast";
 import { CommandPalette } from "./CommandPalette";
+import { TooltipLayer } from "./TooltipLayer";
 import { navItemsFor } from "../lib/nav";
 
 // Browser tab title per page, e.g. "Detections · IR Assistant".
@@ -128,6 +129,8 @@ export default function Layout() {
         </ErrorBoundary>
       </main>
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+      <TooltipLayer />
+
     </div>
   );
 }

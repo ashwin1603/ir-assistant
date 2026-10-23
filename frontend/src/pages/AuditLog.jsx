@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { get } from "../lib/api";
 import { useAuth } from "../auth/AuthContext";
 import { Skeleton } from "../components/Skeleton";
+import { TimeAgo } from "../components/TimeAgo";
 
 const PAGE_SIZE = 25;
 
@@ -69,7 +70,7 @@ export default function AuditLog() {
               entries.map((e) => (
                 <tr key={e.id} className="border-t border-slate-800 align-top hover:bg-slate-900/60">
                   <td className="whitespace-nowrap px-3 py-2 text-slate-400">
-                    {new Date(e.timestamp).toLocaleString()}
+                    <TimeAgo ts={e.timestamp} />
                   </td>
                   <td className="px-3 py-2 text-slate-200">{e.actor || "—"}</td>
                   <td className="px-3 py-2 text-slate-300">{e.action}</td>

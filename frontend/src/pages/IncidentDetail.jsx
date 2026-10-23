@@ -11,6 +11,7 @@ import { InvestigatePanel } from "../components/InvestigatePanel";
 import { AttackGraph } from "../components/AttackGraph";
 import { PageSkeleton } from "../components/Skeleton";
 import { Segmented } from "../components/Segmented";
+import { TimeAgo } from "../components/TimeAgo";
 
 const ANALYZE_TIMEOUT_MS = 40_000;
 
@@ -142,7 +143,7 @@ export default function IncidentDetail() {
         <div className="min-w-0">
           <h1 className="truncate text-xl font-semibold text-slate-100">{incident.host}</h1>
           <p className="text-xs text-slate-400">
-            {new Date(incident.started_at).toLocaleString()} &ndash; {new Date(incident.ended_at).toLocaleString()}
+            <TimeAgo ts={incident.started_at} /> &ndash; <TimeAgo ts={incident.ended_at} />
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -245,7 +246,7 @@ export default function IncidentDetail() {
               {incident.timeline.map((entry) => (
                 <tr key={entry.detection_id} className="border-t border-slate-800">
                   <td className="whitespace-nowrap px-3 py-2 text-slate-400">
-                    {new Date(entry.first_seen).toLocaleString()}
+                    <TimeAgo ts={entry.first_seen} />
                   </td>
                   <td className="px-3 py-2 text-slate-200">
                     <div className="flex flex-wrap items-center gap-2">
@@ -379,7 +380,7 @@ export default function IncidentDetail() {
               <li key={n.id} className="text-sm">
                 <p className="whitespace-pre-wrap text-slate-300">{n.text}</p>
                 <p className="text-xs text-slate-400">
-                  {n.author} · {new Date(n.created_at).toLocaleString()}
+                  {n.author} · <TimeAgo ts={n.created_at} />
                 </p>
               </li>
             ))}

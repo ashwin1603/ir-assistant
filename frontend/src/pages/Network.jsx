@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { get } from "../lib/api";
 import { RiskBadge } from "../components/RiskBadge";
+import { TimeAgo } from "../components/TimeAgo";
 
 // Warm neutral bar gradient; colours are theme tokens.
 const BAR_FILL = "url(#ir-bar-grad)";
@@ -109,7 +110,7 @@ export default function Network() {
                 )}
                 {data.detections.map((d) => (
                   <tr key={d.id} className="border-t border-slate-800 align-top">
-                    <td className="whitespace-nowrap px-3 py-2 text-slate-400">{new Date(d.first_seen).toLocaleString()}</td>
+                    <td className="whitespace-nowrap px-3 py-2 text-slate-400"><TimeAgo ts={d.first_seen} /></td>
                     <td className="px-3 py-2 text-slate-300">{d.host}</td>
                     <td className="px-3 py-2 text-slate-200">
                       {d.rule_name}
