@@ -11,6 +11,7 @@ import uuid
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 
+from app.collector.network import make_network_event
 from app.collector.normalize import normalize_event
 
 ALLOWED_EXTENSIONS = {".json", ".csv", ".evtx"}
@@ -118,8 +119,46 @@ def _csv_value(row: dict, field: str):
     return None
 
 
+# Network flow logs: ts,src_ip,dst_ip,dst_port,proto,bytes_out,process
+FLOW_COLUMNS = ("ts", "src_ip", "dst_ip", "dst_port", "proto", "bytes_out", "process")
+
+
+def _optional_int(value):
+    return int(value) if value not in (None, "") else None
+
+
+def parse_flow_csv(reader: csv.DictReader) -> list[dict]:
+    events = []
+    try:
+        for row in reader:
+            if not row.get("dst_ip"):
+                raise ValueError("missing dst_ip")
+            events.append(
+                make_network_event(
+                    "network_connection",
+                    host=row.get("host") or row.get("src_ip") or "unknown",
+                    timestamp=_fix_time(row.get("ts")),
+                    source="upload",
+                    src_ip=row.get("src_ip") or None,
+                    dst_ip=row["dst_ip"],
+                    dst_port=_optional_int(row.get("dst_port")),
+                    protocol=(row.get("proto") or "").lower() or None,
+                    bytes_out=_optional_int(row.get("bytes_out")),
+                    process=row.get("process") or None,
+                    message=f"flow {row.get('src_ip')} -> {row['dst_ip']}:{row.get('dst_port')} "
+                    f"{row.get('proto') or ''} {row.get('bytes_out') or 0} bytes",
+                    raw=row,
+                )
+            )
+    except (TypeError, ValueError, csv.Error):
+        raise UploadParseError("Flow CSV row has an invalid or missing dst_ip / dst_port / bytes_out")
+    return events
+
+
 def parse_csv(data: bytes) -> list[dict]:
     reader = csv.DictReader(io.StringIO(_decode_text(data)))
+    if reader.fieldnames and {"ts", "dst_ip"} <= set(reader.fieldnames):
+        return parse_flow_csv(reader)
     if not reader.fieldnames or _csv_value(dict.fromkeys(reader.fieldnames, "x"), "event_id") is None:
         raise UploadParseError("CSV needs a header row with an 'Id' or 'event_id' column")
 

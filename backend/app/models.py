@@ -56,6 +56,11 @@ class Event(Base):
     parent_process: Mapped[str | None] = mapped_column(String, nullable=True)
     src_ip: Mapped[str | None] = mapped_column(String, nullable=True)
     logon_type: Mapped[str | None] = mapped_column(String, nullable=True)
+    # Network telemetry (channel "Network"); null for Windows log events.
+    dst_ip: Mapped[str | None] = mapped_column(String, nullable=True)
+    dst_port: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    protocol: Mapped[str | None] = mapped_column(String, nullable=True)
+    bytes_out: Mapped[int | None] = mapped_column(Integer, nullable=True)
     message: Mapped[str | None] = mapped_column(Text, nullable=True)
     raw: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))

@@ -222,7 +222,7 @@ class AuditLogPage(BaseModel):
 class EventIn(BaseModel):
     id: str = Field(min_length=1, max_length=64)
     record_id: int | None = None
-    source: str = Field(pattern="^(local|upload|agent|simulated)$")
+    source: str = Field(pattern="^(local|upload|agent|simulated|local-net)$")
     host: str = Field(min_length=1, max_length=255)
     timestamp: datetime
     channel: str = Field(min_length=1, max_length=255)
@@ -234,6 +234,10 @@ class EventIn(BaseModel):
     parent_process: str | None = Field(default=None, max_length=512)
     src_ip: str | None = Field(default=None, max_length=64)
     logon_type: str | None = Field(default=None, max_length=32)
+    dst_ip: str | None = Field(default=None, max_length=64)
+    dst_port: int | None = Field(default=None, ge=0, le=65535)
+    protocol: str | None = Field(default=None, max_length=16)
+    bytes_out: int | None = Field(default=None, ge=0)
     message: str | None = Field(default=None, max_length=50000)
     raw: str = Field(max_length=100000)
 
@@ -265,6 +269,10 @@ class EventOut(BaseModel):
     parent_process: str | None
     src_ip: str | None
     logon_type: str | None
+    dst_ip: str | None = None
+    dst_port: int | None = None
+    protocol: str | None = None
+    bytes_out: int | None = None
     message: str | None
     ti_matches: list[TIMatch] = []
 

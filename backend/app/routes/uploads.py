@@ -42,19 +42,22 @@ def _reject(db: Session, user, code: int, message: str, original_name: str):
 
 def _is_duplicate(db: Session, event: EventIn, seen: set) -> bool:
     # Same key as /events/ingest: (record_id, host, channel). Events without a
-    # record id (e.g. some CSVs) fall back to (event_id, timestamp, host, channel).
+    # record id (e.g. some CSVs) fall back to (event_id, timestamp, host, channel),
+    # plus destination for network flows that share a timestamp.
     if event.record_id is not None:
         key = ("rec", event.record_id, event.host, event.channel)
         query = db.query(Event.id).filter(
             Event.record_id == event.record_id, Event.host == event.host, Event.channel == event.channel
         )
     else:
-        key = ("ts", event.event_id, event.timestamp, event.host, event.channel)
+        key = ("ts", event.event_id, event.timestamp, event.host, event.channel, event.dst_ip, event.dst_port)
         query = db.query(Event.id).filter(
             Event.event_id == event.event_id,
             Event.timestamp == event.timestamp,
             Event.host == event.host,
             Event.channel == event.channel,
+            Event.dst_ip == event.dst_ip,
+            Event.dst_port == event.dst_port,
         )
     if key in seen or query.first():
         return True

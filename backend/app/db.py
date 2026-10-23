@@ -33,7 +33,17 @@ def add_missing_columns() -> None:
         "mfa_last_step": "ALTER TABLE users ADD COLUMN mfa_last_step INTEGER",
         "mfa_recovery_codes": "ALTER TABLE users ADD COLUMN mfa_recovery_codes TEXT",
     }
+    event_columns = {c["name"] for c in inspect(engine).get_columns("events")}
+    new_event_columns = {
+        "dst_ip": "ALTER TABLE events ADD COLUMN dst_ip VARCHAR",
+        "dst_port": "ALTER TABLE events ADD COLUMN dst_port INTEGER",
+        "protocol": "ALTER TABLE events ADD COLUMN protocol VARCHAR",
+        "bytes_out": "ALTER TABLE events ADD COLUMN bytes_out INTEGER",
+    }
     with engine.begin() as conn:
         for name, ddl in new_columns.items():
             if name not in columns:
+                conn.execute(text(ddl))
+        for name, ddl in new_event_columns.items():
+            if name not in event_columns:
                 conn.execute(text(ddl))

@@ -9,7 +9,10 @@ const SOURCE_BADGE = {
   local: "bg-sky-900/60 text-sky-300",
   upload: "bg-violet-900/60 text-violet-300",
   simulated: "bg-amber-900/60 text-amber-300",
+  "local-net": "bg-emerald-900/60 text-emerald-300",
 };
+
+const CHANNELS = ["Security", "System", "Microsoft-Windows-PowerShell/Operational", "Network"];
 
 export default function LogExplorer() {
   const [q, setQ] = useState("");
@@ -75,12 +78,18 @@ export default function LogExplorer() {
           onChange={(e) => resetToFirstPage(setQ)(e.target.value)}
           className="w-72 rounded border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm text-slate-100 outline-none focus:border-sky-600"
         />
-        <input
-          placeholder="Channel"
+        <select
           value={channel}
           onChange={(e) => resetToFirstPage(setChannel)(e.target.value)}
-          className="w-40 rounded border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm text-slate-100 outline-none focus:border-sky-600"
-        />
+          className="w-48 rounded border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm text-slate-100 outline-none focus:border-sky-600"
+        >
+          <option value="">All channels</option>
+          {CHANNELS.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
         <input
           placeholder="Host"
           value={host}
@@ -108,20 +117,21 @@ export default function LogExplorer() {
               <th className="px-3 py-2">Event ID</th>
               <th className="px-3 py-2">User</th>
               <th className="px-3 py-2">Process</th>
+              <th className="px-3 py-2">Destination</th>
               <th className="px-3 py-2">Message</th>
             </tr>
           </thead>
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={8} className="px-3 py-6 text-center text-slate-500">
+                <td colSpan={9} className="px-3 py-6 text-center text-slate-500">
                   Loading...
                 </td>
               </tr>
             )}
             {!loading && data.items.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-3 py-6 text-center text-slate-500">
+                <td colSpan={9} className="px-3 py-6 text-center text-slate-500">
                   No events found.
                 </td>
               </tr>
@@ -159,6 +169,11 @@ export default function LogExplorer() {
                     <td className="px-3 py-2 text-slate-300">{ev.user || "—"}</td>
                     <td className="max-w-[12rem] truncate px-3 py-2 text-slate-300" title={ev.process || ""}>
                       {ev.process || "—"}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2 font-mono text-xs text-slate-300">
+                      {ev.channel === "Network" && ev.dst_ip
+                        ? `${ev.dst_ip}${ev.dst_port != null ? `:${ev.dst_port}` : ""}`
+                        : "—"}
                     </td>
                     <td className="max-w-[20rem] truncate px-3 py-2 text-slate-400" title={ev.message || ""}>
                       <TIBadge matches={ev.ti_matches} /> {ev.message || ev.command_line || "—"}

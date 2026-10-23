@@ -45,10 +45,14 @@ def ingest_events(
 def wipe_simulated_events(
     db: Session = Depends(get_db),
     _collector=Depends(require_collector_key),
+    host: str | None = Query(default=None, max_length=255),
 ):
     # Only ever removes synthetic demo events (scripts/seed_simulated_events.py);
     # real collected events cannot be deleted through the API.
-    deleted = db.query(Event).filter(Event.source == "simulated").delete()
+    query = db.query(Event).filter(Event.source == "simulated")
+    if host:
+        query = query.filter(Event.host == host)
+    deleted = query.delete()
     db.commit()
     log_action(db, actor="collector", action="wipe_simulated", detail=f"{deleted} deleted", success=True)
     return {"deleted": deleted}
