@@ -24,6 +24,7 @@ from app.routes.audit_log import router as audit_router
 from app.routes.detections import router as detections_router
 from app.routes.events import router as events_router
 from app.routes.incidents import router as incidents_router
+from app.routes.network import router as network_router
 from app.routes.reports import router as reports_router
 from app.routes.settings import router as settings_router
 from app.routes.uploads import router as uploads_router
@@ -83,6 +84,7 @@ app.include_router(audit_router)
 app.include_router(events_router)
 app.include_router(detections_router)
 app.include_router(anomalies_router)
+app.include_router(network_router)
 app.include_router(attack_router)
 app.include_router(incidents_router)
 app.include_router(reports_router)

@@ -19,6 +19,10 @@ TACTICS: dict[str, str] = {
     "T1547.001": "Persistence",
     "T1003": "Credential Access",
     "T1071": "Command and Control",
+    "T1046": "Discovery",
+    "T1041": "Exfiltration",
+    "T1571": "Command and Control",
+    "T1071.004": "Command and Control",
 }
 
 TECHNIQUE_NAMES: dict[str, str] = {
@@ -40,6 +44,10 @@ TECHNIQUE_NAMES: dict[str, str] = {
     "T1547.001": "Registry Run Keys / Startup Folder",
     "T1003": "OS Credential Dumping",
     "T1071": "Application Layer Protocol",
+    "T1046": "Network Service Discovery",
+    "T1041": "Exfiltration Over C2 Channel",
+    "T1571": "Non-Standard Port",
+    "T1071.004": "Application Layer Protocol: DNS",
 }
 
 
@@ -132,6 +140,27 @@ MITIGATIONS: dict[str, list[str]] = {
         "Block the matched indicator at the firewall, proxy and DNS resolver",
         "Identify the process that contacted the indicator and isolate the host if confirmed",
         "Search other hosts' logs for the same indicator",
+        "For regular beaconing: block the destination and inspect the process that keeps connecting to it",
+    ],
+    "T1046": [
+        "Identify the scanning process and user; stop it if the scan was not authorised",
+        "Check the scanned host for follow-on connections to the ports that answered",
+        "Segment the network and restrict which hosts may reach admin ports (SSH, SMB, RDP)",
+    ],
+    "T1041": [
+        "Block the destination address at the firewall and isolate the host if confirmed",
+        "Identify the process and files involved and assess what data left the network",
+        "Apply egress filtering and data-loss-prevention limits on large uploads",
+    ],
+    "T1571": [
+        "Block outbound traffic on the uncommon port at the host and perimeter firewall",
+        "Inspect and terminate the process that opened the connection if unauthorised",
+        "Allow outbound traffic only on ports the business needs",
+    ],
+    "T1071.004": [
+        "Block or sinkhole the suspicious domain at the DNS resolver",
+        "Find the process making the queries and isolate the host if confirmed",
+        "Force all DNS through internal resolvers and alert on long or high-entropy query names",
     ],
 }
 
@@ -145,6 +174,7 @@ TACTIC_ORDER: list[str] = [
     "Discovery",
     "Lateral Movement",
     "Command and Control",
+    "Exfiltration",
     "Impact",
 ]
 
@@ -168,6 +198,10 @@ DESCRIPTIONS: dict[str, str] = {
     "T1547.001": "Adversaries add Registry Run keys or Startup folder entries so their program runs at logon.",
     "T1003": "Adversaries dump credential material from LSASS or registry hives to obtain passwords and hashes.",
     "T1071": "Adversaries talk to command-and-control servers over common protocols such as HTTP, HTTPS or DNS to blend in with normal traffic.",
+    "T1046": "Adversaries scan hosts for open ports and running services to find systems they can attack next.",
+    "T1041": "Adversaries send stolen data out over an existing command-and-control or other outbound channel.",
+    "T1571": "Adversaries use non-standard ports (e.g. 4444, 1337) for command-and-control to bypass simple filtering.",
+    "T1071.004": "Adversaries hide command-and-control or stolen data inside DNS queries, e.g. as long encoded subdomains.",
 }
 
 

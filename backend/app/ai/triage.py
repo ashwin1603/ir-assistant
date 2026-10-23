@@ -133,7 +133,8 @@ def template_result(detections: list[Detection]) -> AIModelOutput:
     findings = [
         AIFinding(
             technique_id=tid,
-            claim=f"{d.rule_name} fired {d.event_count} time(s), matching {tid} ({TECHNIQUE_NAMES.get(tid, tid)}).",
+            claim=f"{d.rule_name} fired {d.event_count} time(s), matching {tid} ({TECHNIQUE_NAMES.get(tid, tid)})."
+            + (f" {d.summary}" if d.summary else ""),
             event_ids=json.loads(d.matched_event_ids),
         )
         for d in detections

@@ -24,6 +24,15 @@ TACTIC_PLAIN: dict[str, str] = {
     "Impact": "Commands were run that could damage the system or block recovery.",
     "Command and Control": "Commands that can download files or tools from outside the machine were run.",
     "Lateral Movement": "Remote access to the machine was enabled.",
+    "Exfiltration": "A large amount of data was sent from the machine to an outside address.",
+}
+
+# Network rules share the Command and Control tactic with the download rules,
+# so their sentence is chosen by technique instead of tactic.
+TECHNIQUE_PLAIN: dict[str, str] = {
+    "T1071": "The machine repeatedly contacted an outside server in a regular pattern, or contacted a known-bad address.",
+    "T1571": "A program connected to an outside server on a port often used by attack tools.",
+    "T1071.004": "Unusual DNS lookups were made that can be used to hide communication or data.",
 }
 
 IMPACT_PLAIN: dict[str, str] = {
@@ -40,8 +49,9 @@ def what_happened(timeline: list[dict]) -> list[str]:
     """One sentence per tactic, in the order the tactics first appeared."""
     sentences: list[str] = []
     for entry in sorted(timeline, key=lambda e: e["first_seen"]):
-        for tactic in entry["tactics"]:
-            sentence = TACTIC_PLAIN.get(tactic, f"Activity related to {tactic} was detected.")
+        plain = [TECHNIQUE_PLAIN[t] for t in entry["technique_ids"] if t in TECHNIQUE_PLAIN]
+        plain = plain or [TACTIC_PLAIN.get(tactic, f"Activity related to {tactic} was detected.") for tactic in entry["tactics"]]
+        for sentence in plain:
             if sentence not in sentences:
                 sentences.append(sentence)
     return sentences

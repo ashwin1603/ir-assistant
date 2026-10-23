@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 
 from app.ai import triage
 from app.ai.client import LLMClient
+from app.auth.security import create_access_token
 from app.config import settings
 from app.main import app
 from app.rate_limit import limiter
@@ -79,7 +80,9 @@ def _assert_no_leak(text):
 # 1. Authentication on every route
 def test_no_token_rejected_on_all_api_routes(client):
     """No token -> 401 on every /api route except health and login"""
-    open_routes = {"/api/health", "/api/auth/login"}
+    # mfa/verify is login step 2: it takes an mfa_token in the body, not a bearer
+    # token, so it is checked separately in test_mfa_verify_rejects_bad_tokens.
+    open_routes = {"/api/health", "/api/auth/login", "/api/auth/mfa/verify"}
     checked = 0
     for route_path, methods in app.openapi()["paths"].items():
         if not route_path.startswith("/api") or route_path in open_routes:
@@ -90,6 +93,20 @@ def test_no_token_rejected_on_all_api_routes(client):
             assert resp.status_code == 401, f"{method.upper()} {route_path} returned {resp.status_code}"
             checked += 1
     assert checked >= 10
+
+
+def test_mfa_verify_rejects_bad_tokens(client):
+    """MFA verify -> 401 for a missing, invalid or normal access token"""
+    access_token = create_access_token(subject="test_admin", role="admin")
+    bodies = [
+        {"code": "123456"},  # no mfa_token in the body at all
+        {"mfa_token": "not-a-jwt", "code": "123456"},
+        {"mfa_token": access_token, "code": "123456"},  # right signature, wrong purpose
+    ]
+    for body in bodies:
+        resp = client.post("/api/auth/mfa/verify", json=body, headers={"Authorization": f"Bearer {access_token}"})
+        assert resp.status_code == 401, f"{body} returned {resp.status_code}"
+        _assert_no_leak(resp.text)
 
 
 # 2. Role enforcement in the backend

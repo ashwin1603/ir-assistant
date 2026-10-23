@@ -28,6 +28,7 @@ def build_timeline(db: Session, incident_id: str) -> list[dict]:
             "last_seen": d.last_seen,
             "event_ids": json.loads(d.matched_event_ids),
             "ti_matches": unique_matches(ti_by_event, json.loads(d.matched_event_ids)),
+            "summary": d.summary,
         }
         for d in detections
     ]

@@ -216,7 +216,10 @@ function TechnicalView({ incident, analysis, actions, attack, iocs, tiMatches })
             <tr key={e.detection_id} className={rowClass}>
               <td className={`${cell} whitespace-nowrap`}>{fmt(e.first_seen)}</td>
               <td className={`${cell} whitespace-nowrap`}>{fmt(e.last_seen)}</td>
-              <td className={cell}>{e.rule_name}</td>
+              <td className={cell}>
+                {e.rule_name}
+                {e.summary && <div className="text-xs">{e.summary}</div>}
+              </td>
               <td className={cell}>{e.technique_ids.join(", ")}</td>
               <td className={cell}>{e.severity}/10</td>
               <td className={`${cell} whitespace-nowrap`}>

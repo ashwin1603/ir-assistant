@@ -96,6 +96,8 @@ class Detection(Base):
     last_seen: Mapped[datetime] = mapped_column(DateTime)
     risk_score: Mapped[float] = mapped_column(Float)
     risk_level: Mapped[str] = mapped_column(String)
+    # Network rules only: one plain-language sentence of computed facts (ports, bytes, interval).
+    summary: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
@@ -168,6 +170,7 @@ class RuleOverride(Base):
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     min_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     window_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    params: Mapped[str | None] = mapped_column(Text, nullable=True)  # JSON {key: value}, network rules only
     updated_by: Mapped[str | None] = mapped_column(String, nullable=True)
     updated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 

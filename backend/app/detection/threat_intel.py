@@ -83,6 +83,11 @@ def _is_internal(ip: ipaddress._BaseAddress) -> bool:
     return any(ip.version == net.version and ip in net for net in _SKIP_NETWORKS)
 
 
+def is_internal_ip(text: str) -> bool:
+    """Public wrapper for the network rules: True for private/loopback/etc."""
+    return _is_internal(ipaddress.ip_address(text))
+
+
 def normalize_indicator(ioc_type: str, value: str) -> str:
     """Validate one indicator and return its canonical form, or raise IndicatorError."""
     ioc_type = ioc_type.strip().lower()

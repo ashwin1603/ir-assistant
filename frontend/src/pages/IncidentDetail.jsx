@@ -233,6 +233,7 @@ export default function IncidentDetail() {
                     {entry.rule_name}
                     <TIBadge matches={entry.ti_matches} />
                   </div>
+                  {entry.summary && <p className="mt-1 text-xs text-slate-400">{entry.summary}</p>}
                 </td>
                 <td className="px-3 py-2">
                   <div className="flex flex-wrap gap-1">

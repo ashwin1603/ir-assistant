@@ -28,7 +28,7 @@ def test_what_happened_is_ordered_and_deduplicated():
 
 
 def test_unknown_tactic_and_risk_level_still_give_text():
-    assert "Exfiltration" in what_happened([_entry(["Exfiltration"], 0)])[0]
+    assert "Collection" in what_happened([_entry(["Collection"], 0)])[0]
     assert impact_text("Critical") == IMPACT_PLAIN["Critical"]
     assert impact_text("Bogus")
 

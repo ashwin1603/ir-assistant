@@ -40,6 +40,12 @@ def add_missing_columns() -> None:
         "protocol": "ALTER TABLE events ADD COLUMN protocol VARCHAR",
         "bytes_out": "ALTER TABLE events ADD COLUMN bytes_out INTEGER",
     }
+    other_columns = {
+        ("detections", "summary"): "ALTER TABLE detections ADD COLUMN summary TEXT",
+        ("rule_overrides", "params"): "ALTER TABLE rule_overrides ADD COLUMN params TEXT",
+    }
+    missing_other = [ddl for (table, name), ddl in other_columns.items()
+                     if name not in {c["name"] for c in inspect(engine).get_columns(table)}]
     with engine.begin() as conn:
         for name, ddl in new_columns.items():
             if name not in columns:
@@ -47,3 +53,5 @@ def add_missing_columns() -> None:
         for name, ddl in new_event_columns.items():
             if name not in event_columns:
                 conn.execute(text(ddl))
+        for ddl in missing_other:
+            conn.execute(text(ddl))

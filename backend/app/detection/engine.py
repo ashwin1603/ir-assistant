@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.analysis.incidents import group_into_incidents
 from app.analysis.risk import compute_risk
 from app.detection.attack_map import tactics_for
+from app.detection.network_rules import NETWORK_RULES, NetworkRule, network_events
 from app.detection.rules import ALLOWLIST, RULES, Rule, is_allowlisted
 from app.detection.threat_intel import TI_RULE, load_index, match_event
 from app.models import Detection, Event, Incident, RuleOverride
@@ -97,6 +98,25 @@ def effective_rules(db: Session) -> list[Rule]:
     return rules
 
 
+def rule_params(network_rule: NetworkRule, override: RuleOverride | None) -> dict:
+    """The rule's default thresholds with any admin overrides on top."""
+    params = network_rule.defaults()
+    if override and override.params:
+        params.update({k: v for k, v in json.loads(override.params).items() if k in params})
+    return params
+
+
+def effective_network_rules(db: Session) -> list[tuple[NetworkRule, dict]]:
+    """Enabled network rules, each with its effective thresholds."""
+    overrides = {o.rule_id: o for o in db.query(RuleOverride).all()}
+    enabled = []
+    for network_rule in NETWORK_RULES:
+        override = overrides.get(network_rule.rule.id)
+        if override is None or override.enabled:
+            enabled.append((network_rule, rule_params(network_rule, override)))
+    return enabled
+
+
 def run_detection(db: Session) -> None:
     """Recompute all detections and incidents from the current events table."""
     events = db.query(Event).order_by(Event.timestamp.asc()).all()
@@ -117,6 +137,14 @@ def run_detection(db: Session) -> None:
         ti_events = [e for e in events if match_event(e, ti_index)]
         clusters = _cluster_events(ti_events, FILTER_RULE_WINDOW_MINUTES, min_count=1, group_by=("host",))
         detections.extend(_build_detection(TI_RULE, cluster) for cluster in clusters)
+
+    # Network rules: Network-channel events only, each rule with its own logic.
+    net_events = network_events(events)
+    for network_rule, params in effective_network_rules(db):
+        for matched, summary in network_rule.detect(net_events, params):
+            detection = _build_detection(network_rule.rule, matched)
+            detection.summary = summary
+            detections.append(detection)
 
     incidents = group_into_incidents(detections)
 

@@ -122,10 +122,33 @@ function UsersTab() {
   );
 }
 
+// Network rules: one number input per named threshold (ranges come from the backend).
+function NetworkParams({ rule, onSave }) {
+  const [values, setValues] = useState(Object.fromEntries(rule.params.map((p) => [p.key, p.value])));
+  const dirty = rule.params.some((p) => Number(values[p.key]) !== p.value);
+  if (rule.params.length === 0) return <span className="text-slate-600">ports set in code</span>;
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-slate-400">
+      {rule.params.map((p) => (
+        <label key={p.key} className="flex items-center gap-1 text-xs" title={`default ${p.default}`}>
+          <input className={`${inputClass} w-20`} type="number" min={p.min} max={p.max} step={p.integer ? 1 : 0.1}
+            value={values[p.key]} onChange={(e) => setValues({ ...values, [p.key]: e.target.value })} />
+          {p.label}
+        </label>
+      ))}
+      <button className={buttonClass} disabled={!dirty}
+        onClick={() => onSave({ params: Object.fromEntries(Object.entries(values).map(([k, v]) => [k, Number(v)])) })}>
+        Save
+      </button>
+    </div>
+  );
+}
+
 function RuleRow({ rule, onSaved, onError, onEdit, onClone, onDelete }) {
   const [minCount, setMinCount] = useState(rule.min_count ?? "");
   const [windowMinutes, setWindowMinutes] = useState(rule.window_minutes ?? "");
   const isCluster = rule.kind === "cluster";
+  const isNetwork = rule.source === "network";
   const dirty = isCluster && (Number(minCount) !== rule.min_count || Number(windowMinutes) !== rule.window_minutes);
 
   async function save(body) {
@@ -141,11 +164,16 @@ function RuleRow({ rule, onSaved, onError, onEdit, onClone, onDelete }) {
       <td className="px-3 py-2">
         <input type="checkbox" checked={rule.enabled} onChange={(e) => save({ enabled: e.target.checked })} />
       </td>
-      <td className="px-3 py-2 text-slate-200">{rule.name}</td>
+      <td className="px-3 py-2 text-slate-200">
+        {rule.name}
+        {rule.description && <div className="mt-0.5 text-xs text-slate-500">{rule.description}</div>}
+      </td>
       <td className="px-3 py-2 text-slate-400">{rule.technique_ids.join(", ")}</td>
       <td className="px-3 py-2 text-slate-400">{rule.severity}</td>
       <td className="px-3 py-2">
-        {isCluster ? (
+        {isNetwork ? (
+          <NetworkParams rule={rule} onSave={save} />
+        ) : isCluster ? (
           <div className="flex items-center gap-2 text-slate-400">
             <input className={`${inputClass} w-16`} type="number" min={1} max={1000} value={minCount}
               onChange={(e) => setMinCount(e.target.value)} />
@@ -166,7 +194,7 @@ function RuleRow({ rule, onSaved, onError, onEdit, onClone, onDelete }) {
       <td className="px-3 py-2">
         <div className="flex gap-1">
           {rule.source === "custom" && <button className={buttonClass} onClick={() => onEdit(rule)}>Edit</button>}
-          <button className={buttonClass} onClick={() => onClone(rule)}>Clone</button>
+          {!isNetwork && <button className={buttonClass} onClick={() => onClone(rule)}>Clone</button>}
           {rule.source === "custom" && <button className={buttonClass} onClick={() => onDelete(rule)}>Delete</button>}
         </div>
       </td>

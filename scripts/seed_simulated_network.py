@@ -80,8 +80,8 @@ def _build_events() -> list[dict]:
     # 4. Outbound to 4444 (default Metasploit handler port).
     events.append(_conn(start + timedelta(minutes=16), SHELL_IP, 4444, "powershell.exe", bytes_out=2048))
 
-    # 5. DNS queries with long random subdomains (tunnelling-style).
-    for i in range(6):
+    # 5. DNS queries with long random subdomains (tunnelling-style): 12 in ~80s.
+    for i in range(12):
         label = "".join(random.choices(string.ascii_lowercase + string.digits, k=48))
         events.append(_dns(start + timedelta(minutes=10, seconds=i * 7), f"{label}.data.exfil-example.net"))
 

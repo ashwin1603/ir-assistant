@@ -2,6 +2,7 @@
 Every route requires the admin role (enforced here, not just in the UI) and
 every change is written to the audit log."""
 
+import json
 from datetime import datetime, timedelta, timezone
 from pathlib import PurePath
 
@@ -18,6 +19,8 @@ from app.config import settings
 from app.db import get_db
 from app.detection import custom_rules
 from app.detection.custom_rules import CustomRuleError
+from app.detection.engine import rule_params
+from app.detection.network_rules import NETWORK_RULES, find_network_rule
 from app.detection.rules import RULES
 from app.detection.sigma_import import MAX_BYTES, SigmaImportError, import_sigma
 from app.detection.threat_intel import MAX_IMPORT_BYTES, import_indicators, parse_import
@@ -30,6 +33,7 @@ from app.schemas import (
     AdminUserOut,
     AdminUserUpdate,
     PasswordReset,
+    RuleParamOut,
     RuleSettingOut,
     RuleSettingUpdate,
     SigmaImport,
@@ -131,19 +135,49 @@ def _rule_out(rule, override: RuleOverride | None) -> RuleSettingOut:
     )
 
 
+def _network_rule_out(network_rule, override: RuleOverride | None) -> RuleSettingOut:
+    values = rule_params(network_rule, override)
+    out = _rule_out(network_rule.rule, override)
+    out.description = network_rule.description
+    out.params = [
+        RuleParamOut(key=p.key, label=p.label, value=values[p.key], default=p.default, min=p.min, max=p.max, integer=p.integer)
+        for p in network_rule.params
+    ]
+    return out
+
+
+def _validated_params(network_rule, params: dict[str, float]) -> dict[str, float]:
+    """Only the rule's own parameter keys, each inside its allowed range."""
+    specs = {p.key: p for p in network_rule.params}
+    for key, value in params.items():
+        spec = specs.get(key)
+        if spec is None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Unknown threshold: {key[:50]}")
+        if not spec.min <= value <= spec.max or (spec.integer and value != int(value)):
+            kind = "a whole number" if spec.integer else "a number"
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"{spec.label} must be {kind} from {spec.min:g} to {spec.max:g}")
+    return {key: int(v) if specs[key].integer else v for key, v in params.items()}
+
+
 @router.get("/rules", response_model=list[RuleSettingOut])
 def list_rules(db: Session = Depends(get_db), _admin: User = Depends(require_admin)):
     overrides = {o.rule_id: o for o in db.query(RuleOverride).all()}
-    return [_rule_out(r, overrides.get(r.id)) for r in RULES]
+    return [_rule_out(r, overrides.get(r.id)) for r in RULES] + [
+        _network_rule_out(n, overrides.get(n.rule.id)) for n in NETWORK_RULES
+    ]
 
 
 @router.patch("/rules/{rule_id}", response_model=RuleSettingOut)
 def update_rule(rule_id: str, body: RuleSettingUpdate, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
-    rule = next((r for r in RULES if r.id == rule_id), None)
+    network_rule = find_network_rule(rule_id)
+    rule = network_rule.rule if network_rule else next((r for r in RULES if r.id == rule_id), None)
     if not rule:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rule not found")
     if rule.kind != "cluster" and (body.min_count is not None or body.window_minutes is not None):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Thresholds apply only to cluster rules")
+    if body.params is not None and not network_rule:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Named thresholds apply only to network rules")
+    new_params = _validated_params(network_rule, body.params) if body.params else None
 
     override = db.get(RuleOverride, rule_id) or RuleOverride(rule_id=rule_id, enabled=True)
     changes = []
@@ -156,11 +190,14 @@ def update_rule(rule_id: str, body: RuleSettingUpdate, db: Session = Depends(get
     if body.window_minutes is not None:
         override.window_minutes = body.window_minutes
         changes.append(f"window_minutes={body.window_minutes}")
+    if new_params:
+        override.params = json.dumps({**json.loads(override.params or "{}"), **new_params})
+        changes.extend(f"{k}={v}" for k, v in new_params.items())
     override.updated_by = admin.username
     override.updated_at = datetime.now(timezone.utc)
     db.add(override)
     log_action(db, actor=admin.username, action="rule_update", detail=f"rule={rule.name} {', '.join(changes) or 'no change'}")
-    return _rule_out(rule, override)
+    return _network_rule_out(network_rule, override) if network_rule else _rule_out(rule, override)
 
 
 @router.post("/rules/import-sigma", response_model=RuleSettingOut, status_code=201)

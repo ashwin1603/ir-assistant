@@ -75,6 +75,8 @@ def build_facts(db: Session, incident: Incident) -> dict:
         "actions": [{"text": a.action_text, "status": a.status} for a in actions],
         "playbook": list(dict.fromkeys(m for tid in technique_ids for m in MITIGATIONS.get(tid, []))),
         "notes": [n.text[:300] for n in notes],
+        # Network rules' computed facts (ports, bytes, intervals); built in code from validated values.
+        "network_findings": [f"{d['rule_name']}: {d['summary']}" for d in timeline if d.get("summary")],
         "threat_intel_matches": sorted({f"{m['type']} indicator listed by {m['source']}" for d in timeline for m in d["ti_matches"]}),
     }
 

@@ -42,7 +42,8 @@ MfaCode = Field(min_length=6, max_length=20)  # 6-digit TOTP or 'xxxxx-xxxxx' re
 
 
 class MfaVerifyRequest(BaseModel):
-    mfa_token: str = Field(min_length=1, max_length=2000)
+    # Optional so a missing token gets the same generic 401 as an invalid one, not a 422.
+    mfa_token: str = Field(default="", max_length=2000)
     code: str = MfaCode
 
 
@@ -107,6 +108,16 @@ class PasswordReset(BaseModel):
     new_password: Password
 
 
+class RuleParamOut(BaseModel):
+    key: str
+    label: str
+    value: float
+    default: float
+    min: float
+    max: float
+    integer: bool
+
+
 class RuleSettingOut(BaseModel):
     id: str
     name: str
@@ -120,6 +131,8 @@ class RuleSettingOut(BaseModel):
     default_min_count: int | None
     default_window_minutes: int | None
     source: str = "builtin"
+    description: str = ""
+    params: list[RuleParamOut] = []  # network rules' editable thresholds
 
 
 class SigmaImport(BaseModel):
@@ -182,6 +195,8 @@ class RuleSettingUpdate(BaseModel):
     enabled: bool | None = None
     min_count: int | None = Field(default=None, ge=1, le=1000)
     window_minutes: int | None = Field(default=None, ge=1, le=1440)
+    # Network rule thresholds; keys and ranges are checked against the rule in the route.
+    params: dict[str, float] | None = Field(default=None, max_length=10)
 
 
 class OllamaStatus(BaseModel):
@@ -316,6 +331,30 @@ class DetectionOut(BaseModel):
     risk_score: float
     risk_level: str
     ti_matches: list[TIMatch] = []
+    summary: str | None = None
+
+
+class DestinationCount(BaseModel):
+    dst_ip: str
+    count: int
+
+
+class ProcessCount(BaseModel):
+    process: str
+    count: int
+
+
+class DestinationBytes(BaseModel):
+    dst_ip: str
+    bytes_out: int
+
+
+class NetworkSummaryOut(BaseModel):
+    hosts: list[str]
+    top_destinations: list[DestinationCount]
+    top_processes: list[ProcessCount]
+    bytes_by_destination: list[DestinationBytes]
+    detections: list[DetectionOut]
 
 
 class TechniqueCell(BaseModel):
@@ -393,6 +432,7 @@ class TimelineEntry(BaseModel):
     last_seen: UTCDateTime
     event_ids: list[str]
     ti_matches: list[TIMatch] = []
+    summary: str | None = None
 
 
 class IncidentDetail(IncidentOut):

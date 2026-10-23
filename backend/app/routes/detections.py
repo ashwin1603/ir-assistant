@@ -31,6 +31,7 @@ def _to_out(detection: Detection, ti_by_event: dict[str, list[dict]] | None = No
         risk_score=detection.risk_score,
         risk_level=detection.risk_level,
         ti_matches=unique_matches(ti_by_event or {}, event_ids),
+        summary=detection.summary,
     )
 
 
