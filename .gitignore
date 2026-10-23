@@ -14,3 +14,9 @@ build/
 
 # Exported event samples contain real usernames/hosts (scripts/export_sample.ps1)
 security_sample*.json
+
+# LLM verdict cache from scripts/compare_methods.py
+docs/llm_cache.json
+
+# LLM verdict cache, run 2 (label removed)
+docs/llm_cache_run2.json
