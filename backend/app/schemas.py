@@ -383,3 +383,34 @@ class AskResponse(BaseModel):
     answer: str
     mode: str  # deterministic | ai | out_of_scope | fallback
     cited: list[str]
+
+
+class AnomalyFeature(BaseModel):
+    name: str
+    value: float
+    typical: float  # training-set median
+    deviation: float  # distance from typical, in median-absolute-deviation units
+
+
+class AnomalyOut(BaseModel):
+    event_id: str
+    timestamp: UTCDateTime
+    host: str
+    source: str
+    process: str | None
+    parent_process: str | None
+    command_line: str | None
+    score: float
+    rank: int
+    is_anomaly: bool
+    top_features: list[AnomalyFeature]
+    also_matched_rule: bool
+    label: str = "ML anomaly, unmapped"
+
+
+class AnomalyReport(BaseModel):
+    trained_on: int  # real (non-simulated) 4688 events
+    scored: int
+    threshold: float
+    anomaly_rate_real: float
+    items: list[AnomalyOut]

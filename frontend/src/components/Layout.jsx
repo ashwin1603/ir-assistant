@@ -6,6 +6,7 @@ const navItems = [
   { to: "/dashboard", label: "Dashboard" },
   { to: "/events", label: "Log Explorer" },
   { to: "/detections", label: "Detections" },
+  { to: "/anomalies", label: "Anomalies" },
   { to: "/attack", label: "ATT&CK" },
   { to: "/incidents", label: "Incidents" },
   { to: "/recommendations", label: "Recommendations" },
