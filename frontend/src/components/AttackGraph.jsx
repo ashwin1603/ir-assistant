@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { get } from "../lib/api";
+import { Skeleton } from "./Skeleton";
 
 // Plain SVG attack graph: host (and user) on the left, detections left-to-right by time.
 const RISK_COLORS = {
@@ -50,7 +51,7 @@ export function AttackGraph({ incidentId }) {
   }, [incidentId]);
 
   if (error) return <p className="mb-6 text-sm text-red-400">{error}</p>;
-  if (!graph) return <p className="mb-6 text-sm text-slate-500">Loading graph...</p>;
+  if (!graph) return <div className="glass mb-6 rounded border p-4"><Skeleton lines={5} /></div>;
 
   const detections = graph.nodes.filter((n) => n.type === "detection");
   const wrapped = Object.fromEntries(detections.map((n) => [n.id, wrapWords(n.rule)]));
@@ -124,7 +125,7 @@ export function AttackGraph({ incidentId }) {
           <svg width={width} height={height} role="img" aria-label="Attack graph" className="block">
             <defs>
               <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
-                <path d="M0,0 L10,5 L0,10 z" fill="#94a3b8" />
+                <path d="M0,0 L10,5 L0,10 z" fill="#a59e93" />
               </marker>
             </defs>
 
@@ -137,8 +138,8 @@ export function AttackGraph({ incidentId }) {
                 return (
                   <g key={`${g.tactic}-${g.start}`}>
                     <rect x={x} y={first.y - LABEL_SPACE} width={w} height={NODE_H + LABEL_SPACE + 8} rx="8"
-                      fill="#0ea5e9" fillOpacity="0.06" stroke="#0ea5e9" strokeOpacity="0.3" strokeDasharray="4 3" />
-                    <text x={x + 8} y={first.y - 12} fontSize="11" fill="#7dd3fc">{g.tactic}</text>
+                      fill="#a59e93" fillOpacity="0.05" stroke="#a59e93" strokeOpacity="0.3" strokeDasharray="4 3" />
+                    <text x={x + 8} y={first.y - 12} fontSize="11" fill="#cdc7bd">{g.tactic}</text>
                   </g>
                 );
               })}
@@ -146,7 +147,9 @@ export function AttackGraph({ incidentId }) {
             {graph.edges.map((e) => {
               const d = edgePath(e);
               return d ? (
-                <path key={`${e.source}-${e.target}`} d={d} fill="none" stroke="#94a3b8" strokeWidth="1.5"
+                <path key={`${e.source}-${e.target}`} d={d} fill="none" stroke="#a59e93" strokeWidth="1.5"
+                  pathLength={e.kind === "same_tactic" ? undefined : 1}
+                  className={e.kind === "same_tactic" ? "ag-fade" : "ag-draw"}
                   strokeDasharray={e.kind === "same_tactic" ? "5 4" : undefined} markerEnd="url(#arrow)" />
               ) : null;
             })}
@@ -156,16 +159,16 @@ export function AttackGraph({ incidentId }) {
               if (!p) return null;
               if (n.type !== "detection") {
                 return (
-                  <g key={n.id}>
-                    <rect x={p.x} y={p.y} width={NODE_W} height={p.h} rx="6" fill="#1e293b" stroke="#0ea5e9" />
-                    <text x={p.x + 10} y={p.y + 22} fontSize="10" fill="#94a3b8">{n.type.toUpperCase()}</text>
+                  <g key={n.id} className="ag-node">
+                    <rect x={p.x} y={p.y} width={NODE_W} height={p.h} rx="6" fill="#33302b" stroke="#c74634" />
+                    <text x={p.x + 10} y={p.y + 22} fontSize="10" fill="#a59e93">{n.type.toUpperCase()}</text>
                     <text x={p.x + 10} y={p.y + 40} fontSize="13" fill="#e2e8f0">{shorten(n.label)}</text>
                   </g>
                 );
               }
               const clickable = Boolean(n.technique);
               return (
-                <g key={n.id} className={clickable ? "cursor-pointer" : undefined}
+                <g key={n.id} className={clickable ? "ag-node cursor-pointer" : "ag-node"}
                   onClick={() => clickable && navigate(`/attack/${n.technique}`)}>
                   <title>{`${n.rule}\n${n.technique_ids.join(", ")} · ${n.tactic}\nRisk ${n.risk_level} ${Math.round(n.risk_score)}\n${new Date(n.first_seen).toLocaleString()}`}</title>
                   <rect x={p.x} y={p.y} width={NODE_W} height={p.h} rx="6"

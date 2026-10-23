@@ -4,6 +4,8 @@ import { get } from "../lib/api";
 import { AutoRefreshToggle, useAutoRefresh } from "../components/AutoRefresh";
 import { RiskBadge } from "../components/RiskBadge";
 import { StatusBadge, INCIDENT_STATUSES } from "../components/StatusBadge";
+import { Skeleton } from "../components/Skeleton";
+import { useNewIds } from "../components/useNewIds";
 
 export default function Incidents() {
   const [incidents, setIncidents] = useState([]);
@@ -11,6 +13,7 @@ export default function Incidents() {
   const [error, setError] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [autoRefresh, setAutoRefresh, tick] = useAutoRefresh(15);
+  const freshRows = useNewIds(loading ? [] : incidents);
 
   // Show "Loading..." only when the filter changes, not on every auto-refresh.
   useEffect(() => {
@@ -66,8 +69,8 @@ export default function Incidents() {
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={7} className="px-3 py-6 text-center text-slate-500">
-                  Loading...
+                <td colSpan={7} className="px-3 py-4">
+                  <Skeleton lines={4} />
                 </td>
               </tr>
             )}
@@ -80,7 +83,7 @@ export default function Incidents() {
             )}
             {!loading &&
               incidents.map((inc) => (
-                <tr key={inc.id} className="border-t border-slate-800 hover:bg-slate-900/60">
+                <tr key={inc.id} className={`border-t border-slate-800 hover:bg-slate-900/60 ${freshRows.has(inc.id) ? "row-flash" : ""}`}>
                   <td className="px-3 py-2 text-slate-200">{inc.host}</td>
                   <td className="whitespace-nowrap px-3 py-2 text-slate-400">
                     {new Date(inc.started_at).toLocaleString()}

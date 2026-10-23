@@ -8,6 +8,7 @@ import { useAuth } from "../auth/AuthContext";
 import { AskPanel } from "../components/AskPanel";
 import { InvestigatePanel } from "../components/InvestigatePanel";
 import { AttackGraph } from "../components/AttackGraph";
+import { PageSkeleton } from "../components/Skeleton";
 
 const ANALYZE_TIMEOUT_MS = 40_000;
 
@@ -87,7 +88,7 @@ export default function IncidentDetail() {
     }
   }
 
-  if (loading) return <p className="text-slate-500">Loading...</p>;
+  if (loading) return <PageSkeleton />;
   if (error) return <p className="text-red-400">{error}</p>;
   if (!incident) return null;
 
@@ -241,7 +242,7 @@ export default function IncidentDetail() {
                 <td className="px-3 py-2">
                   <div className="flex flex-wrap gap-1">
                     {entry.technique_ids.map((tid) => (
-                      <span key={tid} className="rounded bg-sky-900/50 px-1.5 py-0.5 text-xs text-sky-300">
+                      <span key={tid} className="rounded bg-indigo-900/50 px-1.5 py-0.5 text-xs text-indigo-300">
                         {tid}
                       </span>
                     ))}
@@ -330,7 +331,7 @@ export default function IncidentDetail() {
               {analysis.findings.map((f, i) => (
                 <li key={i} className="rounded border border-slate-800 bg-slate-950/60 p-3">
                   <div className="mb-1 flex items-center gap-2">
-                    <span className="rounded bg-sky-900/50 px-1.5 py-0.5 text-xs text-sky-300">
+                    <span className="rounded bg-indigo-900/50 px-1.5 py-0.5 text-xs text-indigo-300">
                       {f.technique_id}
                     </span>
                     <span className="rounded bg-emerald-900/50 px-1.5 py-0.5 text-xs text-emerald-300">

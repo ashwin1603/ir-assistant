@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { get } from "../lib/api";
 import { AutoRefreshToggle, useAutoRefresh } from "../components/AutoRefresh";
+import { PageSkeleton } from "../components/Skeleton";
+import { CountUp } from "../components/CountUp";
 
 const LEVEL_ORDER = ["Low", "Medium", "High", "Critical"];
 
@@ -13,13 +15,13 @@ const LEVEL_COLORS = {
   Critical: "#dc4c4c",
 };
 
-const TECHNIQUE_COLOR = "#38bdf8";
+const TECHNIQUE_COLOR = "#818cf8";
 
 function StatTile({ label, value }) {
   return (
     <div className="rounded border border-slate-800 bg-slate-900/40 p-4">
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-1 text-2xl font-semibold text-slate-100">{value}</p>
+      <p className="mt-1 text-2xl font-semibold tabular-nums text-slate-100"><CountUp value={value} /></p>
     </div>
   );
 }
@@ -55,7 +57,7 @@ export default function Dashboard() {
       .finally(() => setLoading(false));
   }, [tick]);
 
-  if (loading) return <p className="text-slate-500">Loading...</p>;
+  if (loading) return <PageSkeleton />;
   if (error) return <p className="text-red-400">{error}</p>;
 
   const severityData = LEVEL_ORDER.map((level) => ({
@@ -97,10 +99,10 @@ export default function Dashboard() {
           ) : (
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={severityData} margin={{ left: 0, right: 8, top: 4, bottom: 4 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                <XAxis dataKey="name" stroke="#64748b" fontSize={12} tickLine={false} axisLine={{ stroke: "#1e293b" }} />
-                <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} width={28} />
-                <Tooltip content={<ChartTooltip />} cursor={{ fill: "#1e293b" }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#33302b" vertical={false} />
+                <XAxis dataKey="name" stroke="#827b71" fontSize={12} tickLine={false} axisLine={{ stroke: "#33302b" }} />
+                <YAxis stroke="#827b71" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} width={28} />
+                <Tooltip content={<ChartTooltip />} cursor={{ fill: "#33302b" }} />
                 <Bar dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={56}>
                   {severityData.map((entry) => (
                     <Cell key={entry.name} fill={LEVEL_COLORS[entry.name]} />
@@ -120,18 +122,18 @@ export default function Dashboard() {
           ) : (
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={techniqueData} layout="vertical" margin={{ left: 8, right: 16, top: 4, bottom: 4 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={false} />
-                <XAxis type="number" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#33302b" horizontal={false} />
+                <XAxis type="number" stroke="#827b71" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
                 <YAxis
                   type="category"
                   dataKey="name"
-                  stroke="#64748b"
+                  stroke="#827b71"
                   fontSize={12}
                   tickLine={false}
                   axisLine={false}
                   width={72}
                 />
-                <Tooltip content={<ChartTooltip />} cursor={{ fill: "#1e293b" }} />
+                <Tooltip content={<ChartTooltip />} cursor={{ fill: "#33302b" }} />
                 <Bar dataKey="count" fill={TECHNIQUE_COLOR} radius={[0, 4, 4, 0]} maxBarSize={18} />
               </BarChart>
             </ResponsiveContainer>

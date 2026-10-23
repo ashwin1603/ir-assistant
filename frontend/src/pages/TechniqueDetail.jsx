@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { get } from "../lib/api";
 import { RiskBadge } from "../components/RiskBadge";
+import { Skeleton } from "../components/Skeleton";
 
 export default function TechniqueDetail() {
   const { techniqueId } = useParams();
@@ -20,7 +21,7 @@ export default function TechniqueDetail() {
   const backLink = `/attack${host ? `?host=${encodeURIComponent(host)}` : ""}`;
 
   if (error) return <p className="text-sm text-red-400">{error}</p>;
-  if (!technique) return <p className="text-sm text-slate-500">Loading...</p>;
+  if (!technique) return <Skeleton lines={6} />;
 
   return (
     <div className="space-y-6">

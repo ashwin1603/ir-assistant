@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./theme.css";
 
 html,
 body,
@@ -6,10 +7,7 @@ body,
   height: 100%;
 }
 
-body {
-  background-color: #0b0f14;
-  color: #e5e9ee;
-}
+/* Screen colours, fonts and animations live in theme.css. */
 
 @media print {
   @page {

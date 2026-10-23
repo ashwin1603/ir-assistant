@@ -1,0 +1,429 @@
+/* IR Assistant theme: warm charcoal dark UI with glass panels and a red accent.
+   All colours live here. Pages keep using Tailwind's slate/sky class names;
+   the @theme block below remaps those scales, so slate = warm neutrals and
+   sky = the accent. Severity (amber/orange/red), status and TI (fuchsia)
+   colours are untouched so they stay distinct from the accent. */
+
+:root {
+  --ir-bg: #161513;
+  --ir-bg-raised: #1f1d1a;
+  --ir-surface: rgba(43, 40, 36, 0.55);
+  --ir-surface-strong: rgba(31, 29, 26, 0.85);
+  --ir-border: rgba(255, 244, 230, 0.08);
+  --ir-border-strong: rgba(255, 244, 230, 0.14);
+  --ir-text: #f2f0ec;
+  --ir-muted: #a59e93;
+  --ir-accent: #c74634;
+  --ir-accent-hover: #d4584a;
+  --ir-accent-soft: rgba(199, 70, 52, 0.18);
+  --ir-ring: rgba(199, 70, 52, 0.55);
+  --ir-live: #3fb950;
+  --ir-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), 0 1px 0 rgba(255, 255, 255, 0.03) inset;
+  --ir-shadow-hover: 0 12px 32px rgba(0, 0, 0, 0.45), 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+  --ir-blur: blur(14px) saturate(140%);
+  --ir-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ir-fast: 150ms;
+  --ir-med: 240ms;
+  --ir-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+@theme {
+  /* Warm charcoal neutrals in place of slate. */
+  --color-slate-50: #faf9f7;
+  --color-slate-100: #f2f0ec;
+  --color-slate-200: #e3dfd8;
+  --color-slate-300: #cdc7bd;
+  --color-slate-400: #a59e93;
+  --color-slate-500: #827b71;
+  --color-slate-600: #5e5850;
+  --color-slate-700: #46423c;
+  --color-slate-800: #33302b;
+  --color-slate-900: #1f1d1a;
+  --color-slate-950: #161513;
+
+  /* Accent (primary buttons, links, focus) in place of sky. */
+  --color-sky-100: #fae1db;
+  --color-sky-200: #f4c1b6;
+  --color-sky-300: #eb9a8b;
+  --color-sky-400: #e07563;
+  --color-sky-500: #d4584a;
+  --color-sky-600: #c74634;
+  --color-sky-700: #9e3426;
+  --color-sky-800: #74281d;
+  --color-sky-900: #4d1c15;
+  --color-sky-950: #2b120e;
+
+}
+
+/* ---------- Screen only (print keeps the original report styling) ---------- */
+
+@media screen {
+/* ---------- Base ---------- */
+
+body {
+  font-family: var(--ir-font);
+  background-color: var(--ir-bg);
+  background-image:
+    radial-gradient(1200px 600px at 10% -10%, rgba(199, 70, 52, 0.08), transparent 60%),
+    radial-gradient(900px 500px at 110% 10%, rgba(255, 214, 170, 0.05), transparent 60%);
+  background-attachment: fixed;
+  color: var(--ir-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  letter-spacing: -0.015em;
+  line-height: 1.2;
+}
+
+h1 {
+  font-weight: 650;
+}
+
+::selection {
+  background: var(--ir-accent-soft);
+}
+
+:focus-visible {
+  outline: 2px solid var(--ir-ring);
+  outline-offset: 2px;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--ir-accent);
+  box-shadow: 0 0 0 3px var(--ir-accent-soft);
+}
+
+input,
+select,
+textarea {
+  transition: border-color var(--ir-fast) ease, box-shadow var(--ir-fast) ease;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--ir-accent);
+}
+
+/* Buttons: short press feedback. */
+button {
+  transition: background-color var(--ir-fast) ease, border-color var(--ir-fast) ease,
+    color var(--ir-fast) ease, transform var(--ir-fast) ease, box-shadow var(--ir-fast) ease;
+}
+
+button:not(:disabled):active {
+  transform: translateY(1px) scale(0.98);
+}
+
+button[class*="bg-sky-600"]:not(:disabled) {
+  box-shadow: 0 4px 14px rgba(199, 70, 52, 0.28);
+}
+
+/* ---------- Top bar ---------- */
+
+.ir-topbar {
+  background: rgba(22, 21, 19, 0.72);
+  backdrop-filter: var(--ir-blur);
+  -webkit-backdrop-filter: var(--ir-blur);
+  border-bottom: 1px solid var(--ir-border);
+}
+
+.ir-navlink {
+  position: relative;
+  white-space: nowrap;
+  color: var(--ir-muted);
+  transition: color var(--ir-fast) ease;
+}
+
+.ir-navlink:hover {
+  color: var(--ir-text);
+}
+
+.ir-navlink::after {
+  content: "";
+  position: absolute;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: -0.65rem;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--ir-accent);
+  transform: scaleX(0);
+  transition: transform var(--ir-med) var(--ir-ease);
+}
+
+.ir-navlink.active {
+  color: var(--ir-text);
+}
+
+.ir-navlink.active::after {
+  transform: scaleX(1);
+}
+
+/* Mobile menu: links stack, active one gets an accent bar on the left. */
+.ir-mobile-nav .ir-navlink::after {
+  left: 0;
+  right: auto;
+  top: 0.4rem;
+  bottom: 0.4rem;
+  width: 2px;
+  height: auto;
+  transform: scaleY(0);
+}
+
+.ir-mobile-nav .ir-navlink.active::after {
+  transform: scaleY(1);
+}
+
+/* ---------- Glass panels ---------- */
+
+/* Every bordered panel that uses a slate-900/950 surface becomes a glass card. */
+.glass,
+main [class*="bg-slate-900/"].border,
+main [class*="bg-slate-950/"].border,
+main .overflow-x-auto.rounded.border {
+  background-color: var(--ir-surface);
+  border-color: var(--ir-border);
+  backdrop-filter: var(--ir-blur);
+  -webkit-backdrop-filter: var(--ir-blur);
+  box-shadow: var(--ir-shadow);
+  border-radius: 0.6rem;
+}
+
+.lift {
+  transition: transform var(--ir-med) var(--ir-ease), box-shadow var(--ir-med) var(--ir-ease),
+    border-color var(--ir-med) ease;
+}
+
+.lift:hover,
+main [class*="bg-slate-900/"].border.p-4:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--ir-shadow-hover);
+  border-color: var(--ir-border-strong);
+}
+
+main [class*="bg-slate-900/"].border.p-4 {
+  transition: transform var(--ir-med) var(--ir-ease), box-shadow var(--ir-med) var(--ir-ease),
+    border-color var(--ir-med) ease;
+}
+
+/* ---------- Tables ---------- */
+
+/* Table wrappers scroll inside the card so the header can stay sticky. */
+main .overflow-x-auto:has(> table) {
+  max-height: 72vh;
+  overflow-y: auto;
+}
+
+main table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--ir-surface-strong);
+  backdrop-filter: var(--ir-blur);
+  -webkit-backdrop-filter: var(--ir-blur);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ir-muted);
+  border-bottom: 1px solid var(--ir-border-strong);
+}
+
+main table tbody tr {
+  border-color: var(--ir-border);
+  transition: background-color var(--ir-fast) ease;
+}
+
+main table tbody tr:nth-child(even):not([class*="bg-red-"]):not([class*="bg-amber-"]) {
+  background-color: rgba(255, 244, 230, 0.018);
+}
+
+main table tbody tr:hover:not([class*="bg-red-"]):not([class*="bg-amber-"]) {
+  background-color: rgba(255, 244, 230, 0.05);
+}
+
+/* Links (rendered as sky-400 text) get the accent and a soft underline on hover. */
+main a[class*="text-sky-4"] {
+  transition: color var(--ir-fast) ease;
+  text-underline-offset: 3px;
+}
+
+}
+
+/* ---------- Animations ---------- */
+
+@keyframes ir-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes ir-shimmer {
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes ir-flash {
+  from {
+    background-color: rgba(199, 70, 52, 0.22);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+
+@keyframes ir-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(63, 185, 80, 0.55);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(63, 185, 80, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(63, 185, 80, 0);
+  }
+}
+
+@keyframes ir-grow-up {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes ir-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes ir-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.page-enter {
+  animation: ir-page-in var(--ir-med) var(--ir-ease) both;
+}
+
+.row-flash {
+  animation: ir-flash 1.2s ease-out;
+}
+
+/* Skeleton loaders (replace "Loading..." text). */
+.skeleton {
+  display: block;
+  height: 0.8rem;
+  border-radius: 0.35rem;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 244, 230, 0.05) 25%,
+    rgba(255, 244, 230, 0.11) 37%,
+    rgba(255, 244, 230, 0.05) 63%
+  );
+  background-size: 400% 100%;
+  animation: ir-shimmer 1.4s ease infinite;
+}
+
+/* Pulsing green "live" dot: online devices and active auto-refresh. */
+.live-dot {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: var(--ir-live);
+  animation: ir-pulse 1.6s ease-out infinite;
+}
+
+.live-dot.off {
+  background: var(--color-slate-600);
+  animation: none;
+}
+
+/* Charts: Recharts animates the bars; the chart itself fades in on mount. */
+.recharts-wrapper {
+  animation: ir-fade var(--ir-med) ease both;
+}
+
+/* Attack graph: node hover glow and arrow draw-in. */
+.ag-node {
+  transition: filter var(--ir-med) ease;
+  animation: ir-fade var(--ir-med) ease both;
+}
+
+.ag-node:hover {
+  filter: drop-shadow(0 0 6px rgba(199, 70, 52, 0.75)) brightness(1.08);
+}
+
+.ag-draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: ir-draw 250ms var(--ir-ease) 80ms forwards;
+}
+
+.ag-fade {
+  animation: ir-fade 250ms ease 80ms both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+
+  .live-dot {
+    animation: none !important;
+  }
+
+  .lift:hover,
+  main [class*="bg-slate-900/"].border.p-4:hover,
+  button:not(:disabled):active {
+    transform: none;
+  }
+}
+
+/* ---------- Print: restore the original light palette (report stays unchanged) ---------- */
+
+@media print {
+  :root {
+    --color-slate-50: oklch(98.4% 0.003 247.858);
+    --color-slate-100: oklch(96.8% 0.007 247.896);
+    --color-slate-200: oklch(92.9% 0.013 255.508);
+    --color-slate-300: oklch(86.9% 0.022 252.894);
+    --color-slate-400: oklch(70.4% 0.04 256.788);
+    --color-slate-500: oklch(55.4% 0.046 257.417);
+    --color-slate-600: oklch(44.6% 0.043 257.281);
+    --color-slate-700: oklch(37.2% 0.044 257.287);
+    --color-slate-800: oklch(27.9% 0.041 260.031);
+    --color-slate-900: oklch(20.8% 0.042 265.755);
+    --color-slate-950: oklch(12.9% 0.042 264.695);
+  }
+
+  .page-enter {
+    animation: none;
+  }
+}

@@ -17,6 +17,7 @@ export function AutoRefreshToggle({ enabled, onChange, seconds = 15 }) {
   return (
     <label className="flex items-center gap-2 text-sm text-slate-400">
       <input type="checkbox" checked={enabled} onChange={(e) => onChange(e.target.checked)} />
+      <span className={`live-dot${enabled ? "" : " off"}`} aria-hidden="true" />
       Auto-refresh ({seconds}s)
     </label>
   );

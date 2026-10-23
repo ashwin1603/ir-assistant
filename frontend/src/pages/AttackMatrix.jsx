@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { get } from "../lib/api";
+import { Skeleton } from "../components/Skeleton";
 
 // Cell colour = highest risk level among current detections; grey = covered by a rule, not seen.
 const CELL_STYLES = {
-  Low: "border-sky-800 bg-sky-950/60 text-sky-200",
+  Low: "border-cyan-800 bg-cyan-950/60 text-cyan-200",
   Medium: "border-amber-700 bg-amber-900/50 text-amber-200",
   High: "border-orange-700 bg-orange-900/60 text-orange-200",
   Critical: "border-red-700 bg-red-900/70 text-red-200",
@@ -52,7 +53,7 @@ export default function AttackMatrix() {
       </div>
 
       {error && <p className="mb-3 text-sm text-red-400">{error}</p>}
-      {!matrix && !error && <p className="text-sm text-slate-500">Loading...</p>}
+      {!matrix && !error && <Skeleton lines={6} />}
 
       {matrix && (
         <div className="flex gap-3 overflow-x-auto pb-2">

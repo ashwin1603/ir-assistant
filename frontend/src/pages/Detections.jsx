@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { get } from "../lib/api";
 import { TIBadge } from "../components/TIBadge";
+import { Skeleton } from "../components/Skeleton";
 
 const LEVEL_STYLES = {
   Low: "bg-slate-800 text-slate-300",
@@ -67,8 +68,8 @@ export default function Detections() {
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={8} className="px-3 py-6 text-center text-slate-500">
-                  Loading...
+                <td colSpan={8} className="px-3 py-4">
+                  <Skeleton lines={4} />
                 </td>
               </tr>
             )}
@@ -93,7 +94,7 @@ export default function Detections() {
                       {d.technique_ids.map((id) => (
                         <span
                           key={id}
-                          className="rounded bg-sky-900/50 px-1.5 py-0.5 text-xs text-sky-300"
+                          className="rounded bg-indigo-900/50 px-1.5 py-0.5 text-xs text-indigo-300"
                         >
                           {id}
                         </span>

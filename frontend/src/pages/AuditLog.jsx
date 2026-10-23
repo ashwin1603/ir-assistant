@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { get } from "../lib/api";
 import { useAuth } from "../auth/AuthContext";
+import { Skeleton } from "../components/Skeleton";
 
 const PAGE_SIZE = 25;
 
@@ -52,8 +53,8 @@ export default function AuditLog() {
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={5} className="px-3 py-6 text-center text-slate-500">
-                  Loading...
+                <td colSpan={5} className="px-3 py-4">
+                  <Skeleton lines={4} />
                 </td>
               </tr>
             )}

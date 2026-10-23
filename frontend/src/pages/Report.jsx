@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { get } from "../lib/api";
+import { PageSkeleton } from "../components/Skeleton";
 
 // Screen colours first, then lighter print colours so the PDF stays readable on white paper.
 const RISK_STYLES = {
@@ -414,7 +415,7 @@ export default function Report() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  if (loading) return <p className="text-slate-500">Loading...</p>;
+  if (loading) return <PageSkeleton />;
   if (error) return <p className="text-red-400">{error}</p>;
   if (!report) return null;
 

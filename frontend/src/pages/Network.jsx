@@ -4,7 +4,7 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { get } from "../lib/api";
 import { RiskBadge } from "../components/RiskBadge";
 
-const BAR_COLOR = "#38bdf8";
+const BAR_COLOR = "#818cf8";
 
 function formatBytes(n) {
   if (n >= 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
@@ -22,12 +22,12 @@ function TopChart({ title, rows, format = (v) => v }) {
       ) : (
         <ResponsiveContainer width="100%" height={Math.max(120, rows.length * 28)}>
           <BarChart data={rows} layout="vertical" margin={{ left: 8, right: 16, top: 4, bottom: 4 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={false} />
-            <XAxis type="number" stroke="#64748b" fontSize={12} tickLine={false} tickFormatter={format} allowDecimals={false} />
-            <YAxis type="category" dataKey="label" stroke="#64748b" fontSize={12} tickLine={false} width={130} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#33302b" horizontal={false} />
+            <XAxis type="number" stroke="#827b71" fontSize={12} tickLine={false} tickFormatter={format} allowDecimals={false} />
+            <YAxis type="category" dataKey="label" stroke="#827b71" fontSize={12} tickLine={false} width={130} />
             <Tooltip
-              cursor={{ fill: "#1e293b" }}
-              contentStyle={{ background: "#0f172a", border: "1px solid #334155", fontSize: 12 }}
+              cursor={{ fill: "#33302b" }}
+              contentStyle={{ background: "#1f1d1a", border: "1px solid #46423c", fontSize: 12 }}
               formatter={(v) => [format(v), title]}
             />
             <Bar dataKey="value" fill={BAR_COLOR} radius={[0, 4, 4, 0]} maxBarSize={18} />
@@ -69,7 +69,7 @@ export default function Network() {
           <option value="">All hosts</option>
           {(data?.hosts || []).map((h) => <option key={h} value={h}>{h}</option>)}
         </select>
-        {loading && <span className="text-slate-500">Loading…</span>}
+        {loading && <span className="skeleton inline-block" style={{ width: "6rem" }} />}
       </div>
 
       {error && <p className="mb-3 text-sm text-red-400">{error}</p>}

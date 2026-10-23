@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { get } from "../lib/api";
 import { TIBadge } from "../components/TIBadge";
+import { Skeleton } from "../components/Skeleton";
 
 const PAGE_SIZE = 25;
 
 const SOURCE_BADGE = {
-  agent: "bg-sky-900/60 text-sky-300",
-  local: "bg-sky-900/60 text-sky-300",
+  agent: "bg-cyan-900/60 text-cyan-300",
+  local: "bg-cyan-900/60 text-cyan-300",
   upload: "bg-violet-900/60 text-violet-300",
   simulated: "bg-amber-900/60 text-amber-300",
   "local-net": "bg-emerald-900/60 text-emerald-300",
@@ -124,8 +125,8 @@ export default function LogExplorer() {
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={9} className="px-3 py-6 text-center text-slate-500">
-                  Loading...
+                <td colSpan={9} className="px-3 py-4">
+                  <Skeleton lines={4} />
                 </td>
               </tr>
             )}

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { get, post, ApiError } from "../lib/api";
 import { useAuth } from "../auth/AuthContext";
+import { Skeleton } from "../components/Skeleton";
 
 const STATUS_STYLES = {
   pending: "bg-slate-800 text-slate-300",
@@ -65,8 +66,8 @@ export default function Recommendations() {
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={5} className="px-3 py-6 text-center text-slate-500">
-                  Loading...
+                <td colSpan={5} className="px-3 py-4">
+                  <Skeleton lines={4} />
                 </td>
               </tr>
             )}

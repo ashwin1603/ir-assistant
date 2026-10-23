@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { get } from "../lib/api";
+import { Skeleton } from "../components/Skeleton";
 
 const CMD_PREVIEW = 160;
 
@@ -94,8 +95,8 @@ export default function Anomalies() {
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={8} className="px-2 py-6 text-center text-slate-500">
-                  Loading...
+                <td colSpan={8} className="px-3 py-4">
+                  <Skeleton lines={4} />
                 </td>
               </tr>
             )}

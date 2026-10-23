@@ -1,7 +1,7 @@
 export const INCIDENT_STATUSES = ["new", "investigating", "contained", "closed"];
 
 const STYLES = {
-  new: "bg-sky-900/60 text-sky-300",
+  new: "bg-cyan-900/60 text-cyan-300",
   investigating: "bg-amber-900/60 text-amber-300",
   contained: "bg-violet-900/60 text-violet-300",
   closed: "bg-slate-800 text-slate-400",

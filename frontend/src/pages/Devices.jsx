@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { get } from "../lib/api";
 import { AutoRefreshToggle, useAutoRefresh } from "../components/AutoRefresh";
+import { Skeleton } from "../components/Skeleton";
+import { useNewIds } from "../components/useNewIds";
 
 const STATUS_STYLES = {
   online: "bg-emerald-900/60 text-emerald-300",
@@ -13,6 +15,7 @@ export default function Devices() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [autoRefresh, setAutoRefresh, tick] = useAutoRefresh(15);
+  const freshRows = useNewIds(devices, (d) => `${d.host}|${d.source}`);
 
   useEffect(() => {
     get("/devices")
@@ -52,8 +55,8 @@ export default function Devices() {
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={6} className="px-3 py-6 text-center text-slate-500">
-                  Loading...
+                <td colSpan={6} className="px-3 py-4">
+                  <Skeleton lines={4} />
                 </td>
               </tr>
             )}
@@ -66,7 +69,7 @@ export default function Devices() {
             )}
             {!loading &&
               devices.map((d) => (
-                <tr key={`${d.host}|${d.source}`} className="border-t border-slate-800">
+                <tr key={`${d.host}|${d.source}`} className={`border-t border-slate-800 ${freshRows.has(`${d.host}|${d.source}`) ? "row-flash" : ""}`}>
                   <td className="px-3 py-2 text-slate-200">
                     {d.host}
                     {d.simulated && (
@@ -75,7 +78,10 @@ export default function Devices() {
                   </td>
                   <td className="px-3 py-2 text-slate-400">{d.source}</td>
                   <td className="px-3 py-2">
-                    <span className={`rounded px-2 py-0.5 text-xs ${STATUS_STYLES[d.status]}`}>{d.status}</span>
+                    <span className={`inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-xs ${STATUS_STYLES[d.status]}`}>
+                      {d.status === "online" && <span className="live-dot" aria-hidden="true" />}
+                      {d.status}
+                    </span>
                   </td>
                   <td className="whitespace-nowrap px-3 py-2 text-slate-400">
                     {d.last_seen ? new Date(d.last_seen).toLocaleString() : "-"}
