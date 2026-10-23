@@ -66,8 +66,10 @@ ROUTE_PERMISSIONS: dict[tuple[str, str], str] = {
     ("DELETE", "/api/events/simulated"): COLLECTOR,
     ("POST", "/api/devices/heartbeat"): COLLECTOR,
     ("GET", "/api/events"): "read",
+    ("GET", "/api/events/export"): "read",  # CSV of the current view; viewers get the redacted fields
     ("GET", "/api/devices"): "read",
     ("GET", "/api/detections"): "read",
+    ("GET", "/api/detections/export"): "read",
     ("GET", "/api/anomalies"): "read",
     ("GET", "/api/network/summary"): "read",
     ("GET", "/api/attack/matrix"): "read",

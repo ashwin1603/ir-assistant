@@ -130,7 +130,6 @@ export default function Layout() {
       </main>
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
       <TooltipLayer />
-
     </div>
   );
 }

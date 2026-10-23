@@ -85,6 +85,7 @@ export function del(path) {
 }
 
 // Authenticated file download: fetch with the bearer token, then save the blob.
+// Returns the CSV export headers ({ rows, truncated }) when the server sends them.
 export async function download(path, filename) {
   const headers = authToken ? { Authorization: `Bearer ${authToken}` } : {};
   let res;
@@ -93,7 +94,10 @@ export async function download(path, filename) {
   } catch {
     throw new ApiError("Network error", 0);
   }
-  if (!res.ok) throw new ApiError(res.status === 403 ? "Not authorized" : "Download failed", res.status);
+  if (!res.ok) {
+    const reason = { 403: "Not authorized", 429: "Too many exports, wait a minute" }[res.status];
+    throw new ApiError(reason || "Download failed", res.status);
+  }
 
   const url = URL.createObjectURL(await res.blob());
   const a = document.createElement("a");
@@ -101,7 +105,12 @@ export async function download(path, filename) {
   a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
+  return {
+    rows: Number(res.headers.get("X-Export-Rows") ?? NaN),
+    truncated: res.headers.get("X-Export-Truncated") === "true",
+  };
 }
+
 
 // Multipart upload via XHR (fetch has no upload-progress events).
 export function upload(path, file, onProgress) {

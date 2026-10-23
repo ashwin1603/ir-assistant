@@ -420,7 +420,6 @@ export default function Dashboard() {
           <StatTile label="Highest risk" value={incidents && (top ? top.risk_score : 0)}
             spark={incidents && [...incidents].sort((a, b) => new Date(a.started_at) - new Date(b.started_at)).map((i) => i.risk_score)}
             sparkTip="Risk score of each incident, oldest first" sparkColor={top ? LEVEL_COLORS[top.risk_level] : undefined}>
-
             {top ? (
               <span style={{ color: LEVEL_COLORS[top.risk_level] }}>
                 <CountUp value={Math.round(top.risk_score)} />

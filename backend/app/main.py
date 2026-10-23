@@ -71,6 +71,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Export-Rows", "X-Export-Truncated"],  # CSV export row count for the UI
 )
 
 

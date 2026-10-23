@@ -428,7 +428,73 @@ main tbody > tr:only-child > td[colspan]:only-child:has(.ir-empty) {
   height: 0.7rem;
 }
 
+/* ---------- Table tools: sticky filter bar, popovers, density ---------- */
+
+.ir-filterbar {
+  position: sticky;
+  top: 76px; /* below the floating top bar */
+  z-index: 14;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--ir-border);
+  border-radius: var(--ir-radius-sm);
+  background-color: rgba(28, 25, 23, 0.62);
+  background-image: var(--ir-glass-fill);
+  backdrop-filter: var(--ir-glass-blur);
+  -webkit-backdrop-filter: var(--ir-glass-blur);
+  box-shadow: var(--ir-glass-shadow);
+}
+
+.ir-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 40;
+  width: 15rem;
+  max-height: 60vh;
+  padding: 0.4rem;
+  overflow-y: auto;
+  border: 1px solid var(--ir-border);
+  border-radius: var(--ir-radius-sm);
+  background-color: rgba(28, 25, 23, 0.9);
+  backdrop-filter: var(--ir-glass-blur);
+  -webkit-backdrop-filter: var(--ir-glass-blur);
+  box-shadow: var(--ir-glass-shadow), 0 18px 40px rgba(0, 0, 0, 0.4);
+  animation: ir-fade var(--ir-fast) ease both;
+}
+
+.ir-popover-item {
+  display: block;
+  padding: 0.35rem 0.5rem;
+  border-radius: 8px;
+  color: var(--color-slate-200);
+  font-size: 0.8125rem;
+  text-align: left;
+}
+
+.ir-popover-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+main .ir-density-compact table tbody td {
+  height: 32px;
+  padding-top: 0.2rem;
+  padding-bottom: 0.2rem;
+}
+
+main .ir-density-comfortable table tbody td {
+  height: 48px;
+  padding-top: 0.7rem;
+  padding-bottom: 0.7rem;
+}
+
 /* Clickable rows that open the drawer. */
+
 
 
 main tbody tr[tabindex="0"] {
