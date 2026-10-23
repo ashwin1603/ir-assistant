@@ -569,6 +569,35 @@ function SystemTab() {
   );
 }
 
+// Who is signed in and what the backend lets them do (from /auth/me; display only).
+function AccountCard() {
+  const { session } = useAuth();
+  const permissions = session?.permissions ?? [];
+  return (
+    <section className="rounded border border-slate-800 p-4">
+      <h2 className="mb-3 font-semibold text-slate-100">Account</h2>
+      <dl className="mb-4 grid grid-cols-[7rem_1fr] gap-y-1.5">
+        <dt className="text-slate-500">Username</dt>
+        <dd className="text-slate-100">{session?.username}</dd>
+        <dt className="text-slate-500">Role</dt>
+        <dd className="capitalize text-slate-100">{session?.role}</dd>
+      </dl>
+      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+        Permissions ({permissions.length})
+      </h3>
+      {permissions.length === 0 ? (
+        <p className="text-slate-500">No permissions.</p>
+      ) : (
+        <ul className="flex flex-wrap gap-1.5">
+          {permissions.map((p) => (
+            <li key={p} className="badge bg-slate-800 text-slate-300">{p.replaceAll("_", " ")}</li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 function MyAccountTab() {
   const [status, setStatus] = useState(null);
   const [setup, setSetup] = useState(null); // { secret, otpauth_uri } while enrolling
@@ -618,6 +647,7 @@ function MyAccountTab() {
   return (
     <div className="space-y-4 text-sm text-slate-300">
       <Message error={error} notice={notice} />
+      <div className="grid grid-cols-1 items-start gap-4 min-[1100px]:grid-cols-2">
       <section className="rounded border border-slate-800 p-4">
         <h2 className="mb-2 font-semibold text-slate-100">Two-factor authentication (TOTP)</h2>
         <p className="mb-3">
@@ -657,6 +687,8 @@ function MyAccountTab() {
           </form>
         )}
       </section>
+      <AccountCard />
+      </div>
     </div>
   );
 }

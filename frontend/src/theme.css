@@ -627,6 +627,165 @@ main a[class*="text-sky-4"] {
   border-radius: 0.4rem;
 }
 
+/* ---------- Fluid page container (nav and main share it) ---------- */
+
+.ir-container {
+  width: min(100% - 48px, 2200px);
+  margin-inline: auto;
+}
+
+@media (max-width: 640px) {
+  .ir-container {
+    width: calc(100% - 32px);
+  }
+}
+
+/* Faint network grid + nodes behind the orbs: static, so it costs nothing per frame. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image:
+    radial-gradient(circle, #fff 1.2px, transparent 1.6px),
+    linear-gradient(rgba(255, 255, 255, 0.55) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.55) 1px, transparent 1px);
+  background-size: 48px 48px;
+  background-position: -0.5px -0.5px, -0.5px -0.5px, -0.5px -0.5px;
+}
+
+/* ---------- Dashboard: 12-column grid filling the viewport ---------- */
+
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-template-rows: auto minmax(260px, 1fr) minmax(300px, 1fr) auto;
+  gap: var(--ir-space-4);
+  /* viewport minus top bar, main padding and the title row */
+  min-height: calc(100dvh - 9.5rem);
+}
+
+.dash-grid > .span-3 { grid-column: span 3; }
+.dash-grid > .span-4 { grid-column: span 4; }
+.dash-grid > .span-5 { grid-column: span 5; }
+.dash-grid > .span-7 { grid-column: span 7; }
+.dash-grid > .span-12 { grid-column: span 12; }
+
+.dash-stats {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--ir-space-4);
+}
+
+.dash-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.dash-body {
+  position: relative;
+  flex: 1;
+  min-height: 200px;
+  overflow: auto;
+}
+
+.dash-empty {
+  display: flex;
+  height: 100%;
+  min-height: 160px;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  border-radius: var(--ir-radius-sm);
+  font-size: 0.875rem;
+  color: var(--ir-muted);
+}
+
+/* Live feed rows: time · event id · host/process · user. */
+.dash-feed-row {
+  display: grid;
+  grid-template-columns: auto 3.25rem minmax(0, 1fr) minmax(0, 7rem);
+  align-items: center;
+  gap: var(--ir-space-3);
+  padding: 0.4rem 0.25rem;
+  border-radius: 0.4rem;
+}
+
+.dash-feed-row + .dash-feed-row {
+  border-top: 1px solid var(--ir-separator);
+}
+
+.dash-tile {
+  background-color: rgba(255, 255, 255, 0.035);
+  border-color: var(--ir-separator);
+  border-radius: var(--ir-radius-sm);
+}
+
+.dash-bar {
+  height: 6px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.dash-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.dash-tactics {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+  gap: var(--ir-space-2);
+}
+
+.dash-tactic {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.6rem 0.7rem;
+  background-color: rgba(255, 255, 255, 0.035);
+  border-color: var(--ir-separator);
+  border-radius: var(--ir-radius-sm);
+  transition: background-color var(--ir-fast) ease;
+}
+
+.dash-tactic:hover {
+  background-color: rgba(255, 255, 255, 0.07);
+}
+
+/* Below 1100px everything stacks to one column with natural heights. */
+@media (max-width: 1099px) {
+  .dash-grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    min-height: 0;
+  }
+
+  .dash-grid > [class*="span-"] {
+    grid-column: 1 / -1;
+  }
+
+  .dash-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dash-body {
+    min-height: 240px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dash-stats {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 }
 
 @keyframes ir-drift-a {

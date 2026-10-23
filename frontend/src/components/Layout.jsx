@@ -29,7 +29,7 @@ export default function Layout() {
   return (
     <div className="min-h-screen text-slate-100 print:bg-white print:text-black">
       <header className="ir-topbar sticky top-0 z-20 print:hidden">
-        <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-4 px-4 py-2.5">
+        <div className="ir-container flex items-center justify-between gap-4 py-2.5">
           <div className="flex min-w-0 items-center gap-5">
             <span className="flex shrink-0 items-center gap-2 text-sm font-semibold tracking-tight text-slate-100">
               <span className="inline-block h-2.5 w-2.5 rounded-sm bg-sky-600" aria-hidden="true" />
@@ -65,7 +65,7 @@ export default function Layout() {
           </div>
         </div>
         {menuOpen && (
-          <nav className="ir-mobile-nav page-enter grid gap-0.5 border-t border-slate-800 px-4 py-2 text-sm xl:hidden">
+          <nav className="ir-mobile-nav ir-container page-enter grid gap-0.5 border-t border-slate-800 py-2 text-sm xl:hidden">
             <span className="px-2 py-1 text-xs text-slate-500">
               {session?.username} · {session?.role}
             </span>
@@ -77,7 +77,7 @@ export default function Layout() {
           </nav>
         )}
       </header>
-      <main className="mx-auto max-w-[1400px] px-4 py-6 sm:px-6 print:max-w-none print:p-0">
+      <main className="ir-container py-6 print:max-w-none print:p-0">
         <ErrorBoundary key={location.pathname}>
           <div className="page-enter">
             <Outlet />
