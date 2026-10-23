@@ -9,14 +9,23 @@
   --ir-bg-2: #12131a;
   --ir-surface: rgba(255, 255, 255, 0.06);
   --ir-surface-nested: rgba(255, 255, 255, 0.035);
-  --ir-surface-inner: rgba(18, 19, 26, 0.55); /* opaque layer under tables */
   --ir-surface-solid: rgba(26, 28, 36, 0.97); /* fallback when backdrop-filter is unsupported */
+  /* Liquid glass: gradient fill, strong blur, specular rim, inner glow, tinted shadow. */
+  --ir-glass-fill: linear-gradient(135deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04));
+  --ir-glass-blur: blur(28px) saturate(190%) brightness(1.08);
+  --ir-glass-refract: url(#lg-refract) blur(28px) saturate(190%) brightness(1.08);
+  --ir-glass-rim: linear-gradient(135deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 38%,
+    rgba(255, 255, 255, 0) 62%, rgba(255, 255, 255, 0.18) 100%);
+  --ir-glass-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 0 28px rgba(255, 255, 255, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.25), 0 12px 32px rgba(0, 0, 0, 0.28), 0 28px 64px -28px rgba(79, 107, 255, 0.4);
+  --ir-glass-shadow-hover: inset 0 1px 0 rgba(255, 255, 255, 0.28), inset 0 0 32px rgba(255, 255, 255, 0.06),
+    0 2px 4px rgba(0, 0, 0, 0.28), 0 18px 40px rgba(0, 0, 0, 0.32), 0 34px 72px -28px rgba(139, 92, 246, 0.5);
   --ir-border: rgba(255, 255, 255, 0.1);
   --ir-border-strong: rgba(255, 255, 255, 0.16);
   --ir-separator: rgba(255, 255, 255, 0.06);
   --ir-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.14);
   --ir-text: #f5f5f7;
-  --ir-muted: rgba(255, 255, 255, 0.65); /* secondary text, AA on graphite */
+  --ir-muted: rgba(255, 255, 255, 0.7); /* secondary text, AA on graphite */
   --ir-accent: #0a84ff;
   --ir-accent-soft: rgba(10, 132, 255, 0.24);
   --ir-accent-grad: linear-gradient(180deg, #3b9bff 0%, #0a6fe0 100%);
@@ -30,7 +39,7 @@
     0 32px 72px -16px rgba(0, 0, 0, 0.55);
   --ir-inset: inset 0 1px 2px rgba(0, 0, 0, 0.35);
   --ir-blur: blur(24px) saturate(160%);
-  --ir-radius: 20px;
+  --ir-radius: 22px;
   --ir-radius-sm: 12px;
   --ir-ease: cubic-bezier(0.22, 1, 0.36, 1); /* ease-out */
   --ir-spring: cubic-bezier(0.34, 1.56, 0.64, 1); /* slight overshoot for the switch knob */
@@ -89,8 +98,9 @@ html {
   scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
 }
 
-/* Three large blurred glows (blue-violet, soft red, teal) drifting slowly.
-   Two live on html::before, one on html::after so they drift in different directions.
+/* Five large saturated glows the glass can refract: blue, violet, red-pink, teal, low amber.
+   Three on html::before, two on html::after so they drift in different directions.
+   Violet/amber sit mid-page (behind the dashboard grid), teal/red-pink lower (behind tables).
    Only transform is animated, so the compositor does the work. */
 html::before,
 html::after {
@@ -99,20 +109,30 @@ html::after {
   inset: -25vmax;
   z-index: -2;
   pointer-events: none;
-  filter: blur(60px);
+  filter: blur(90px);
   will-change: transform;
 }
 
 html::before {
   background:
-    radial-gradient(36vmax 36vmax at 24% 22%, rgba(108, 92, 255, 0.22), transparent 70%),
-    radial-gradient(30vmax 30vmax at 82% 74%, rgba(255, 90, 95, 0.22), transparent 70%);
-  animation: ir-drift-a 45s ease-in-out infinite alternate;
+    radial-gradient(34vmax 34vmax at 26% 24%, rgba(79, 107, 255, 0.55), transparent 70%),
+    radial-gradient(30vmax 30vmax at 66% 42%, rgba(139, 92, 246, 0.5), transparent 70%),
+    radial-gradient(24vmax 24vmax at 46% 58%, rgba(245, 158, 11, 0.28), transparent 70%);
+  animation: ir-drift-a 50s ease-in-out infinite alternate;
 }
 
 html::after {
-  background: radial-gradient(38vmax 38vmax at 72% 16%, rgba(40, 200, 190, 0.22), transparent 70%);
-  animation: ir-drift-b 45s ease-in-out infinite alternate;
+  background:
+    radial-gradient(30vmax 30vmax at 78% 72%, rgba(255, 77, 109, 0.48), transparent 70%),
+    radial-gradient(32vmax 32vmax at 28% 74%, rgba(20, 184, 166, 0.45), transparent 70%);
+  animation: ir-drift-b 50s ease-in-out infinite alternate;
+}
+
+.ir-svg-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
 }
 
 body {
@@ -264,7 +284,7 @@ button {
 }
 
 button:not(:disabled):active {
-  transform: scale(0.97);
+  transform: scale(0.98);
 }
 
 button:disabled {
@@ -349,12 +369,14 @@ button[class*="border-emerald"] {
   width: 2.75rem;
   height: 1.625rem;
   border-radius: 9999px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background-color: rgba(120, 120, 128, 0.32);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
   cursor: pointer;
   transition: background-color var(--ir-med) ease, box-shadow var(--ir-med) ease;
 }
 
+/* Glass knob: bright gradient bead with a specular top edge (no blur of its own). */
 .ir-switch-knob {
   position: absolute;
   top: 2px;
@@ -362,9 +384,17 @@ button[class*="border-emerald"] {
   width: 1.25rem;
   height: 1.25rem;
   border-radius: 9999px;
-  background: #fff;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35), 0 0 0 0.5px rgba(0, 0, 0, 0.08);
-  transition: transform 320ms var(--ir-spring), width var(--ir-fast) var(--ir-ease);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(232, 236, 245, 0.9) 100%);
+  box-shadow: inset 0 1px 0 #fff, inset 0 -1px 2px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.35),
+    0 0 0 0.5px rgba(0, 0, 0, 0.1);
+  transition: transform 320ms var(--ir-spring), width var(--ir-fast) var(--ir-ease), background var(--ir-fast) ease;
+}
+
+/* Pressed: the knob turns to clear glass, like iOS 26. */
+.ir-switch:not(:disabled):active .ir-switch-knob {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.28));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), inset 0 0 0 1px rgba(255, 255, 255, 0.45),
+    0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .ir-switch[aria-checked="true"] {
@@ -459,12 +489,7 @@ button[class*="border-emerald"] {
 }
 
 .ir-topbar {
-  background-color: rgba(28, 30, 38, 0.55);
-  backdrop-filter: var(--ir-blur);
-  -webkit-backdrop-filter: var(--ir-blur);
-  border: 1px solid var(--ir-border);
   border-radius: 22px;
-  box-shadow: var(--ir-shadow);
 }
 
 .ir-nav {
@@ -517,16 +542,66 @@ button[class*="border-emerald"] {
 
 /* ---------- Glass surfaces ---------- */
 
-/* Top-level panels, cards, sections and table containers become frosted glass. */
-:is(.glass, .ir-dialog, main [class*="bg-slate-900/"].border, main [class*="bg-slate-950/"].border,
-  main .overflow-x-auto.rounded.border, main section.rounded.border):not(button, input, select, textarea) {
-  background-color: var(--ir-surface);
-  background-image: none;
-  border: 1px solid var(--ir-border);
+/* Liquid glass: nav pill, toasts, login card, dialogs, top-level panels and cards.
+   Gradient fill + strong blur; the border is transparent because ::after draws the rim. */
+:where(.ir-topbar, .ir-toast, .lg-card, .glass, .ir-dialog, main [class*="bg-slate-900/"].border,
+  main [class*="bg-slate-950/"].border, main section.rounded.border):where(:not(button, input, select, textarea)) {
+  position: relative;
+  isolation: isolate;
+  background-color: transparent;
+  background-image: var(--ir-glass-fill);
+  border: 1px solid rgba(255, 255, 255, 0.04);
   border-radius: var(--ir-radius);
-  backdrop-filter: var(--ir-blur);
-  -webkit-backdrop-filter: var(--ir-blur);
-  box-shadow: var(--ir-shadow);
+  backdrop-filter: var(--ir-glass-blur);
+  -webkit-backdrop-filter: var(--ir-glass-blur);
+  box-shadow: var(--ir-glass-shadow);
+}
+
+/* Specular rim: a 1px gradient ring (bright top-left, faint bottom-right) cut out with mask-composite. */
+:where(.ir-topbar, .ir-toast, .lg-card, .glass, .ir-dialog, main [class*="bg-slate-900/"].border,
+  main [class*="bg-slate-950/"].border, main section.rounded.border):where(:not(button, input, select, textarea))::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  padding: 1px;
+  border-radius: inherit;
+  background: var(--ir-glass-rim);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  opacity: 0.8;
+  pointer-events: none;
+  transition: opacity var(--ir-med) ease;
+}
+
+/* Diagonal sheen under the content (z-index -1 inside the isolated surface). */
+:where(.ir-topbar, .ir-toast, .lg-card, .glass, .ir-dialog, main [class*="bg-slate-900/"].border,
+  main [class*="bg-slate-950/"].border, main section.rounded.border):where(:not(button, input, select, textarea))::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0) 32%,
+    rgba(255, 255, 255, 0) 70%, rgba(255, 255, 255, 0.03) 100%);
+  pointer-events: none;
+}
+
+/* Refraction (Chromium only, set in main.jsx) on a few small surfaces: nav pill, login card, stat cards, toasts. */
+html.ir-refract :is(.ir-topbar, .lg-card, .ir-toast, .dash-stats > .glass) {
+  backdrop-filter: var(--ir-glass-refract);
+}
+
+/* Table containers: light glass, softer blur, no rim or sheen (they scroll). */
+main .overflow-x-auto.rounded.border {
+  background-color: rgba(255, 255, 255, 0.04);
+  background-image: none;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--ir-radius);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 12px 32px rgba(0, 0, 0, 0.25);
 }
 
 /* Never nested blur: glass inside glass is a flat, lighter tint. */
@@ -535,44 +610,56 @@ button[class*="border-emerald"] {
   :is(.glass, main [class*="bg-slate-900/"].border, main [class*="bg-slate-950/"].border,
   main .overflow-x-auto.rounded.border, main section.rounded.border):not(button, input, select, textarea) {
   background-color: var(--ir-surface-nested);
+  background-image: none;
+  border: 1px solid var(--ir-separator);
   border-radius: var(--ir-radius-sm);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
-/* Table containers: a more opaque inner layer so rows stay readable over the glows. */
-main .overflow-x-auto.rounded.border:has(> table) {
-  background-color: var(--ir-surface-inner);
+:is(.glass, main [class*="bg-slate-900/"].border, main [class*="bg-slate-950/"].border,
+  main .overflow-x-auto.rounded.border, main section.rounded.border)
+  :is(.glass, main [class*="bg-slate-900/"].border, main [class*="bg-slate-950/"].border,
+  main section.rounded.border)::before,
+:is(.glass, main [class*="bg-slate-900/"].border, main [class*="bg-slate-950/"].border,
+  main .overflow-x-auto.rounded.border, main section.rounded.border)
+  :is(.glass, main [class*="bg-slate-900/"].border, main [class*="bg-slate-950/"].border,
+  main section.rounded.border)::after {
+  content: none;
 }
 
-/* Dialogs sit on a dark scrim, so they get a denser fill for legibility. */
+/* Dialogs sit on a dark scrim: same glass over a darker base for legibility. */
 .ir-dialog {
-  background-color: rgba(30, 32, 40, 0.8) !important;
-  box-shadow: var(--ir-highlight), 0 30px 80px rgba(0, 0, 0, 0.55) !important;
+  background-color: rgba(24, 26, 34, 0.6);
+  box-shadow: var(--ir-glass-shadow), 0 30px 80px rgba(0, 0, 0, 0.5);
 }
 
 /* Solid fallback where backdrop-filter is unsupported. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .ir-topbar,
-  .ir-dialog,
-  :is(.glass, main [class*="bg-slate-900/"].border, main [class*="bg-slate-950/"].border,
-    main .overflow-x-auto.rounded.border, main section.rounded.border):not(button, input, select, textarea) {
+  :is(.ir-topbar, .ir-toast, .lg-card, .glass, .ir-dialog, main [class*="bg-slate-900/"].border,
+    main [class*="bg-slate-950/"].border, main .overflow-x-auto.rounded.border,
+    main section.rounded.border):not(button, input, select, textarea) {
     background-color: var(--ir-surface-solid);
   }
 }
 
+/* Hover: lift 2px, rim brightens, shadow deepens (transform/opacity/shadow only). */
 .lift,
+.dash-stats > .glass,
 main [class*="bg-slate-900/"].border.p-4 {
-  transition: transform var(--ir-med) var(--ir-ease), box-shadow var(--ir-med) var(--ir-ease),
-    border-color var(--ir-med) ease;
+  transition: transform var(--ir-med) var(--ir-ease), box-shadow var(--ir-med) var(--ir-ease);
 }
 
 .lift:hover,
+.dash-stats > .glass:hover,
 main [class*="bg-slate-900/"].border.p-4:hover {
   transform: translateY(-2px);
-  box-shadow: var(--ir-shadow-hover);
-  border-color: var(--ir-border-strong);
+  box-shadow: var(--ir-glass-shadow-hover);
+}
+
+:is(.lift, .glass, .ir-topbar, .ir-toast, main [class*="bg-slate-900/"].border):hover::after {
+  opacity: 1;
 }
 
 /* Airy cards: p-4 panels get a little more room. */
@@ -593,14 +680,15 @@ main table thead tr {
   background: transparent;
 }
 
-/* Sticky header: solid tint, no blur of its own (it sits inside a glass container). */
+/* Sticky header: glass tint with a highlight edge, no blur of its own (it sits inside a glass container). */
 main table thead th {
   position: sticky;
   top: 0;
   z-index: 1;
   height: 40px;
-  background-color: rgba(22, 23, 31, 0.96);
-  box-shadow: inset 0 -1px 0 var(--ir-border);
+  background-color: rgba(26, 28, 40, 0.82);
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -1px 0 var(--ir-border);
   font-size: 0.6875rem;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -624,7 +712,7 @@ main table tbody tr + tr {
 }
 
 main table tbody tr:hover:not([class*="bg-red-"]):not([class*="bg-amber-"]) {
-  background-color: rgba(255, 255, 255, 0.045);
+  background-color: rgba(255, 255, 255, 0.07);
 }
 
 /* Empty states: a "nothing here" row gets space and a faint dashed ring. */
@@ -969,6 +1057,7 @@ main :is(h1.mb-4, div.mb-4:has(> h1)) {
   }
 
   .lift:hover,
+  .dash-stats > .glass:hover,
   main [class*="bg-slate-900/"].border.p-4:hover,
   button:not(:disabled):active {
     transform: none;
@@ -1031,13 +1120,8 @@ main :is(h1.mb-4, div.mb-4:has(> h1)) {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 12px;
-  border: 1px solid var(--ir-border-strong);
-  border-radius: 14px;
-  background: rgba(28, 30, 38, 0.72);
-  backdrop-filter: var(--ir-blur);
-  -webkit-backdrop-filter: var(--ir-blur);
-  box-shadow: var(--ir-shadow);
+  padding: 10px 14px;
+  background-color: rgba(28, 30, 38, 0.35); /* glass fill/blur/rim come from the glass rules */
   color: var(--ir-text);
   font-size: 0.875rem;
   pointer-events: auto;
@@ -1178,12 +1262,7 @@ main :is(h1.mb-4, div.mb-4:has(> h1)) {
   width: 100%;
   max-width: 420px;
   padding: 40px 36px 28px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 22px;
-  background: rgba(22, 24, 32, 0.55);
-  backdrop-filter: blur(24px) saturate(160%);
-  -webkit-backdrop-filter: blur(24px) saturate(160%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 30px 80px rgba(0, 0, 0, 0.55);
+  background-color: rgba(22, 24, 32, 0.4); /* glass fill/blur/rim come from the glass rules */
 }
 
 /* Floating-label inputs (48px). */
