@@ -20,7 +20,6 @@ const LEVEL_COLORS = {
   Critical: "#dc4c4c",
 };
 
-const TECHNIQUE_COLOR = "#818cf8";
 const DEVICE_COLORS = { online: "#3fb950", stale: "#d79b1f", offline: "#5e5850" };
 const FEED_SIZE = 8;
 
@@ -115,7 +114,7 @@ function TechniqueChart({ detections }) {
         <li key={d.name} className="dash-hbar" title={`${d.name}: ${d.count}`}>
           <Link to={`/attack/${d.name}`} className="truncate font-mono text-xs text-slate-300 hover:text-sky-300">{d.name}</Link>
           <div className="dash-bar">
-            <span style={{ width: `${(d.count / max) * 100}%`, background: TECHNIQUE_COLOR }} />
+            <span className="ir-bar-fill" style={{ width: `${(d.count / max) * 100}%` }} />
           </div>
           <span className="text-right tabular-nums text-slate-400">{d.count}</span>
         </li>

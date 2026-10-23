@@ -4,7 +4,8 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { get } from "../lib/api";
 import { RiskBadge } from "../components/RiskBadge";
 
-const BAR_COLOR = "#818cf8";
+// Warm neutral bar gradient; colours are theme tokens.
+const BAR_FILL = "url(#ir-bar-grad)";
 
 function formatBytes(n) {
   if (n >= 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
@@ -22,15 +23,21 @@ function TopChart({ title, rows, format = (v) => v }) {
       ) : (
         <ResponsiveContainer width="100%" height={Math.max(120, rows.length * 28)}>
           <BarChart data={rows} layout="vertical" margin={{ left: 8, right: 16, top: 4, bottom: 4 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#33302b" horizontal={false} />
-            <XAxis type="number" stroke="#827b71" fontSize={12} tickLine={false} tickFormatter={format} allowDecimals={false} />
-            <YAxis type="category" dataKey="label" stroke="#827b71" fontSize={12} tickLine={false} width={130} />
+            <defs>
+              <linearGradient id="ir-bar-grad" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0" style={{ stopColor: "var(--ir-bar-from)" }} />
+                <stop offset="1" style={{ stopColor: "var(--ir-bar-to)" }} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--ir-chart-grid)" horizontal={false} />
+            <XAxis type="number" stroke="var(--ir-chart-axis)" fontSize={12} tickLine={false} tickFormatter={format} allowDecimals={false} />
+            <YAxis type="category" dataKey="label" stroke="var(--ir-chart-axis)" fontSize={12} tickLine={false} width={130} />
             <Tooltip
-              cursor={{ fill: "#33302b" }}
-              contentStyle={{ background: "#1a1c24", border: "1px solid #3a3d4a", fontSize: 12 }}
+              cursor={{ fill: "var(--ir-chart-grid)" }}
+              contentStyle={{ background: "var(--ir-chart-tip-bg)", border: "1px solid var(--ir-chart-tip-border)", fontSize: 12 }}
               formatter={(v) => [format(v), title]}
             />
-            <Bar dataKey="value" fill={BAR_COLOR} radius={[0, 4, 4, 0]} maxBarSize={18} />
+            <Bar dataKey="value" fill={BAR_FILL} radius={[0, 4, 4, 0]} maxBarSize={18} />
           </BarChart>
         </ResponsiveContainer>
       )}

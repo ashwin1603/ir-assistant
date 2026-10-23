@@ -125,7 +125,7 @@ export function AttackGraph({ incidentId }) {
           <svg width={width} height={height} role="img" aria-label="Attack graph" className="block">
             <defs>
               <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
-                <path d="M0,0 L10,5 L0,10 z" fill="#a59e93" />
+                <path d="M0,0 L10,5 L0,10 z" fill="var(--ir-graph-line)" />
               </marker>
             </defs>
 
@@ -138,8 +138,8 @@ export function AttackGraph({ incidentId }) {
                 return (
                   <g key={`${g.tactic}-${g.start}`}>
                     <rect x={x} y={first.y - LABEL_SPACE} width={w} height={NODE_H + LABEL_SPACE + 8} rx="8"
-                      fill="#a59e93" fillOpacity="0.05" stroke="#a59e93" strokeOpacity="0.3" strokeDasharray="4 3" />
-                    <text x={x + 8} y={first.y - 12} fontSize="11" fill="#cdc7bd">{g.tactic}</text>
+                      fill="var(--ir-graph-line)" fillOpacity="0.05" stroke="var(--ir-graph-line)" strokeOpacity="0.3" strokeDasharray="4 3" />
+                    <text x={x + 8} y={first.y - 12} fontSize="11" fill="var(--ir-graph-label)">{g.tactic}</text>
                   </g>
                 );
               })}
@@ -147,7 +147,7 @@ export function AttackGraph({ incidentId }) {
             {graph.edges.map((e) => {
               const d = edgePath(e);
               return d ? (
-                <path key={`${e.source}-${e.target}`} d={d} fill="none" stroke="#a59e93" strokeWidth="1.5"
+                <path key={`${e.source}-${e.target}`} d={d} fill="none" stroke="var(--ir-graph-line)" strokeWidth="1.5"
                   pathLength={e.kind === "same_tactic" ? undefined : 1}
                   className={e.kind === "same_tactic" ? "ag-fade" : "ag-draw"}
                   strokeDasharray={e.kind === "same_tactic" ? "5 4" : undefined} markerEnd="url(#arrow)" />
@@ -160,9 +160,9 @@ export function AttackGraph({ incidentId }) {
               if (n.type !== "detection") {
                 return (
                   <g key={n.id} className="ag-node">
-                    <rect x={p.x} y={p.y} width={NODE_W} height={p.h} rx="6" fill="#262833" stroke="#0a84ff" />
-                    <text x={p.x + 10} y={p.y + 22} fontSize="10" fill="#a59e93">{n.type.toUpperCase()}</text>
-                    <text x={p.x + 10} y={p.y + 40} fontSize="13" fill="#e2e8f0">{shorten(n.label)}</text>
+                    <rect x={p.x} y={p.y} width={NODE_W} height={p.h} rx="6" fill="var(--ir-graph-node)" stroke="var(--ir-accent)" />
+                    <text x={p.x + 10} y={p.y + 22} fontSize="10" fill="var(--ir-graph-line)">{n.type.toUpperCase()}</text>
+                    <text x={p.x + 10} y={p.y + 40} fontSize="13" fill="var(--ir-graph-text)">{shorten(n.label)}</text>
                   </g>
                 );
               }
@@ -178,10 +178,10 @@ export function AttackGraph({ incidentId }) {
                       <tspan key={i} x={p.x + 10} dy={i === 0 ? 0 : LINE_H}>{line}</tspan>
                     ))}
                   </text>
-                  <text x={p.x + 10} y={p.y + NODE_H - 22} fontSize="11" fill="#f1f5f9">
+                  <text x={p.x + 10} y={p.y + NODE_H - 22} fontSize="11" fill="var(--ir-graph-text)">
                     {n.technique || "—"} · {Math.round(n.risk_score)}
                   </text>
-                  <text x={p.x + 10} y={p.y + NODE_H - 8} fontSize="10" fill="#e2e8f0">
+                  <text x={p.x + 10} y={p.y + NODE_H - 8} fontSize="10" fill="var(--ir-graph-text)">
                     {new Date(n.first_seen).toLocaleTimeString()}
                   </text>
                 </g>

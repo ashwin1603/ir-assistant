@@ -1,37 +1,62 @@
-/* IR Assistant theme: Apple-style "liquid glass" on deep graphite.
+/* IR Assistant theme: "liquid glass" on warm charcoal with one warm palette (red accent).
    All colours live here. Pages keep using Tailwind's slate/sky class names;
-   the @theme block below remaps those scales, so slate = cool graphite neutrals
-   and sky = the blue accent. Severity (amber/orange/red), status and TI (fuchsia)
-   colours are untouched so they stay distinct from the accent. */
+   the @theme block below remaps those scales, so slate = warm grey neutrals
+   and sky = the red accent. Badge scales (violet/indigo/cyan/fuchsia/emerald) are
+   remapped to desaturated tones so they stay distinct but quiet. Severity
+   (amber/orange/red) is untouched. */
 
 :root {
-  --ir-bg: #0b0c10;
-  --ir-bg-2: #12131a;
+  --ir-bg: #121110;
+  --ir-bg-2: #1a1816;
   --ir-surface: rgba(255, 255, 255, 0.06);
   --ir-surface-nested: rgba(255, 255, 255, 0.035);
-  --ir-surface-solid: rgba(26, 28, 36, 0.97); /* fallback when backdrop-filter is unsupported */
+  --ir-surface-solid: rgba(30, 27, 25, 0.97); /* fallback when backdrop-filter is unsupported */
   /* Liquid glass: gradient fill, strong blur, specular rim, inner glow, tinted shadow. */
-  --ir-glass-fill: linear-gradient(135deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04));
+  --ir-glass-fill: linear-gradient(135deg, rgba(255, 244, 236, 0.10), rgba(255, 244, 236, 0.03));
   --ir-glass-blur: blur(28px) saturate(190%) brightness(1.08);
   --ir-glass-refract: url(#lg-refract) blur(28px) saturate(190%) brightness(1.08);
   --ir-glass-rim: linear-gradient(135deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 38%,
     rgba(255, 255, 255, 0) 62%, rgba(255, 255, 255, 0.18) 100%);
   --ir-glass-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 0 28px rgba(255, 255, 255, 0.04),
-    0 1px 2px rgba(0, 0, 0, 0.25), 0 12px 32px rgba(0, 0, 0, 0.28), 0 28px 64px -28px rgba(79, 107, 255, 0.4);
+    0 1px 2px rgba(0, 0, 0, 0.25), 0 12px 32px rgba(0, 0, 0, 0.28), 0 28px 64px -28px rgba(0, 0, 0, 0.45);
   --ir-glass-shadow-hover: inset 0 1px 0 rgba(255, 255, 255, 0.28), inset 0 0 32px rgba(255, 255, 255, 0.06),
-    0 2px 4px rgba(0, 0, 0, 0.28), 0 18px 40px rgba(0, 0, 0, 0.32), 0 34px 72px -28px rgba(139, 92, 246, 0.5);
+    0 2px 4px rgba(0, 0, 0, 0.28), 0 18px 40px rgba(0, 0, 0, 0.32), 0 34px 72px -28px var(--ir-accent-glow);
   --ir-border: rgba(255, 255, 255, 0.1);
   --ir-border-strong: rgba(255, 255, 255, 0.16);
   --ir-separator: rgba(255, 255, 255, 0.06);
   --ir-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.14);
-  --ir-text: #f5f5f7;
-  --ir-muted: rgba(255, 255, 255, 0.7); /* secondary text, AA on graphite */
-  --ir-accent: #0a84ff;
-  --ir-accent-soft: rgba(10, 132, 255, 0.24);
-  --ir-accent-grad: linear-gradient(180deg, #3b9bff 0%, #0a6fe0 100%);
+  --ir-text: #f5f1ee;
+  --ir-muted: rgba(245, 241, 238, 0.68); /* secondary text, AA on charcoal */
+  --ir-accent: #c74634;
+  --ir-accent-hover: #d9573f;
+  --ir-accent-glow: rgba(199, 70, 52, 0.35);
+  --ir-accent-soft: rgba(199, 70, 52, 0.24);
+  --ir-accent-grad: linear-gradient(180deg, var(--ir-accent-hover) 0%, var(--ir-accent) 100%);
+  --ir-link: #ec9a8a;
+  --ir-link-hover: #f5bcae;
+  /* Warm neutral bars (techniques, destinations, processes, bytes). */
+  --ir-bar-from: #8f857d;
+  --ir-bar-to: #d8cfc7;
+  --ir-bar-grad: linear-gradient(90deg, var(--ir-bar-from), var(--ir-bar-to));
+  --ir-chart-grid: rgba(255, 244, 236, 0.08);
+  --ir-chart-axis: #8f857d;
+  --ir-chart-tip-bg: #1f1c1a;
+  --ir-chart-tip-border: rgba(255, 255, 255, 0.1);
+  /* Attack graph */
+  --ir-graph-node: #2a2522;
+  --ir-graph-line: #a59e93;
+  --ir-graph-label: #cdc7bd;
+  --ir-graph-text: #ece6e1;
+  /* Background orbs (warm family only). */
+  --ir-orb-red: rgba(143, 42, 32, 0.30);
+  --ir-orb-amber: rgba(154, 90, 42, 0.26);
+  --ir-orb-grey: rgba(58, 52, 48, 0.30);
+  /* Logo: red to amber. */
+  --ir-logo-from: #c74634;
+  --ir-logo-to: #d99a4e;
   --ir-danger: #ff453a;
   --ir-danger-grad: linear-gradient(180deg, #ff5f55 0%, #e0322a 100%);
-  --ir-ring: rgba(10, 132, 255, 0.55);
+  --ir-ring: rgba(199, 70, 52, 0.6);
   --ir-live: #30d158;
   --ir-shadow: var(--ir-highlight), 0 1px 2px rgba(0, 0, 0, 0.25), 0 8px 24px rgba(0, 0, 0, 0.25),
     0 24px 56px -16px rgba(0, 0, 0, 0.45);
@@ -60,30 +85,48 @@
 }
 
 @theme {
-  /* Cool graphite neutrals in place of slate. */
-  --color-slate-50: #f9f9fb;
-  --color-slate-100: #f5f5f7;
-  --color-slate-200: #e2e3e8;
-  --color-slate-300: #c9cad2;
-  --color-slate-400: #abadb6; /* ~65% white on graphite */
-  --color-slate-500: #868896;
-  --color-slate-600: #5d6070;
-  --color-slate-700: #3a3d4a;
-  --color-slate-800: #262833;
-  --color-slate-900: #1a1c24;
-  --color-slate-950: #111218;
+  /* Warm grey neutrals in place of slate. */
+  --color-slate-50: #faf8f6;
+  --color-slate-100: #f5f1ee;
+  --color-slate-200: #e5dfda;
+  --color-slate-300: #cdc5be;
+  --color-slate-400: #b0a79f; /* ~65% on charcoal */
+  --color-slate-500: #8b827a;
+  --color-slate-600: #625a54;
+  --color-slate-700: #403a36;
+  --color-slate-800: #2b2724;
+  --color-slate-900: #1e1b19;
+  --color-slate-950: #141211;
 
-  /* Blue accent (primary buttons, links, focus) in place of sky. */
-  --color-sky-100: #dbecff;
-  --color-sky-200: #b5d8ff;
-  --color-sky-300: #84c0ff;
-  --color-sky-400: #5aaaff;
-  --color-sky-500: #2f95ff;
-  --color-sky-600: #0a84ff;
-  --color-sky-700: #0068d1;
-  --color-sky-800: #004f9e;
-  --color-sky-900: #003670;
-  --color-sky-950: #001f42;
+  /* Red accent (primary buttons, links, focus) in place of sky. */
+  --color-sky-100: #fbe3de;
+  --color-sky-200: #f5c3b8;
+  --color-sky-300: #ec9a8a;
+  --color-sky-400: #e07563;
+  --color-sky-500: #d9573f;
+  --color-sky-600: #c74634;
+  --color-sky-700: #a63828;
+  --color-sky-800: #7e2b1f;
+  --color-sky-900: #561e16;
+  --color-sky-950: #33120d;
+
+  /* Badge scales, desaturated so they stay distinct without bright blue/violet/teal/pink. */
+  --color-violet-300: #c4b3c0;
+  --color-violet-900: #3f3340;
+  --color-indigo-300: #b5b3c4;
+  --color-indigo-900: #34333f;
+  --color-cyan-200: #c9d3cc;
+  --color-cyan-300: #aebfb4;
+  --color-cyan-800: #4a5a50;
+  --color-cyan-900: #2f3a33;
+  --color-cyan-950: #1f2622;
+  --color-fuchsia-300: #d0a9b4;
+  --color-fuchsia-900: #462c34;
+  --color-emerald-300: #9fcca8;
+  --color-emerald-400: #7fb98a;
+  --color-emerald-700: #3f6b48;
+  --color-emerald-900: #24402b;
+  --color-emerald-950: #17281b;
 }
 
 /* ---------- Screen only (print keeps the original report styling) ---------- */
@@ -98,9 +141,8 @@ html {
   scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
 }
 
-/* Five large saturated glows the glass can refract: blue, violet, red-pink, teal, low amber.
-   Three on html::before, two on html::after so they drift in different directions.
-   Violet/amber sit mid-page (behind the dashboard grid), teal/red-pink lower (behind tables).
+/* Three warm glows the glass can refract: deep red, muted amber, warm grey.
+   Two on html::before, one on html::after so they drift in different directions.
    Only transform is animated, so the compositor does the work. */
 html::before,
 html::after {
@@ -109,22 +151,19 @@ html::after {
   inset: -25vmax;
   z-index: -2;
   pointer-events: none;
-  filter: blur(90px);
+  filter: blur(100px);
   will-change: transform;
 }
 
 html::before {
   background:
-    radial-gradient(34vmax 34vmax at 26% 24%, rgba(79, 107, 255, 0.55), transparent 70%),
-    radial-gradient(30vmax 30vmax at 66% 42%, rgba(139, 92, 246, 0.5), transparent 70%),
-    radial-gradient(24vmax 24vmax at 46% 58%, rgba(245, 158, 11, 0.28), transparent 70%);
+    radial-gradient(34vmax 34vmax at 26% 24%, var(--ir-orb-red), transparent 70%),
+    radial-gradient(28vmax 28vmax at 70% 50%, var(--ir-orb-amber), transparent 70%);
   animation: ir-drift-a 50s ease-in-out infinite alternate;
 }
 
 html::after {
-  background:
-    radial-gradient(30vmax 30vmax at 78% 72%, rgba(255, 77, 109, 0.48), transparent 70%),
-    radial-gradient(32vmax 32vmax at 28% 74%, rgba(20, 184, 166, 0.45), transparent 70%);
+  background: radial-gradient(34vmax 34vmax at 32% 76%, var(--ir-orb-grey), transparent 70%);
   animation: ir-drift-b 50s ease-in-out infinite alternate;
 }
 
@@ -227,7 +266,7 @@ input:focus,
 select:focus,
 textarea:focus {
   outline: none;
-  border-color: rgba(10, 132, 255, 0.7);
+  border-color: var(--ir-accent);
   background-color: rgba(255, 255, 255, 0.07);
   box-shadow: var(--ir-inset), 0 0 0 4px var(--ir-accent-soft);
 }
@@ -244,7 +283,7 @@ select {
   appearance: none;
   -webkit-appearance: none;
   padding-right: 2rem;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5' fill='none' stroke='%23a3a5b0' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5' fill='none' stroke='%23b0a79f' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 0.6rem center;
   background-size: 12px;
@@ -256,7 +295,7 @@ select[multiple] {
 }
 
 option {
-  background-color: #1a1c24;
+  background-color: var(--color-slate-900);
   color: var(--ir-text);
 }
 
@@ -291,7 +330,7 @@ button:disabled {
   cursor: not-allowed;
 }
 
-/* Primary: pages use bg-sky-600 (remapped to blue) -> blue gradient. */
+/* Primary: pages use bg-sky-600 (remapped to the red accent) -> red gradient. */
 button[class*="bg-sky-6"],
 a[class*="bg-sky-6"] {
   background-image: var(--ir-accent-grad);
@@ -299,13 +338,13 @@ a[class*="bg-sky-6"] {
   border-radius: 10px;
   color: #fff;
   font-weight: 500;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 4px 14px rgba(10, 132, 255, 0.3);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 4px 14px var(--ir-accent-glow);
 }
 
 button[class*="bg-sky-6"]:not(:disabled):hover,
 a[class*="bg-sky-6"]:hover {
   filter: brightness(1.08);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 6px 20px rgba(10, 132, 255, 0.4);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 6px 20px var(--ir-accent-glow);
 }
 
 button[class*="bg-sky-6"]:disabled {
@@ -384,7 +423,7 @@ button[class*="border-emerald"] {
   width: 1.25rem;
   height: 1.25rem;
   border-radius: 9999px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(232, 236, 245, 0.9) 100%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(240, 234, 229, 0.9) 100%);
   box-shadow: inset 0 1px 0 #fff, inset 0 -1px 2px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.35),
     0 0 0 0.5px rgba(0, 0, 0, 0.1);
   transition: transform 320ms var(--ir-spring), width var(--ir-fast) var(--ir-ease), background var(--ir-fast) ease;
@@ -518,11 +557,11 @@ button[class*="border-emerald"] {
   background-color: rgba(255, 255, 255, 0.05);
 }
 
-/* Active page: a small glass pill. */
+/* Active page: a small accent pill. */
 .ir-navlink.active {
-  color: var(--ir-text);
-  background-color: rgba(255, 255, 255, 0.13);
-  box-shadow: var(--ir-highlight), 0 1px 4px rgba(0, 0, 0, 0.3);
+  color: #fff;
+  background-image: var(--ir-accent-grad);
+  box-shadow: var(--ir-highlight), 0 2px 10px var(--ir-accent-glow);
 }
 
 .ir-role {
@@ -532,8 +571,8 @@ button[class*="border-emerald"] {
   font-weight: 600;
   text-transform: capitalize;
   color: var(--color-sky-300);
-  background-color: rgba(10, 132, 255, 0.16);
-  box-shadow: inset 0 0 0 1px rgba(10, 132, 255, 0.3);
+  background-color: var(--ir-accent-soft);
+  box-shadow: inset 0 0 0 1px var(--ir-accent-glow);
 }
 
 .ir-mobile-nav .ir-navlink {
@@ -583,8 +622,8 @@ button[class*="border-emerald"] {
   inset: 0;
   z-index: -1;
   border-radius: inherit;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0) 32%,
-    rgba(255, 255, 255, 0) 70%, rgba(255, 255, 255, 0.03) 100%);
+  background: linear-gradient(135deg, rgba(255, 244, 236, 0.09) 0%, rgba(255, 244, 236, 0) 32%,
+    rgba(255, 244, 236, 0) 70%, rgba(255, 244, 236, 0.03) 100%);
   pointer-events: none;
 }
 
@@ -631,7 +670,7 @@ main .overflow-x-auto.rounded.border {
 
 /* Dialogs sit on a dark scrim: same glass over a darker base for legibility. */
 .ir-dialog {
-  background-color: rgba(24, 26, 34, 0.6);
+  background-color: rgba(28, 25, 23, 0.6);
   box-shadow: var(--ir-glass-shadow), 0 30px 80px rgba(0, 0, 0, 0.5);
 }
 
@@ -686,8 +725,8 @@ main table thead th {
   top: 0;
   z-index: 1;
   height: 40px;
-  background-color: rgba(26, 28, 40, 0.82);
-  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+  background-color: rgba(32, 28, 26, 0.82);
+  background-image: linear-gradient(180deg, rgba(255, 244, 236, 0.07), rgba(255, 244, 236, 0.02));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -1px 0 var(--ir-border);
   font-size: 0.6875rem;
   font-weight: 600;
@@ -735,6 +774,7 @@ main tbody > tr:only-child > td[colspan]:only-child:not(:has(.skeleton))::before
 }
 
 main a[class*="text-sky-4"] {
+  color: var(--ir-link);
   transition: color var(--ir-fast) ease;
   text-underline-offset: 3px;
 }
@@ -935,7 +975,7 @@ main :is(h1.mb-4, div.mb-4:has(> h1)) {
 
 @keyframes ir-flash {
   from {
-    background-color: rgba(10, 132, 255, 0.22);
+    background-color: var(--ir-accent-soft);
   }
   to {
     background-color: transparent;
@@ -1027,7 +1067,7 @@ main :is(h1.mb-4, div.mb-4:has(> h1)) {
 }
 
 .ag-node:hover {
-  filter: drop-shadow(0 0 6px rgba(10, 132, 255, 0.75)) brightness(1.08);
+  filter: drop-shadow(0 0 6px var(--ir-accent-glow)) brightness(1.08);
 }
 
 .ag-draw {
@@ -1121,7 +1161,7 @@ main :is(h1.mb-4, div.mb-4:has(> h1)) {
   align-items: center;
   gap: 10px;
   padding: 10px 14px;
-  background-color: rgba(28, 30, 38, 0.35); /* glass fill/blur/rim come from the glass rules */
+  background-color: rgba(30, 27, 25, 0.35); /* glass fill/blur/rim come from the glass rules */
   color: var(--ir-text);
   font-size: 0.875rem;
   pointer-events: auto;
@@ -1141,7 +1181,7 @@ main :is(h1.mb-4, div.mb-4:has(> h1)) {
   background: var(--ir-accent);
 }
 
-.ir-toast.success .ir-toast-icon { background: #30a14e; }
+.ir-toast.success .ir-toast-icon { background: var(--color-emerald-700); }
 .ir-toast.error .ir-toast-icon { background: var(--ir-danger); }
 
 .ir-toast-close {
@@ -1171,7 +1211,7 @@ main :is(h1.mb-4, div.mb-4:has(> h1)) {
   position: relative;
   min-height: 100vh;
   overflow: hidden;
-  background: #07080b;
+  background: var(--ir-bg);
 }
 
 .lg-wall {
@@ -1212,7 +1252,7 @@ main :is(h1.mb-4, div.mb-4:has(> h1)) {
   padding: 16px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
-  background: linear-gradient(150deg, rgba(109, 124, 255, 0.16), rgba(255, 255, 255, 0.03) 55%, rgba(255, 122, 122, 0.1));
+  background: linear-gradient(150deg, rgba(199, 70, 52, 0.14), rgba(255, 244, 236, 0.03) 55%, rgba(154, 90, 42, 0.1));
   color: rgba(255, 255, 255, 0.55);
   font-size: 0.95rem;
   font-weight: 600;
@@ -1222,7 +1262,7 @@ main :is(h1.mb-4, div.mb-4:has(> h1)) {
 .lg-tile.word {
   align-items: center;
   justify-content: center;
-  background: linear-gradient(150deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015));
+  background: linear-gradient(150deg, rgba(255, 244, 236, 0.06), rgba(255, 244, 236, 0.015));
   font-size: 1.5rem;
   color: rgba(255, 255, 255, 0.35);
 }
@@ -1232,8 +1272,8 @@ main :is(h1.mb-4, div.mb-4:has(> h1)) {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 55% 60% at 50% 50%, rgba(7, 8, 11, 0.55) 0%, rgba(7, 8, 11, 0.9) 70%, #07080b 100%),
-    linear-gradient(180deg, rgba(7, 8, 11, 0.85) 0%, rgba(7, 8, 11, 0.2) 35%, rgba(7, 8, 11, 0.2) 65%, rgba(7, 8, 11, 0.95) 100%);
+    radial-gradient(ellipse 55% 60% at 50% 50%, rgba(18, 17, 16, 0.55) 0%, rgba(18, 17, 16, 0.9) 70%, var(--ir-bg) 100%),
+    linear-gradient(180deg, rgba(18, 17, 16, 0.85) 0%, rgba(18, 17, 16, 0.2) 35%, rgba(18, 17, 16, 0.2) 65%, rgba(18, 17, 16, 0.95) 100%);
 }
 
 @keyframes lg-drift {
@@ -1262,7 +1302,7 @@ main :is(h1.mb-4, div.mb-4:has(> h1)) {
   width: 100%;
   max-width: 420px;
   padding: 40px 36px 28px;
-  background-color: rgba(22, 24, 32, 0.4); /* glass fill/blur/rim come from the glass rules */
+  background-color: rgba(28, 25, 23, 0.4); /* glass fill/blur/rim come from the glass rules */
 }
 
 /* Floating-label inputs (48px). */
@@ -1338,7 +1378,8 @@ main :is(h1.mb-4, div.mb-4:has(> h1)) {
   justify-content: center;
   gap: 8px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #5b6cff 0%, #8d5cf6 60%, #c0607a 100%);
+  background: var(--ir-accent-grad);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 6px 20px var(--ir-accent-glow);
   color: #fff;
   font-weight: 600;
   transition: filter var(--ir-fast) ease, opacity var(--ir-fast) ease;
@@ -1368,11 +1409,11 @@ main :is(h1.mb-4, div.mb-4:has(> h1)) {
 
 .lg-link {
   font-size: 0.8rem;
-  color: #8ab4ff;
+  color: var(--ir-link);
 }
 
 .lg-link:hover {
-  color: #b3ceff;
+  color: var(--ir-link-hover);
   text-decoration: underline;
 }
 
@@ -1457,4 +1498,9 @@ main :is(h1.mb-4, div.mb-4:has(> h1)) {
 
 .dash-hbar .dash-bar > span {
   transition: width var(--ir-med) var(--ir-ease);
+}
+
+/* Warm neutral fill for non-severity bars (techniques). */
+.ir-bar-fill {
+  background: var(--ir-bar-grad);
 }
