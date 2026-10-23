@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { del, get, patch, post, put, upload } from "../lib/api";
 import { useAuth } from "../auth/AuthContext";
+import RuleEditor, { EMPTY_RULE } from "../components/RuleEditor";
 
 const ADMIN_TABS = ["Users", "Detection", "Threat intel", "System"];
 const TI_MAX_BYTES = 1024 * 1024;
@@ -121,7 +122,7 @@ function UsersTab() {
   );
 }
 
-function RuleRow({ rule, onSaved, onError }) {
+function RuleRow({ rule, onSaved, onError, onEdit, onClone, onDelete }) {
   const [minCount, setMinCount] = useState(rule.min_count ?? "");
   const [windowMinutes, setWindowMinutes] = useState(rule.window_minutes ?? "");
   const isCluster = rule.kind === "cluster";
@@ -160,6 +161,14 @@ function RuleRow({ rule, onSaved, onError }) {
         ) : (
           <span className="text-slate-600">per event</span>
         )}
+      </td>
+      <td className="px-3 py-2 text-xs text-slate-500">{rule.source}</td>
+      <td className="px-3 py-2">
+        <div className="flex gap-1">
+          {rule.source === "custom" && <button className={buttonClass} onClick={() => onEdit(rule)}>Edit</button>}
+          <button className={buttonClass} onClick={() => onClone(rule)}>Clone</button>
+          {rule.source === "custom" && <button className={buttonClass} onClick={() => onDelete(rule)}>Delete</button>}
+        </div>
       </td>
     </tr>
   );
@@ -215,10 +224,42 @@ function DetectionTab() {
   const [rules, setRules] = useState([]);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [editor, setEditor] = useState(null); // { initial, ruleId } while the rule editor is open
 
   useEffect(() => {
     get("/settings/rules").then(setRules).catch((err) => setError(err.message));
   }, []);
+
+  const showError = (msg) => { setNotice(""); setError(msg); };
+
+  async function openEditor(rule, clone) {
+    try {
+      const initial = await get(`/settings/rules/${rule.id}/form`);
+      setEditor({ initial, ruleId: clone ? null : rule.id });
+      setError("");
+    } catch (err) {
+      showError(err.message);
+    }
+  }
+
+  async function deleteRule(rule) {
+    if (!window.confirm(`Delete custom rule "${rule.name}"?`)) return;
+    try {
+      await del(`/settings/rules/custom/${rule.id}`);
+      setRules((rs) => rs.filter((r) => r.id !== rule.id));
+      setError("");
+      setNotice(`Deleted "${rule.name}"`);
+    } catch (err) {
+      showError(err.message);
+    }
+  }
+
+  function onEditorSaved(rule, created) {
+    setEditor(null);
+    setError("");
+    setNotice(created ? `Saved "${rule.name}" (disabled) - tick its box to enable it` : `Saved "${rule.name}"`);
+    setRules((rs) => (created ? [...rs, rule] : rs.map((r) => (r.id === rule.id ? rule : r))));
+  }
 
   function onSaved(updated) {
     setError("");
@@ -244,16 +285,25 @@ function DetectionTab() {
               <th className="px-3 py-2">ATT&CK</th>
               <th className="px-3 py-2">Severity</th>
               <th className="px-3 py-2">Threshold</th>
+              <th className="px-3 py-2">Source</th>
+              <th className="px-3 py-2"></th>
             </tr>
           </thead>
           <tbody>
             {rules.map((r) => (
-              <RuleRow key={r.id} rule={r} onSaved={onSaved} onError={setError} />
+              <RuleRow key={r.id} rule={r} onSaved={onSaved} onError={setError}
+                onEdit={(rule) => openEditor(rule, false)} onClone={(rule) => openEditor(rule, true)} onDelete={deleteRule} />
             ))}
           </tbody>
         </table>
       </div>
-      <SigmaImport onImported={onImported} onError={(msg) => { setNotice(""); setError(msg); }} />
+      {editor ? (
+        <RuleEditor key={editor.ruleId ?? "new"} initial={editor.initial} ruleId={editor.ruleId}
+          onSaved={onEditorSaved} onCancel={() => setEditor(null)} onError={showError} />
+      ) : (
+        <button className={`${buttonClass} mt-4`} onClick={() => setEditor({ initial: EMPTY_RULE, ruleId: null })}>New rule</button>
+      )}
+      <SigmaImport onImported={onImported} onError={showError} />
     </div>
   );
 }

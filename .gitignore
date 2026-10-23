@@ -20,3 +20,7 @@ docs/llm_cache.json
 
 # LLM verdict cache, run 2 (label removed)
 docs/llm_cache_run2.json
+
+# Admin-written and imported detection rules (local data)
+backend/rules/custom/
+backend/rules/imported/

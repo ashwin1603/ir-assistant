@@ -131,7 +131,7 @@ def import_sigma(text: str) -> Rule:
         raise SigmaImportError("Rule too large (max 50 KB)")
     doc = convert_sigma(text)
     try:
-        rule = _rule_from_yaml(doc)  # same parser as built-in rules: proves it will load at startup
+        rule = _rule_from_yaml(doc, "imported")  # same parser as built-in rules: proves it will load at startup
     except (KeyError, ValueError) as e:
         raise SigmaImportError(f"Rule could not be converted: {e}")
     if any(r.id == rule.id for r in rules_module.RULES):

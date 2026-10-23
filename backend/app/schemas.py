@@ -119,11 +119,63 @@ class RuleSettingOut(BaseModel):
     window_minutes: int | None
     default_min_count: int | None
     default_window_minutes: int | None
+    source: str = "builtin"
 
 
 class SigmaImport(BaseModel):
     # Hard cap on the request; the 50 KB rule limit is checked in the importer (413).
     yaml: str = Field(min_length=1, max_length=1_000_000)
+
+
+# ---------- Custom rule editor ----------
+# Structural limits live here (422); regex compilation and the 10-condition cap are
+# checked in detection/custom_rules.py so the admin gets a readable 400 message.
+
+CUSTOM_RULE_FIELDS = Literal["command_line", "process", "parent_process", "user", "message", "channel"]
+CUSTOM_RULE_OPS = Literal["contains", "startswith", "endswith", "equals", "regex"]
+
+
+class RuleCondition(BaseModel):
+    field: CUSTOM_RULE_FIELDS
+    op: CUSTOM_RULE_OPS
+    value: str = Field(min_length=1, max_length=200)
+
+
+class RuleConditionGroup(BaseModel):
+    # Conditions inside a group are ANDed; groups are ORed.
+    conditions: list[RuleCondition] = Field(min_length=1, max_length=50)
+
+
+class RuleThreshold(BaseModel):
+    count: int = Field(ge=2, le=1000)
+    minutes: int = Field(ge=1, le=1440)
+
+
+class CustomRuleIn(BaseModel):
+    title: str = Field(min_length=3, max_length=120)
+    description: str = Field(default="", max_length=500)
+    level: Literal["informational", "low", "medium", "high", "critical"]
+    confidence: float = Field(ge=0.1, le=1.0)
+    technique_ids: list[Annotated[str, Field(pattern=r"^T\d{4}(\.\d{3})?$")]] = Field(min_length=1, max_length=10)
+    event_id: int | None = Field(default=None, ge=0, le=65535)
+    groups: list[RuleConditionGroup] = Field(min_length=1, max_length=50)
+    threshold: RuleThreshold | None = None
+
+
+class RuleTestSample(BaseModel):
+    id: str
+    timestamp: datetime
+    host: str | None
+    event_id: int | None
+    user: str | None
+    process: str | None
+    command_line: str | None
+
+
+class RuleTestResult(BaseModel):
+    match_count: int
+    cluster_count: int | None  # threshold rules only: how many detections it would have produced
+    samples: list[RuleTestSample]
 
 
 class RuleSettingUpdate(BaseModel):

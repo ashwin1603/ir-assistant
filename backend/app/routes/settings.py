@@ -16,6 +16,8 @@ from app.auth.routes import clear_mfa
 from app.auth.security import hash_password
 from app.config import settings
 from app.db import get_db
+from app.detection import custom_rules
+from app.detection.custom_rules import CustomRuleError
 from app.detection.rules import RULES
 from app.detection.sigma_import import MAX_BYTES, SigmaImportError, import_sigma
 from app.detection.threat_intel import MAX_IMPORT_BYTES, import_indicators, parse_import
@@ -23,6 +25,8 @@ from app.models import AuditLog, RuleOverride, ThreatIndicator, User
 from app.runtime_settings import get_ai_calls_per_hour, set_ai_calls_per_hour
 from app.schemas import (
     AdminUserCreate,
+    CustomRuleIn,
+    RuleTestResult,
     AdminUserOut,
     AdminUserUpdate,
     PasswordReset,
@@ -123,6 +127,7 @@ def _rule_out(rule, override: RuleOverride | None) -> RuleSettingOut:
         window_minutes=(override and override.window_minutes or rule.window_minutes) if is_cluster else None,
         default_min_count=rule.min_count,
         default_window_minutes=rule.window_minutes,
+        source=rule.source,
     )
 
 
@@ -170,6 +175,75 @@ def import_sigma_rule(body: SigmaImport, db: Session = Depends(get_db), admin: U
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     log_action(db, actor=admin.username, action="sigma_import", detail=f"rule={rule.name} id={rule.id} (disabled)")
     return _rule_out(rule, None)
+
+
+# ---------- Custom rule editor ----------
+
+
+def _custom_rule_or_error(rule_id: str):
+    rule = custom_rules.find_rule(rule_id)
+    if not rule:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rule not found")
+    if rule.source != "custom":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Built-in and imported rules are read-only; clone them instead")
+    return rule
+
+
+@router.get("/rules/{rule_id}/form", response_model=CustomRuleIn)
+def rule_form(rule_id: str, _admin: User = Depends(require_admin)):
+    """The editor form for a rule: to edit a custom rule, or as the starting point for a clone."""
+    rule = custom_rules.find_rule(rule_id)
+    if not rule:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Rule not found")
+    try:
+        return custom_rules.rule_to_form(rule)
+    except CustomRuleError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.post("/rules/custom", response_model=RuleSettingOut, status_code=201)
+def create_custom_rule(body: CustomRuleIn, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+    try:
+        rule = custom_rules.create(body)
+    except CustomRuleError as e:
+        log_action(db, actor=admin.username, action="custom_rule_create", detail=f"rejected: {e}"[:500], success=False)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    log_action(db, actor=admin.username, action="custom_rule_create", detail=f"rule={rule.name} id={rule.id} (disabled)")
+    return _rule_out(rule, None)
+
+
+@router.put("/rules/custom/{rule_id}", response_model=RuleSettingOut)
+def update_custom_rule(rule_id: str, body: CustomRuleIn, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+    _custom_rule_or_error(rule_id)
+    try:
+        rule = custom_rules.update(rule_id, body)
+    except CustomRuleError as e:
+        log_action(db, actor=admin.username, action="custom_rule_edit", detail=f"id={rule_id} rejected: {e}"[:500], success=False)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    log_action(db, actor=admin.username, action="custom_rule_edit", detail=f"rule={rule.name} id={rule.id}")
+    return _rule_out(rule, db.get(RuleOverride, rule.id))
+
+
+@router.delete("/rules/custom/{rule_id}", status_code=204)
+def delete_custom_rule(rule_id: str, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+    rule = _custom_rule_or_error(rule_id)
+    custom_rules.delete(rule_id)
+    override = db.get(RuleOverride, rule_id)
+    if override:
+        db.delete(override)
+    log_action(db, actor=admin.username, action="custom_rule_delete", detail=f"rule={rule.name} id={rule_id}")
+
+
+@router.post("/rules/custom/test", response_model=RuleTestResult)
+def test_custom_rule(body: CustomRuleIn, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+    """Dry run against stored events: never saves the rule, never creates detections."""
+    try:
+        result = custom_rules.dry_run(db, body)
+    except CustomRuleError as e:
+        log_action(db, actor=admin.username, action="custom_rule_test", detail=f"rejected: {e}"[:500], success=False)
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    log_action(db, actor=admin.username, action="custom_rule_test", detail=f"title={body.title} matches={result['match_count']}"[:500])
+    return result
 
 
 # ---------- Threat intel ----------

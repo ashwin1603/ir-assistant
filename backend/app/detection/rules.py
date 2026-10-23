@@ -3,19 +3,22 @@
 Add new rules as YAML files there, not in code. Supported subset of Sigma:
   detection:
     <name>:  {field: value, field|contains: [..], field|re: [..]}   -> all keys must match (AND)
-             (modifiers: contains, startswith, endswith, re; add |all to require every value)
+             (modifiers: contains, startswith, endswith, re, re2; add |all to require every value)
     <name>:  [ {..}, {..} ]                                         -> any map may match (OR)
     condition: "selection and not filter_x and ..."                 -> terms ANDed, each optionally negated
     timeframe: 5m, group_by: [..], min_count: N                     -> optional: makes it a cluster rule
 A list of values means "any of". `field: null` means the field is empty.
 `enabled: false` makes a rule off until an admin enables it (used for imported Sigma rules,
-which live in backend/rules/imported/).
+which live in backend/rules/imported/ and for admin-written rules in backend/rules/custom/).
+Only custom rules are editable from the UI; built-in and imported rules are read-only.
 """
 
 import re
 from dataclasses import dataclass, field
+from functools import lru_cache
 from pathlib import Path
 
+import re2
 import yaml
 
 from app.models import Event
@@ -23,6 +26,7 @@ from app.models import Event
 RULES_DIR = Path(__file__).resolve().parents[2] / "rules"
 ALLOWLIST_DIR = RULES_DIR / "allowlist"
 IMPORTED_DIR = RULES_DIR / "imported"
+CUSTOM_DIR = RULES_DIR / "custom"
 
 _DETECTION_META_KEYS = {"condition", "timeframe", "group_by", "min_count"}
 
@@ -32,6 +36,13 @@ def _as_list(value) -> list:
 
 
 SUPPORTED_MODIFIERS = {"contains", "startswith", "endswith", "re", "all"}
+
+
+@lru_cache(maxsize=512)
+def _re2_compile(pattern: str):
+    # RE2 runs in linear time (no catastrophic backtracking), so admin-written
+    # custom rules use it instead of Python's re.
+    return re2.compile("(?i)" + pattern)
 
 
 def _field_matches(event: Event, key: str, expected) -> bool:
@@ -57,6 +68,8 @@ def _field_matches(event: Event, key: str, expected) -> bool:
         return combine(text.endswith(v.lower()) for v in values)
     if modifier == "re":
         return combine(re.search(v, raw, re.IGNORECASE) is not None for v in values)
+    if modifier == "re2":
+        return combine(_re2_compile(v).search(raw) is not None for v in values)
     raise ValueError(f"Unsupported modifier: {modifier}")
 
 
@@ -81,6 +94,7 @@ class Rule:
     min_count: int | None = None
     group_by: tuple[str, ...] = ()
     enabled_by_default: bool = True
+    source: str = "builtin"  # "builtin" | "imported" | "custom" (only custom is editable)
 
     def matches(self, event: Event) -> bool:
         return all(_selection_matches(event, self.selections[name]) != negated for negated, name in self.condition)
@@ -104,7 +118,7 @@ def _parse_minutes(timeframe: str) -> int:
     return int(match.group(1)) * (60 if match.group(2) == "h" else 1)
 
 
-def _rule_from_yaml(doc: dict) -> Rule:
+def _rule_from_yaml(doc: dict, source: str = "builtin") -> Rule:
     detection = doc["detection"]
     selections = {k: v for k, v in detection.items() if k not in _DETECTION_META_KEYS}
     # ATT&CK technique ids come from tags like "attack.t1059.001".
@@ -124,12 +138,17 @@ def _rule_from_yaml(doc: dict) -> Rule:
         min_count=detection.get("min_count") if is_cluster else None,
         group_by=tuple(detection.get("group_by", ())),
         enabled_by_default=bool(doc.get("enabled", True)),
+        source=source,
     )
 
 
 def load_rules(directory: Path = RULES_DIR) -> list[Rule]:
-    paths = sorted(directory.glob("*.yml")) + sorted((directory / "imported").glob("*.yml"))
-    rules = [_rule_from_yaml(yaml.safe_load(p.read_text(encoding="utf-8"))) for p in paths]
+    sources = [("builtin", directory), ("imported", directory / "imported"), ("custom", directory / "custom")]
+    rules = [
+        _rule_from_yaml(yaml.safe_load(p.read_text(encoding="utf-8")), source)
+        for source, folder in sources
+        for p in sorted(folder.glob("*.yml"))
+    ]
     ids = [r.id for r in rules]
     if len(ids) != len(set(ids)):
         raise ValueError("Duplicate rule id in rules directory")
