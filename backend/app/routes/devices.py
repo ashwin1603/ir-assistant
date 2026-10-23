@@ -5,7 +5,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.auth.permissions import current_user
-from app.db import get_db
+from app.db import get_db, retry_on_lock
 from app.models import Device, Event
 from app.schemas import DeviceOut, HeartbeatIn
 
@@ -35,14 +35,17 @@ def device_status(last_seen: datetime | None, now: datetime) -> str:
 @router.post("/heartbeat")
 def heartbeat(payload: HeartbeatIn, db: Session = Depends(get_db)):
     # Not written to the audit log: one row per collector cycle would drown it.
-    now = datetime.now(timezone.utc)
-    device = db.query(Device).filter(Device.host == payload.host, Device.source == payload.source).first()
-    if device is None:
-        device = Device(host=payload.host, source=payload.source, first_seen=now, total_events=0)
-        db.add(device)
-    device.last_seen = now
-    device.total_events = (device.total_events or 0) + payload.events_sent
-    db.commit()
+    def store() -> None:
+        now = datetime.now(timezone.utc)
+        device = db.query(Device).filter(Device.host == payload.host, Device.source == payload.source).first()
+        if device is None:
+            device = Device(host=payload.host, source=payload.source, first_seen=now, total_events=0)
+            db.add(device)
+        device.last_seen = now
+        device.total_events = (device.total_events or 0) + payload.events_sent
+        db.commit()
+
+    retry_on_lock(db, store)
     return {"status": "ok"}
 
 

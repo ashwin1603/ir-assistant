@@ -1,11 +1,35 @@
-from sqlalchemy import create_engine, inspect, text
-from sqlalchemy.orm import DeclarativeBase, sessionmaker
+import logging
+import time
+
+from sqlalchemy import create_engine, event, inspect, text
+from sqlalchemy.exc import OperationalError
+from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.config import settings
 
-connect_args = {"check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
+logger = logging.getLogger("ir_assistant")
+
+IS_SQLITE = settings.database_url.startswith("sqlite")
+BUSY_TIMEOUT_SECONDS = 15
+# timeout: how long the driver waits for a lock before "database is locked".
+connect_args = {"check_same_thread": False, "timeout": BUSY_TIMEOUT_SECONDS} if IS_SQLITE else {}
 engine = create_engine(settings.database_url, connect_args=connect_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+def set_sqlite_pragmas(dbapi_connection, _record) -> None:
+    """WAL lets readers and the (single) writer run at the same time instead of blocking
+    each other; busy_timeout makes a blocked writer wait instead of failing at once;
+    synchronous=NORMAL is the recommended (still crash-safe) setting for WAL."""
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA journal_mode=WAL")
+    cursor.execute(f"PRAGMA busy_timeout={BUSY_TIMEOUT_SECONDS * 1000}")
+    cursor.execute("PRAGMA synchronous=NORMAL")
+    cursor.close()
+
+
+if IS_SQLITE:
+    event.listen(engine, "connect", set_sqlite_pragmas)
 
 
 class Base(DeclarativeBase):
@@ -56,3 +80,41 @@ def add_missing_columns() -> None:
                 conn.execute(text(ddl))
         for ddl in missing_other:
             conn.execute(text(ddl))
+
+
+# Columns the detection engine and the event/device queries filter or sort on.
+# create_all() only indexes tables it creates, so older DBs get them here.
+# Fixed DDL strings only - no user input.
+INDEXES = {
+    "ix_events_host": "CREATE INDEX IF NOT EXISTS ix_events_host ON events (host)",
+    "ix_events_event_id": "CREATE INDEX IF NOT EXISTS ix_events_event_id ON events (event_id)",
+    "ix_events_channel": "CREATE INDEX IF NOT EXISTS ix_events_channel ON events (channel)",
+    "ix_events_timestamp": "CREATE INDEX IF NOT EXISTS ix_events_timestamp ON events (timestamp)",
+    "ix_events_source": "CREATE INDEX IF NOT EXISTS ix_events_source ON events (source)",
+    "ix_events_created_at": "CREATE INDEX IF NOT EXISTS ix_events_created_at ON events (created_at)",
+    "ix_detections_incident_id": "CREATE INDEX IF NOT EXISTS ix_detections_incident_id ON detections (incident_id)",
+}
+
+
+def ensure_indexes() -> None:
+    with engine.begin() as conn:
+        for ddl in INDEXES.values():
+            conn.execute(text(ddl))
+
+
+def is_lock_error(exc: Exception) -> bool:
+    return isinstance(exc, OperationalError) and "locked" in str(exc).lower()
+
+
+def retry_on_lock(db: Session, fn, attempts: int = 4, delay: float = 0.25):
+    """Run fn() (which must do its own adds + commit); if SQLite still reports
+    "database is locked" after busy_timeout, roll back and retry with backoff."""
+    for attempt in range(attempts):
+        try:
+            return fn()
+        except OperationalError as exc:
+            if not is_lock_error(exc) or attempt == attempts - 1:
+                raise
+            db.rollback()
+            logger.warning("database locked, retry %d/%d", attempt + 1, attempts - 1)
+            time.sleep(delay * 2**attempt)

@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.audit import log_action
 from app.auth.permissions import current_user
 from app.auth.redaction import TextRedactor, redact_command, sees_command_lines
-from app.db import get_db
+from app.db import get_db, retry_on_lock
 from app.detection.threat_intel import load_index, match_event
 from app.models import Event
 from app.schemas import EventIngestRequest, EventOut, EventPage
@@ -18,25 +18,30 @@ def ingest_events(
     payload: EventIngestRequest,
     db: Session = Depends(get_db),
 ):
-    inserted = 0
-    skipped = 0
-    for item in payload.events:
-        if item.record_id is not None:
-            duplicate = (
-                db.query(Event.id)
-                .filter(
-                    Event.record_id == item.record_id,
-                    Event.host == item.host,
-                    Event.channel == item.channel,
+    def store() -> tuple[int, int]:
+        inserted = 0
+        skipped = 0
+        for item in payload.events:
+            if item.record_id is not None:
+                duplicate = (
+                    db.query(Event.id)
+                    .filter(
+                        Event.record_id == item.record_id,
+                        Event.host == item.host,
+                        Event.channel == item.channel,
+                    )
+                    .first()
                 )
-                .first()
-            )
-            if duplicate:
-                skipped += 1
-                continue
-        db.add(Event(**item.model_dump()))
-        inserted += 1
-    db.commit()
+                if duplicate:
+                    skipped += 1
+                    continue
+            db.add(Event(**item.model_dump()))
+            inserted += 1
+        db.commit()
+        return inserted, skipped
+
+    # A detection recompute may hold the write lock; retry briefly instead of failing the batch.
+    inserted, skipped = retry_on_lock(db, store)
     log_action(db, actor="collector", action="ingest", detail=f"{inserted} inserted, {skipped} skipped", success=True)
     return {"ingested": inserted, "skipped": skipped}
 

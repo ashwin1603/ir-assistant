@@ -15,7 +15,7 @@ from app.ai.client import warm_up
 from app.auth.permissions import authorize
 from app.auth.routes import router as auth_router
 from app.config import settings
-from app.db import Base, SessionLocal, add_missing_columns, engine
+from app.db import Base, SessionLocal, add_missing_columns, engine, ensure_indexes
 from app.rate_limit import limiter
 from app.routes.actions import router as actions_router
 from app.routes.anomalies import router as anomalies_router
@@ -35,6 +35,7 @@ from app.seed import seed_admin_user
 
 Base.metadata.create_all(bind=engine)
 add_missing_columns()
+ensure_indexes()
 
 
 @asynccontextmanager

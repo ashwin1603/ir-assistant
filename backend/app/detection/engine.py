@@ -1,8 +1,11 @@
+import hashlib
 import json
+import threading
 import uuid
 from dataclasses import replace
 from datetime import timedelta
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.analysis.incidents import group_into_incidents
@@ -11,7 +14,8 @@ from app.detection.attack_map import tactics_for
 from app.detection.network_rules import NETWORK_RULES, NetworkRule, network_events
 from app.detection.rules import ALLOWLIST, RULES, Rule, is_allowlisted
 from app.detection.threat_intel import TI_RULE, load_index, match_event
-from app.models import Detection, Event, Incident, RuleOverride
+from app.detection import rules as rules_module
+from app.models import AppSetting, Detection, Event, Incident, RuleOverride, ThreatIndicator
 
 
 def _cluster_events(events: list[Event], window_minutes: int, min_count: int, group_by: tuple[str, ...]) -> list[list[Event]]:
@@ -40,7 +44,7 @@ def _cluster_events(events: list[Event], window_minutes: int, min_count: int, gr
 
 # Detection/incident ids are content-addressed (not random) so that re-running
 # detection on an unchanged set of events yields the same ids every time -
-# the API recomputes on every GET, and clients hold onto ids across requests.
+# run_detection may recompute at any time, and clients hold onto ids across requests.
 NAMESPACE = uuid.UUID("5c3f8f2a-6b1b-4c2a-9e8d-1b9f2a7d4e60")
 
 # "filter" rules (e.g. encoded PowerShell, local user created) have no window
@@ -117,7 +121,51 @@ def effective_network_rules(db: Session) -> list[tuple[NetworkRule, dict]]:
     return enabled
 
 
-def run_detection(db: Session) -> None:
+FINGERPRINT_KEY = "detection_fingerprint"
+_recompute_lock = threading.Lock()
+
+
+def detection_fingerprint(db: Session) -> str:
+    """Cheap summary of everything detection depends on: events (count, newest id and
+    ingest time), rule overrides, threat-intel indicators and the loaded rules (built-in,
+    custom and imported). If it is unchanged, the stored detections are still correct."""
+    count, newest_id, newest_ingest = db.query(func.count(Event.id), func.max(Event.id), func.max(Event.created_at)).one()
+    overrides = sorted(
+        (o.rule_id, o.enabled, o.min_count, o.window_minutes, o.params) for o in db.query(RuleOverride).all()
+    )
+    indicators = sorted(db.query(ThreatIndicator.type, ThreatIndicator.value).all())
+    rules = [repr(r) for r in rules_module.RULES]
+    payload = json.dumps([count, newest_id, newest_ingest, overrides, indicators, rules], default=str)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _stored_fingerprint(db: Session) -> str | None:
+    # Column query (not db.get) so another thread's commit is seen, not a cached object.
+    return db.query(AppSetting.value).filter(AppSetting.key == FINGERPRINT_KEY).scalar()
+
+
+def run_detection(db: Session, force: bool = False) -> bool:
+    """Bring stored detections/incidents up to date. Recomputes only when the inputs
+    changed (or force=True); otherwise the stored rows are already right. One
+    recompute at a time: concurrent callers wait, then see the fresh fingerprint and
+    skip. Returns True if it recomputed."""
+    if not force and _stored_fingerprint(db) == detection_fingerprint(db):
+        return False
+    with _recompute_lock:
+        # Computed BEFORE reading events: if new events arrive mid-run, the stored
+        # fingerprint is older than the data and the next call simply recomputes again.
+        fingerprint = detection_fingerprint(db)
+        if not force and _stored_fingerprint(db) == fingerprint:
+            return False  # another request just finished the same recompute
+        try:
+            _recompute(db, fingerprint)
+        except Exception:
+            db.rollback()
+            raise
+    return True
+
+
+def _recompute(db: Session, fingerprint: str) -> None:
     """Recompute all detections and incidents from the current events table."""
     events = db.query(Event).order_by(Event.timestamp.asc()).all()
 
@@ -152,4 +200,9 @@ def run_detection(db: Session) -> None:
     db.query(Incident).delete()
     db.add_all(incidents)
     db.add_all(detections)
-    db.commit()
+    row = db.get(AppSetting, FINGERPRINT_KEY)
+    if row:
+        row.value = fingerprint
+    else:
+        db.add(AppSetting(key=FINGERPRINT_KEY, value=fingerprint))
+    db.commit()  # detections and their fingerprint in one transaction

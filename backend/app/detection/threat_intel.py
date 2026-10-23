@@ -13,6 +13,7 @@ import io
 import ipaddress
 import re
 from datetime import datetime, timezone
+from functools import lru_cache
 
 from sqlalchemy.orm import Session
 
@@ -177,10 +178,17 @@ def _external_ip(text: str) -> str | None:
 
 def extract_observables(event: Event) -> set[tuple[str, str]]:
     """(type, value) pairs found in the event, normalised for lookup."""
+    return set(_observables(event.src_ip, event.command_line, event.message))
+
+
+# The regex scan is most of a detection run's cost and events never change, so the
+# result is cached on the exact field values (a pure function: same text, same answer).
+@lru_cache(maxsize=100_000)
+def _observables(src_ip: str | None, command_line: str | None, message: str | None) -> frozenset[tuple[str, str]]:
     found: set[tuple[str, str]] = set()
-    if event.src_ip and (ip := _external_ip(event.src_ip.strip())):
+    if src_ip and (ip := _external_ip(src_ip.strip())):
         found.add(("ip", ip))
-    for text in (event.command_line, event.message):
+    for text in (command_line, message):
         if not text:
             continue
         for candidate in _IPV4_IN_TEXT.findall(text) + _URL_HOST_IN_TEXT.findall(text):
@@ -190,7 +198,7 @@ def extract_observables(event: Event) -> set[tuple[str, str]]:
             found.add(("domain", domain.lower()))
         for digest in _SHA256_IN_TEXT.findall(text):
             found.add(("sha256", digest.lower()))
-    return found
+    return frozenset(found)
 
 
 def load_index(db: Session) -> dict[tuple[str, str], ThreatIndicator]:
