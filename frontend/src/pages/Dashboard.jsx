@@ -89,7 +89,7 @@ function SeverityChart({ detections }) {
         <XAxis dataKey="name" stroke="#827b71" fontSize={12} tickLine={false} axisLine={{ stroke: "#33302b" }} />
         <YAxis stroke="#827b71" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} width={28} />
         <Tooltip content={<ChartTooltip />} cursor={{ fill: "#33302b" }} />
-        <Bar dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={56}>
+        <Bar dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={56} isAnimationActive={false}>
           {data.map((entry) => <Cell key={entry.name} fill={LEVEL_COLORS[entry.name]} />)}
         </Bar>
       </BarChart>
@@ -115,7 +115,7 @@ function TechniqueChart({ detections }) {
         <XAxis type="number" stroke="#827b71" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
         <YAxis type="category" dataKey="name" stroke="#827b71" fontSize={12} tickLine={false} axisLine={false} width={72} />
         <Tooltip content={<ChartTooltip />} cursor={{ fill: "#33302b" }} />
-        <Bar dataKey="count" fill={TECHNIQUE_COLOR} radius={[0, 4, 4, 0]} maxBarSize={18} />
+        <Bar dataKey="count" fill={TECHNIQUE_COLOR} radius={[0, 4, 4, 0]} maxBarSize={18} isAnimationActive={false} />
       </BarChart>
     </ResponsiveContainer>
   );
