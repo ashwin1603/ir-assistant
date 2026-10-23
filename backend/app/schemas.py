@@ -282,19 +282,31 @@ class AttackRow(BaseModel):
     event_ids: list[str]
 
 
+class ReportAction(BaseModel):
+    # Only what the report prints; the incident context is already in the report header.
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    action_text: str
+    status: str
+    decided_by: str | None
+    decided_at: UTCDateTime | None
+
+
 class ExecutiveSummary(BaseModel):
     what_happened: list[str]
     impact: str
-    top_actions: list[ActionOut]
+    top_actions: list[ReportAction]
 
 
 class ReportOut(BaseModel):
     incident: IncidentDetail
     analysis: AnalysisOut | None
-    actions: list[ActionOut]
+    actions: list[ReportAction]
     attack: list[AttackRow]
     iocs: list[IOCOut]
     executive: ExecutiveSummary
+    simulated: bool  # evidence came from the attack simulator, not real activity
     generated_at: UTCDateTime
     generated_by: str
 

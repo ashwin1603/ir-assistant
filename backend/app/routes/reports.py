@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.analysis.artifacts import extract_iocs
 from app.analysis.case_state import get_notes, get_status
-from app.analysis.report import attack_table, impact_text, top_actions, what_happened
+from app.analysis.report import attack_table, impact_text, is_simulated, top_actions, what_happened
 from app.analysis.timeline import build_timeline
 from app.auth.deps import get_current_user
 from app.db import get_db
@@ -73,6 +73,7 @@ def get_report(incident_id: str, db: Session = Depends(get_db), user=Depends(get
         attack=attack_table(timeline),
         iocs=extract_iocs(db, incident.id),
         executive=executive,
+        simulated=is_simulated(db, incident.id),
         generated_at=datetime.now(timezone.utc),
         generated_by=user.username,
     )

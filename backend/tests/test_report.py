@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
 from app.analysis.report import IMPACT_PLAIN, TACTIC_PLAIN, attack_table, impact_text, top_actions, what_happened
-from tests.test_artifacts import _analyst, _login, _seed_incident
+from tests.test_artifacts import BASE_EVENT, COLLECTOR, _analyst, _login, _seed_incident
 
 T0 = datetime(2026, 10, 21, 5, 0, tzinfo=timezone.utc)
 
@@ -33,11 +33,25 @@ def test_unknown_tactic_and_risk_level_still_give_text():
     assert impact_text("Bogus")
 
 
-def test_top_actions_skip_rejected_and_cap_at_three():
-    actions = [SimpleNamespace(id=str(i), status=s) for i, s in enumerate(["pending", "rejected", "pending", "approved", "pending"])]
-    top = top_actions(actions)
-    assert [a.id for a in top] == ["3", "0", "2"]
-    assert all(a.status != "rejected" for a in top)
+def test_rdp_rule_says_enabled_not_used():
+    assert TACTIC_PLAIN["Lateral Movement"] == "Remote access to the machine was enabled."
+
+
+def test_plain_language_does_not_overstate():
+    # Rules see commands and log entries, not proven outcomes or intent.
+    text = " ".join(list(TACTIC_PLAIN.values()) + list(IMPACT_PLAIN.values())).lower()
+    for phrase in ["was used", "were downloaded", "tried to hide", "someone ", "attack in progress"]:
+        assert phrase not in text, phrase
+
+
+def test_top_actions_show_all_statuses_and_cap_at_three():
+    statuses = ["rejected", "pending", "approved"]
+    actions = [SimpleNamespace(id=str(i), status=s) for i, s in enumerate(statuses)]
+    assert [a.status for a in top_actions(actions)] == ["approved", "pending", "rejected"]
+
+    many = [SimpleNamespace(id=str(i), status=s) for i, s in enumerate(["pending", "rejected", "pending", "approved", "pending"])]
+    assert [a.id for a in top_actions(many)] == ["3", "0", "2"]
+    assert top_actions([]) == []
 
 
 def test_attack_table_merges_rows_per_technique():
@@ -79,3 +93,39 @@ def test_report_viewer_allowed_anonymous_rejected(client, seed_users):
     assert client.get(f"/api/incidents/{incident_id}/report", headers=viewer).status_code == 200
     assert client.get(f"/api/incidents/{incident_id}/report").status_code == 401
     assert client.get("/api/incidents/does-not-exist/report", headers=viewer).status_code == 404
+
+
+def test_report_without_analysis_has_no_top_actions(client, seed_users):
+    headers = _analyst(client)
+    incident_id = _seed_incident(client, headers)
+    report = client.get(f"/api/incidents/{incident_id}/report", headers=headers).json()
+    # The UI then shows "Run AI analysis to generate recommendations".
+    assert report["executive"]["top_actions"] == []
+
+
+def test_report_top_actions_carry_status_after_analysis(client, seed_users):
+    headers = _analyst(client)
+    incident_id = _seed_incident(client, headers)
+    assert client.post(f"/api/incidents/{incident_id}/analyze", headers=headers).status_code == 200
+    actions = client.get("/api/actions", headers=headers).json()
+    client.post(f"/api/actions/{actions[0]['id']}/reject", headers=headers)
+
+    top = client.get(f"/api/incidents/{incident_id}/report", headers=headers).json()["executive"]["top_actions"]
+    assert 1 <= len(top) <= 3
+    assert {a["status"] for a in top} <= {"pending", "approved", "rejected"}
+    assert all(a["action_text"] for a in top)
+
+
+def test_report_simulated_flag(client, seed_users):
+    headers = _analyst(client)
+    real_id = _seed_incident(client, headers)
+    assert client.get(f"/api/incidents/{real_id}/report", headers=headers).json()["simulated"] is False
+
+    sim = [
+        {**BASE_EVENT, "source": "simulated", "host": "SIM-HOST",
+         "id": f"e000000{i}-0000-0000-0000-000000000000", "timestamp": f"2026-10-21T07:00:0{i}+00:00"}
+        for i in range(5)
+    ]
+    assert client.post("/api/events/ingest", json={"events": sim}, headers=COLLECTOR).status_code == 201
+    sim_id = next(i["id"] for i in client.get("/api/incidents", headers=headers).json() if i["host"] == "SIM-HOST")
+    assert client.get(f"/api/incidents/{sim_id}/report", headers=headers).json()["simulated"] is True
