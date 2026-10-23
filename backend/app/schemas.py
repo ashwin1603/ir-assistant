@@ -297,3 +297,13 @@ class ReportOut(BaseModel):
     executive: ExecutiveSummary
     generated_at: UTCDateTime
     generated_by: str
+
+
+class AskRequest(BaseModel):
+    question: str = Field(min_length=1, max_length=500)
+
+
+class AskResponse(BaseModel):
+    answer: str
+    mode: str  # deterministic | ai | out_of_scope | fallback
+    cited: list[str]

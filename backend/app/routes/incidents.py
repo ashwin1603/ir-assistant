@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
+from app.ai.ask import ask_incident, build_facts
 from app.ai.triage import analyze_incident, check_rate_limit
 from app.analysis.case_state import case_key, get_notes, get_status, status_map
 from app.analysis.timeline import build_timeline
@@ -12,7 +13,7 @@ from app.auth.deps import get_current_user, require_role
 from app.db import get_db
 from app.detection.engine import run_detection
 from app.models import Detection, Incident, IncidentCase, IncidentNote
-from app.schemas import AnalysisOut, IncidentDetail, IncidentOut, IncidentStatusUpdate, NoteCreate, NoteOut
+from app.schemas import AnalysisOut, AskRequest, AskResponse, IncidentDetail, IncidentOut, IncidentStatusUpdate, NoteCreate, NoteOut
 
 router = APIRouter(prefix="/api/incidents", tags=["incidents"])
 
@@ -131,3 +132,27 @@ def analyze(
         recommended_actions=json.loads(analysis.recommended_actions),
         created_at=analysis.created_at,
     )
+
+
+@router.post("/{incident_id}/ask", response_model=AskResponse)
+def ask(
+    incident_id: str,
+    body: AskRequest,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    run_detection(db)
+    incident = _get_or_404(db, incident_id)
+
+    if not check_rate_limit(db, user.username):
+        raise HTTPException(status_code=429, detail="AI rate limit exceeded, try again later")
+
+    result = ask_incident(build_facts(db, incident), body.question)
+    # The question may contain sensitive text; only its length is audited.
+    log_action(
+        db,
+        actor=user.username,
+        action="ai_ask",
+        detail=json.dumps({"incident_id": incident_id, "question_length": len(body.question), "mode": result["mode"]}),
+    )
+    return AskResponse(**result)

@@ -4,6 +4,7 @@ import { get, post, put, download, ApiError } from "../lib/api";
 import { RiskBadge } from "../components/RiskBadge";
 import { StatusBadge, INCIDENT_STATUSES } from "../components/StatusBadge";
 import { useAuth } from "../auth/AuthContext";
+import { AskPanel } from "../components/AskPanel";
 
 const ANALYZE_TIMEOUT_MS = 40_000;
 
@@ -244,6 +245,11 @@ export default function IncidentDetail() {
           </tbody>
         </table>
       </div>
+
+      <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">
+        Ask about this incident
+      </h2>
+      <AskPanel incidentId={id} />
 
       <div className="mb-4 flex items-center gap-3">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-400">AI analysis</h2>
