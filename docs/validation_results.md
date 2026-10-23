@@ -1,6 +1,6 @@
 # Detection validation results
 
-Generated 2026-10-21 17:52 by `scripts/validate.py` from `docs/ground_truth.json`.
+Generated 2026-10-23 22:18 by `scripts/validate.py` from `docs/ground_truth.json`.
 
 ## Real attacks - DESKTOP-M35SOM0 (2026-10-21, 10:30-11:20 local)
 
