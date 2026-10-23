@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { get, post, put, download, ApiError } from "../lib/api";
+import { useToast } from "../components/Toast";
 import { RiskBadge } from "../components/RiskBadge";
 import { TIBadge } from "../components/TIBadge";
 import { StatusBadge, INCIDENT_STATUSES } from "../components/StatusBadge";
@@ -43,6 +44,8 @@ export default function IncidentDetail() {
       .finally(() => setLoading(false));
   }, [id]);
 
+  const toast = useToast();
+
   async function runAnalysis() {
     setAnalyzing(true);
     setAnalyzeError("");
@@ -61,8 +64,10 @@ export default function IncidentDetail() {
     try {
       const updated = await put(`/incidents/${id}/status`, { status });
       setIncident((prev) => ({ ...prev, status: updated.status }));
+      toast.success(`Status changed to ${updated.status}`);
     } catch (err) {
       setCaseError(err.message || "Failed to update status");
+      toast.error("Status update failed");
     }
   }
 
@@ -74,8 +79,10 @@ export default function IncidentDetail() {
       const note = await post(`/incidents/${id}/notes`, { text: noteText.trim() });
       setIncident((prev) => ({ ...prev, notes: [...prev.notes, note] }));
       setNoteText("");
+      toast.success("Note added");
     } catch (err) {
       setCaseError(err.message || "Failed to add note");
+      toast.error("Note could not be added");
     }
   }
 
@@ -83,8 +90,10 @@ export default function IncidentDetail() {
     setCaseError("");
     try {
       await download(`/incidents/${id}/${path}`, filename);
+      toast.success(`Downloaded ${filename}`);
     } catch (err) {
       setCaseError(err.message || "Download failed");
+      toast.error("Download failed");
     }
   }
 

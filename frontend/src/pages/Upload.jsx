@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { upload } from "../lib/api";
+import { useToast } from "../components/Toast";
 
 const ALLOWED = [".evtx", ".json", ".csv"];
 const MAX_MB = 20;
@@ -22,6 +23,8 @@ export default function Upload() {
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
 
+  const toast = useToast();
+
   function handleFile(file) {
     if (!file) return;
     setError("");
@@ -34,8 +37,14 @@ export default function Upload() {
       setProgress(pct);
       if (pct === 100) setProcessing(true);
     })
-      .then(setResult)
-      .catch((err) => setError(err.message || "Upload failed"))
+      .then((res) => {
+        setResult(res);
+        toast.success(`Uploaded ${file.name}`);
+      })
+      .catch((err) => {
+        setError(err.message || "Upload failed");
+        toast.error("Upload failed");
+      })
       .finally(() => {
         setProgress(null);
         setProcessing(false);

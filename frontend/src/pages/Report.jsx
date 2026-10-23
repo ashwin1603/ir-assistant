@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { get } from "../lib/api";
 import { PageSkeleton } from "../components/Skeleton";
+import Logo from "../components/Logo";
 import { Segmented } from "../components/Segmented";
 
 // Screen colours first, then lighter print colours so the PDF stays readable on white paper.
@@ -90,7 +91,8 @@ function ReportHeader({ incident, view, generatedAt, generatedBy, simulated }) {
       )}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className={`text-xs uppercase tracking-widest ${muted}`}>IR Assistant &middot; Confidential</p>
+          <Logo size="sm" className="mb-2" />
+          <p className={`text-xs uppercase tracking-widest ${muted}`}>Confidential</p>
           <h1 className="text-2xl font-semibold">
             Incident Report{" "}
             <span className={`font-normal ${muted}`}>&mdash; {view === "executive" ? "Executive summary" : "Technical report"}</span>

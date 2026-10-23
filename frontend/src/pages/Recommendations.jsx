@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { get, post, ApiError } from "../lib/api";
 import { useAuth } from "../auth/AuthContext";
 import { Skeleton } from "../components/Skeleton";
+import { useToast } from "../components/Toast";
 
 const STATUS_STYLES = {
   pending: "bg-slate-800 text-slate-300",
@@ -29,14 +30,18 @@ export default function Recommendations() {
 
   useEffect(load, []);
 
+  const toast = useToast();
+
   async function decide(action, decision) {
     setBusyId(action.id);
     setError("");
     try {
       const updated = await post(`/actions/${action.id}/${decision}`);
       setActions((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+      toast.success(decision === "approve" ? "Action approved (simulated)" : "Action rejected");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to update action");
+      toast.error("Could not update the action");
     } finally {
       setBusyId(null);
     }

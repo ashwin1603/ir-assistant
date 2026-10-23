@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import {
-  Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
-} from "recharts";
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { get } from "../lib/api";
 import { useAuth } from "../auth/AuthContext";
 import { AutoRefreshToggle, useAutoRefresh } from "../components/AutoRefresh";
@@ -78,22 +76,24 @@ function ChartTooltip({ active, payload }) {
   );
 }
 
+// Plain CSS bars: always render, no SVG sizing issues inside the flex panels.
 function SeverityChart({ detections }) {
   if (!detections) return <Skeleton lines={5} />;
   if (detections.length === 0) return <Empty>No detections yet.</Empty>;
   const data = LEVEL_ORDER.map((level) => ({ name: level, count: detections.filter((d) => d.risk_level === level).length }));
+  const max = Math.max(1, ...data.map((d) => d.count));
   return (
-    <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={data} margin={{ left: 0, right: 8, top: 4, bottom: 4 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#33302b" vertical={false} />
-        <XAxis dataKey="name" stroke="#827b71" fontSize={12} tickLine={false} axisLine={{ stroke: "#33302b" }} />
-        <YAxis stroke="#827b71" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} width={28} />
-        <Tooltip content={<ChartTooltip />} cursor={{ fill: "#33302b" }} />
-        <Bar dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={56} isAnimationActive={false}>
-          {data.map((entry) => <Cell key={entry.name} fill={LEVEL_COLORS[entry.name]} />)}
-        </Bar>
-      </BarChart>
-    </ResponsiveContainer>
+    <div className="dash-cols" role="list" aria-label="Detections by severity">
+      {data.map((d) => (
+        <div key={d.name} className="dash-col" role="listitem" title={`${d.name}: ${d.count}`}>
+          <span className="text-sm font-semibold tabular-nums text-slate-200">{d.count}</span>
+          <div className="dash-col-track">
+            <span style={{ height: `${(d.count / max) * 100}%`, background: LEVEL_COLORS[d.name] }} />
+          </div>
+          <span className="text-xs text-slate-400">{d.name}</span>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -108,16 +108,19 @@ function TechniqueChart({ detections }) {
     .sort((a, b) => b.count - a.count)
     .slice(0, 8);
   if (data.length === 0) return <Empty>No techniques observed yet.</Empty>;
+  const max = data[0].count;
   return (
-    <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={data} layout="vertical" margin={{ left: 8, right: 16, top: 4, bottom: 4 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#33302b" horizontal={false} />
-        <XAxis type="number" stroke="#827b71" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
-        <YAxis type="category" dataKey="name" stroke="#827b71" fontSize={12} tickLine={false} axisLine={false} width={72} />
-        <Tooltip content={<ChartTooltip />} cursor={{ fill: "#33302b" }} />
-        <Bar dataKey="count" fill={TECHNIQUE_COLOR} radius={[0, 4, 4, 0]} maxBarSize={18} isAnimationActive={false} />
-      </BarChart>
-    </ResponsiveContainer>
+    <ul className="space-y-2 text-sm">
+      {data.map((d) => (
+        <li key={d.name} className="dash-hbar" title={`${d.name}: ${d.count}`}>
+          <Link to={`/attack/${d.name}`} className="truncate font-mono text-xs text-slate-300 hover:text-sky-300">{d.name}</Link>
+          <div className="dash-bar">
+            <span style={{ width: `${(d.count / max) * 100}%`, background: TECHNIQUE_COLOR }} />
+          </div>
+          <span className="text-right tabular-nums text-slate-400">{d.count}</span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -333,8 +336,16 @@ export default function Dashboard() {
           <StatTile label="Detections" value={detections && detections.length} />
           <StatTile label="Events collected" value={events && events.total} />
           <StatTile label="Online devices" value={online}>
-            <CountUp value={online ?? 0} />
-            <span className="text-base font-normal text-slate-500"> / {devices?.length ?? 0}</span>
+            {online === 0 ? (
+              <span className="text-lg font-medium text-slate-500" title="Run collector.py --watch to stream live events">
+                Collector idle
+              </span>
+            ) : (
+              <>
+                <CountUp value={online ?? 0} />
+                <span className="text-base font-normal text-slate-500"> / {devices?.length ?? 0}</span>
+              </>
+            )}
           </StatTile>
           <StatTile label="Highest risk" value={incidents && (top ? top.risk_score : 0)}>
             {top ? (

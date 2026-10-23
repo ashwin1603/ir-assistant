@@ -5,6 +5,7 @@ import RuleEditor, { EMPTY_RULE } from "../components/RuleEditor";
 import { useStepUp } from "../components/StepUp";
 import { Switch } from "../components/Switch";
 import { Segmented } from "../components/Segmented";
+import { useCopy, useToast } from "../components/Toast";
 
 // Admin tabs and the permission (from /auth/me) that shows each one.
 const ADMIN_TABS = [
@@ -21,9 +22,12 @@ const inputClass =
 const buttonClass =
   "rounded border border-slate-700 px-3 py-1 text-sm text-slate-300 hover:border-slate-500 hover:text-white disabled:opacity-40";
 
+// Success notices become toasts; errors also stay inline so the user can read them while fixing the input.
 function Message({ error, notice }) {
+  const toast = useToast();
+  useEffect(() => { if (notice) toast.success(notice); }, [notice, toast]);
+  useEffect(() => { if (error) toast.error(error); }, [error, toast]);
   if (error) return <p className="mb-3 text-sm text-red-400">{error}</p>;
-  if (notice) return <p className="mb-3 text-sm text-emerald-400">{notice}</p>;
   return null;
 }
 
@@ -602,6 +606,7 @@ function MyAccountTab() {
   const [status, setStatus] = useState(null);
   const [setup, setSetup] = useState(null); // { secret, otpauth_uri } while enrolling
   const [recoveryCodes, setRecoveryCodes] = useState(null); // shown once after enabling
+  const copy = useCopy();
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -658,6 +663,9 @@ function MyAccountTab() {
           <div className="mb-3 rounded border border-amber-700 bg-amber-950/40 p-3">
             <p className="mb-2 text-amber-300">Save these recovery codes now. Each works once; they will not be shown again.</p>
             <pre className="font-mono text-xs text-slate-100">{recoveryCodes.join("\n")}</pre>
+            <button type="button" className={`${buttonClass} mt-2`} onClick={() => copy(recoveryCodes.join("\n"), "Recovery codes copied")}>
+              Copy codes
+            </button>
           </div>
         )}
 
