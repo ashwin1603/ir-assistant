@@ -8,6 +8,7 @@ const navItems = [
   { to: "/detections", label: "Detections" },
   { to: "/anomalies", label: "Anomalies" },
   { to: "/network", label: "Network" },
+  { to: "/devices", label: "Devices" },
   { to: "/attack", label: "ATT&CK" },
   { to: "/incidents", label: "Incidents" },
   { to: "/recommendations", label: "Recommendations" },

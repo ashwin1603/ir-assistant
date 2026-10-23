@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { get } from "../lib/api";
+import { AutoRefreshToggle, useAutoRefresh } from "../components/AutoRefresh";
 import { RiskBadge } from "../components/RiskBadge";
 import { StatusBadge, INCIDENT_STATUSES } from "../components/StatusBadge";
 
@@ -9,20 +10,30 @@ export default function Incidents() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [autoRefresh, setAutoRefresh, tick] = useAutoRefresh(15);
 
+  // Show "Loading..." only when the filter changes, not on every auto-refresh.
   useEffect(() => {
     setLoading(true);
+  }, [statusFilter]);
+
+  useEffect(() => {
     get(statusFilter ? `/incidents?status=${statusFilter}` : "/incidents")
-      .then(setIncidents)
+      .then((data) => {
+        setIncidents(data);
+        setError("");
+      })
       .catch((err) => setError(err.message || "Failed to load incidents"))
       .finally(() => setLoading(false));
-  }, [statusFilter]);
+  }, [statusFilter, tick]);
 
   return (
     <div>
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-xl font-semibold text-slate-100">Incidents</h1>
-        <select
+        <div className="flex items-center gap-4">
+          <AutoRefreshToggle enabled={autoRefresh} onChange={setAutoRefresh} />
+          <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
           className="rounded border border-slate-700 bg-slate-900 px-2 py-1 text-sm text-slate-200"
@@ -33,7 +44,8 @@ export default function Incidents() {
               {s}
             </option>
           ))}
-        </select>
+          </select>
+        </div>
       </div>
 
       {error && <p className="mb-3 text-sm text-red-400">{error}</p>}

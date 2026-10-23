@@ -24,3 +24,6 @@ docs/llm_cache_run2.json
 # Admin-written and imported detection rules (local data)
 backend/rules/custom/
 backend/rules/imported/
+
+# collector.py --watch state (last RecordId per channel/event id)
+scripts/.collector_state.json

@@ -21,10 +21,18 @@ def max_events_for(event_id: int) -> int:
     return EVENT_MAX_EVENTS.get(event_id, DEFAULT_MAX_EVENTS)
 
 
-def _build_script(channel: str, event_ids: list[int], max_events: int) -> str:
+def _build_script(channel: str, event_ids: list[int], max_events: int, after_record_id: int | None = None) -> str:
     ids = ",".join(str(i) for i in event_ids)
+    if after_record_id is None:
+        selector = f"-FilterHashtable @{{LogName='{channel}'; Id={ids}}}"
+    else:
+        # FilterHashtable cannot filter on RecordId, so watch mode uses XPath.
+        # Channel names come from CHANNELS and ids are ints - no user input here.
+        id_clause = " or ".join(f"EventID={i}" for i in event_ids)
+        xpath = f"*[System[({id_clause}) and EventRecordID>{int(after_record_id)}]]"
+        selector = f"-LogName '{channel}' -FilterXPath '{xpath}'"
     return (
-        f"$events = Get-WinEvent -FilterHashtable @{{LogName='{channel}'; Id={ids}}} "
+        f"$events = Get-WinEvent {selector} "
         f"-MaxEvents {max_events} -ErrorAction SilentlyContinue; "
         "if ($events) { "
         "$events | ForEach-Object { "
@@ -42,8 +50,11 @@ def _build_script(channel: str, event_ids: list[int], max_events: int) -> str:
     )
 
 
-def fetch_events(channel: str, event_ids: list[int], max_events: int = 200) -> list[dict]:
-    script = _build_script(channel, event_ids, max_events)
+def fetch_events(
+    channel: str, event_ids: list[int], max_events: int = 200, after_record_id: int | None = None
+) -> list[dict]:
+    """after_record_id: only return records newer than this RecordId (watch mode)."""
+    script = _build_script(channel, event_ids, max_events, after_record_id)
     result = subprocess.run(
         ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script],
         capture_output=True,

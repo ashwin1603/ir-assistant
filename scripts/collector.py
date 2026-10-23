@@ -1,9 +1,11 @@
 """Push Windows events to the API (run from an elevated terminal).
 
     python scripts/collector.py                          # Windows event logs (admin)
+    python scripts/collector.py --watch [--interval 15]   # near-real-time loop (admin)
     python scripts/collector.py --network [--interval 15] # TCP + DNS telemetry, no admin
 """
 import argparse
+import json
 import socket
 import sys
 import time
@@ -28,6 +30,77 @@ from app.collector.windows_events import CHANNELS, fetch_events, max_events_for
 
 API_BASE_URL = "http://127.0.0.1:8000"
 BATCH_SIZE = 200
+# Last RecordId seen per "channel|event_id", so --watch only fetches new records (gitignored).
+STATE_FILE = Path(__file__).resolve().parent / ".collector_state.json"
+MAX_BACKOFF = 300
+
+
+def load_state() -> dict:
+    try:
+        return json.loads(STATE_FILE.read_text())
+    except (OSError, ValueError):
+        return {}
+
+
+def save_state(state: dict) -> None:
+    STATE_FILE.write_text(json.dumps(state, indent=2))
+
+
+def post_batches(client: httpx.Client, events: list[dict], headers: dict) -> int:
+    """POST events in batches; returns how many were newly ingested. Raises on API errors."""
+    ingested = 0
+    for i in range(0, len(events), BATCH_SIZE):
+        resp = client.post(f"{API_BASE_URL}/api/events/ingest", json={"events": events[i : i + BATCH_SIZE]}, headers=headers)
+        resp.raise_for_status()
+        ingested += resp.json().get("ingested", 0)
+    return ingested
+
+
+def run_watch(collector_key: str, interval: int) -> int:
+    """Poll each channel/event id for records newer than the last seen RecordId until Ctrl+C."""
+    host = socket.gethostname()
+    headers = {"X-Collector-Key": collector_key}
+    state = load_state()
+    failures = 0
+    print(f"Watching Windows event logs every {interval}s (Ctrl+C to stop)")
+    with httpx.Client(timeout=30) as client:
+        try:
+            while True:
+                events, newest = [], {}
+                for channel, event_ids in CHANNELS.items():
+                    for event_id in event_ids:
+                        key = f"{channel}|{event_id}"
+                        try:
+                            raw = fetch_events(channel, [event_id], max_events_for(event_id), state.get(key))
+                        except Exception as exc:
+                            print(f"[warn] could not read {key}: {exc}")
+                            continue
+                        record_ids = [int(r["RecordId"]) for r in raw if r.get("RecordId") is not None]
+                        if record_ids:
+                            newest[key] = max(record_ids)
+                        events += normalize_events(raw, host=host, source="agent")
+                try:
+                    ingested = post_batches(client, events, headers)
+                    client.post(
+                        f"{API_BASE_URL}/api/devices/heartbeat",
+                        json={"host": host, "source": "agent", "events_sent": len(events)},
+                        headers=headers,
+                    ).raise_for_status()
+                except httpx.HTTPError as exc:
+                    # State is not advanced, so the same records are retried next cycle.
+                    failures += 1
+                    wait = min(MAX_BACKOFF, interval * 2**failures)
+                    print(f"[{datetime.now():%H:%M:%S}] API error ({exc.__class__.__name__}); retrying in {wait}s")
+                    time.sleep(wait)
+                    continue
+                failures = 0
+                state.update(newest)
+                save_state(state)
+                print(f"[{datetime.now():%H:%M:%S}] fetched {len(events)} new, ingested {ingested}")
+                time.sleep(interval)
+        except KeyboardInterrupt:
+            print("Stopped.")
+    return 0
 
 
 def run_network(collector_key: str, interval: int) -> int:
@@ -63,7 +136,8 @@ def run_network(collector_key: str, interval: int) -> int:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--network", action="store_true", help="collect TCP connections and DNS lookups (no admin)")
-    parser.add_argument("--interval", type=int, default=15, help="seconds between network polls (default 15)")
+    parser.add_argument("--watch", action="store_true", help="keep polling Windows logs for new events (admin)")
+    parser.add_argument("--interval", type=int, default=15, help="seconds between polls (default 15)")
     args = parser.parse_args()
 
     env = dotenv_values(BACKEND_DIR / ".env")
@@ -74,6 +148,8 @@ def main() -> int:
 
     if args.network:
         return run_network(collector_key, max(1, args.interval))
+    if args.watch:
+        return run_watch(collector_key, max(1, args.interval))
 
     host = socket.gethostname()
     all_normalized = []

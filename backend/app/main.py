@@ -22,6 +22,7 @@ from app.routes.artifacts import router as artifacts_router
 from app.routes.attack import router as attack_router
 from app.routes.audit_log import router as audit_router
 from app.routes.detections import router as detections_router
+from app.routes.devices import router as devices_router
 from app.routes.events import router as events_router
 from app.routes.incidents import router as incidents_router
 from app.routes.network import router as network_router
@@ -82,6 +83,7 @@ async def security_headers(request, call_next):
 app.include_router(auth_router)
 app.include_router(audit_router)
 app.include_router(events_router)
+app.include_router(devices_router)
 app.include_router(detections_router)
 app.include_router(anomalies_router)
 app.include_router(network_router)

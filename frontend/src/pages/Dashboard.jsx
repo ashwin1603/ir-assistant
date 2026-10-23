@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { get } from "../lib/api";
+import { AutoRefreshToggle, useAutoRefresh } from "../components/AutoRefresh";
 
 const LEVEL_ORDER = ["Low", "Medium", "High", "Critical"];
 
@@ -39,18 +40,20 @@ export default function Dashboard() {
   const [eventTotal, setEventTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [autoRefresh, setAutoRefresh, tick] = useAutoRefresh(15);
 
   useEffect(() => {
-    setLoading(true);
+    // loading starts true; refreshes update in place without a "Loading..." flash.
     Promise.all([get("/incidents"), get("/detections"), get("/events?page=1&page_size=1")])
       .then(([incidentData, detectionData, eventPage]) => {
         setIncidents(incidentData);
         setDetections(detectionData);
         setEventTotal(eventPage.total);
+        setError("");
       })
       .catch((err) => setError(err.message || "Failed to load dashboard"))
       .finally(() => setLoading(false));
-  }, []);
+  }, [tick]);
 
   if (loading) return <p className="text-slate-500">Loading...</p>;
   if (error) return <p className="text-red-400">{error}</p>;
@@ -73,7 +76,10 @@ export default function Dashboard() {
 
   return (
     <div>
-      <h1 className="mb-4 text-xl font-semibold text-slate-100">Dashboard</h1>
+      <div className="mb-4 flex items-center justify-between">
+        <h1 className="text-xl font-semibold text-slate-100">Dashboard</h1>
+        <AutoRefreshToggle enabled={autoRefresh} onChange={setAutoRefresh} />
+      </div>
 
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatTile label="Incidents" value={incidents.length} />

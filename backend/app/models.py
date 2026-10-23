@@ -215,3 +215,17 @@ class ThreatIndicator(Base):
     tags: Mapped[str] = mapped_column(String, default="")  # comma-separated
     added_by: Mapped[str | None] = mapped_column(String, nullable=True)
     added_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class Device(Base):
+    """One row per (host, source) collector, updated by POST /api/devices/heartbeat."""
+
+    __tablename__ = "devices"
+    __table_args__ = (UniqueConstraint("host", "source", name="uq_device_host_source"),)
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    host: Mapped[str] = mapped_column(String, index=True)
+    source: Mapped[str] = mapped_column(String)
+    first_seen: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    last_seen: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    total_events: Mapped[int] = mapped_column(Integer, default=0)  # sum of events_sent over all heartbeats

@@ -605,3 +605,19 @@ class AnomalyReport(BaseModel):
     threshold: float
     anomaly_rate_real: float
     items: list[AnomalyOut]
+
+
+class HeartbeatIn(BaseModel):
+    host: str = Field(min_length=1, max_length=255)
+    source: str = Field(pattern="^(agent|local-net)$")
+    events_sent: int = Field(default=0, ge=0, le=1_000_000)
+
+
+class DeviceOut(BaseModel):
+    host: str
+    source: str
+    status: Literal["online", "stale", "offline"]
+    last_seen: UTCDateTime | None
+    total_events: int
+    events_last_5m: int
+    simulated: bool
