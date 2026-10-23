@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.ai.client import ollama_status
 from app.audit import log_action
 from app.auth.deps import require_role
+from app.auth.routes import clear_mfa
 from app.auth.security import hash_password
 from app.config import settings
 from app.db import get_db
@@ -90,6 +91,14 @@ def reset_password(user_id: str, body: PasswordReset, db: Session = Depends(get_
     user = _get_user_or_404(db, user_id)
     user.password_hash = hash_password(body.new_password)
     log_action(db, actor=admin.username, action="user_password_reset", detail=f"user={user.username}")
+
+
+@router.post("/users/{user_id}/reset-mfa", status_code=204)
+def reset_mfa(user_id: str, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+    """For a user who lost their authenticator and recovery codes."""
+    user = _get_user_or_404(db, user_id)
+    clear_mfa(user)
+    log_action(db, actor=admin.username, action="mfa_reset", detail=f"user={user.username}")
 
 
 # ---------- Detection rules ----------

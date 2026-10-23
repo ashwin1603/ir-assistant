@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { get, patch, post, put } from "../lib/api";
 import { useAuth } from "../auth/AuthContext";
 
-const TABS = ["Users", "Detection", "System"];
+const ADMIN_TABS = ["Users", "Detection", "System"];
 const ROLES = ["admin", "analyst", "viewer"];
 
 const inputClass =
@@ -75,6 +75,7 @@ function UsersTab() {
               <th className="px-3 py-2">Username</th>
               <th className="px-3 py-2">Role</th>
               <th className="px-3 py-2">Status</th>
+              <th className="px-3 py-2">MFA</th>
               <th className="px-3 py-2">Created</th>
               <th className="px-3 py-2">Actions</th>
             </tr>
@@ -95,6 +96,7 @@ function UsersTab() {
                     {u.is_active ? "Active" : "Disabled"}
                   </span>
                 </td>
+                <td className="px-3 py-2 text-slate-400">{u.mfa_enabled ? "On" : "Off"}</td>
                 <td className="px-3 py-2 text-slate-400">{new Date(u.created_at).toLocaleDateString()}</td>
                 <td className="flex gap-2 px-3 py-2">
                   <button className={buttonClass}
@@ -103,6 +105,11 @@ function UsersTab() {
                     {u.is_active ? "Disable" : "Enable"}
                   </button>
                   <button className={buttonClass} onClick={() => resetPassword(u)}>Reset password</button>
+                  <button className={buttonClass} disabled={!u.mfa_enabled}
+                    onClick={() => window.confirm(`Turn off MFA for ${u.username}?`) &&
+                      run(() => post(`/settings/users/${u.id}/reset-mfa`), `MFA reset for ${u.username}`)}>
+                    Reset MFA
+                  </button>
                 </td>
               </tr>
             ))}
@@ -332,28 +339,120 @@ function SystemTab() {
   );
 }
 
+function MyAccountTab() {
+  const [status, setStatus] = useState(null);
+  const [setup, setSetup] = useState(null); // { secret, otpauth_uri } while enrolling
+  const [recoveryCodes, setRecoveryCodes] = useState(null); // shown once after enabling
+  const [code, setCode] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+
+  const load = useCallback(() => {
+    get("/auth/mfa").then(setStatus).catch((err) => setError(err.message));
+  }, []);
+  useEffect(load, [load]);
+
+  async function run(fn) {
+    setError("");
+    setNotice("");
+    try {
+      await fn();
+      setCode("");
+      setPassword("");
+      load();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  const startSetup = () => run(async () => { setRecoveryCodes(null); setSetup(await post("/auth/mfa/setup")); });
+  const confirmSetup = (e) => {
+    e.preventDefault();
+    run(async () => {
+      setRecoveryCodes((await post("/auth/mfa/enable", { code })).recovery_codes);
+      setSetup(null);
+      setNotice("MFA enabled");
+    });
+  };
+  const disable = (e) => {
+    e.preventDefault();
+    run(async () => {
+      await post("/auth/mfa/disable", { password, code });
+      setNotice("MFA disabled");
+    });
+  };
+
+  if (!status) return <Message error={error} notice="" />;
+
+  return (
+    <div className="space-y-4 text-sm text-slate-300">
+      <Message error={error} notice={notice} />
+      <section className="rounded border border-slate-800 p-4">
+        <h2 className="mb-2 font-semibold text-slate-100">Two-factor authentication (TOTP)</h2>
+        <p className="mb-3">
+          Status: {status.enabled ? `On · ${status.recovery_codes_left} recovery codes left` : "Off"}
+        </p>
+
+        {recoveryCodes && (
+          <div className="mb-3 rounded border border-amber-700 bg-amber-950/40 p-3">
+            <p className="mb-2 text-amber-300">Save these recovery codes now. Each works once; they will not be shown again.</p>
+            <pre className="font-mono text-xs text-slate-100">{recoveryCodes.join("\n")}</pre>
+          </div>
+        )}
+
+        {!status.enabled && !setup && <button className={buttonClass} onClick={startSetup}>Enable MFA</button>}
+
+        {setup && (
+          <form onSubmit={confirmSetup} className="space-y-2">
+            <p>Add this account to your authenticator app, then enter the 6-digit code it shows.</p>
+            <p>Secret: <code className="break-all font-mono text-slate-100">{setup.secret}</code></p>
+            <p>URI: <code className="break-all font-mono text-xs text-slate-400">{setup.otpauth_uri}</code></p>
+            <div className="flex gap-2">
+              <input className={`${inputClass} w-32`} placeholder="123456" value={code} maxLength={6}
+                inputMode="numeric" autoComplete="one-time-code" onChange={(e) => setCode(e.target.value.trim())} required />
+              <button className={buttonClass} type="submit">Confirm</button>
+              <button className={buttonClass} type="button" onClick={() => setSetup(null)}>Cancel</button>
+            </div>
+          </form>
+        )}
+
+        {status.enabled && (
+          <form onSubmit={disable} className="flex flex-wrap gap-2">
+            <input className={inputClass} type="password" placeholder="Password" value={password}
+              autoComplete="current-password" onChange={(e) => setPassword(e.target.value)} required />
+            <input className={`${inputClass} w-40`} placeholder="Code or recovery code" value={code} maxLength={20}
+              autoComplete="one-time-code" onChange={(e) => setCode(e.target.value.trim())} required />
+            <button className={buttonClass} type="submit">Disable MFA</button>
+          </form>
+        )}
+      </section>
+    </div>
+  );
+}
+
 export default function Settings() {
   const { session } = useAuth();
-  const [tab, setTab] = useState("Users");
-
-  if (session?.role !== "admin") {
-    return <p className="text-slate-500">Admins only.</p>;
-  }
+  const isAdmin = session?.role === "admin";
+  // Every user gets "My account"; the admin tabs are also enforced by the backend.
+  const tabs = isAdmin ? ["My account", ...ADMIN_TABS] : ["My account"];
+  const [tab, setTab] = useState("My account");
 
   return (
     <div>
       <h1 className="mb-4 text-xl font-semibold text-slate-100">Settings</h1>
       <div className="mb-4 flex gap-2">
-        {TABS.map((t) => (
+        {tabs.map((t) => (
           <button key={t} onClick={() => setTab(t)}
             className={`rounded px-3 py-1.5 text-sm ${tab === t ? "bg-slate-800 text-white" : "text-slate-400 hover:text-slate-200"}`}>
             {t}
           </button>
         ))}
       </div>
-      {tab === "Users" && <UsersTab />}
-      {tab === "Detection" && <DetectionTab />}
-      {tab === "System" && <SystemTab />}
+      {tab === "My account" && <MyAccountTab />}
+      {isAdmin && tab === "Users" && <UsersTab />}
+      {isAdmin && tab === "Detection" && <DetectionTab />}
+      {isAdmin && tab === "System" && <SystemTab />}
     </div>
   );
 }

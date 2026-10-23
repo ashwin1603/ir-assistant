@@ -24,6 +24,16 @@ def add_missing_columns() -> None:
     """create_all() never alters existing tables, so columns added after a DB
     was created are added here. Fixed DDL strings only - no user input."""
     columns = {c["name"] for c in inspect(engine).get_columns("users")}
-    if "is_active" not in columns:
-        with engine.begin() as conn:
-            conn.execute(text("ALTER TABLE users ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT 1"))
+    new_columns = {
+        "is_active": "ALTER TABLE users ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT 1",
+        # Existing users start with MFA off.
+        "mfa_enabled": "ALTER TABLE users ADD COLUMN mfa_enabled BOOLEAN NOT NULL DEFAULT 0",
+        "mfa_secret": "ALTER TABLE users ADD COLUMN mfa_secret VARCHAR",
+        "mfa_pending_secret": "ALTER TABLE users ADD COLUMN mfa_pending_secret VARCHAR",
+        "mfa_last_step": "ALTER TABLE users ADD COLUMN mfa_last_step INTEGER",
+        "mfa_recovery_codes": "ALTER TABLE users ADD COLUMN mfa_recovery_codes TEXT",
+    }
+    with engine.begin() as conn:
+        for name, ddl in new_columns.items():
+            if name not in columns:
+                conn.execute(text(ddl))

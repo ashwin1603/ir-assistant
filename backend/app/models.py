@@ -17,6 +17,13 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String)
     role: Mapped[str] = mapped_column(String, default="viewer")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Optional TOTP MFA. mfa_pending_secret holds a secret during enrolment until
+    # the user confirms a code; recovery codes are a JSON list of argon2 hashes.
+    mfa_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    mfa_secret: Mapped[str | None] = mapped_column(String, nullable=True)
+    mfa_pending_secret: Mapped[str | None] = mapped_column(String, nullable=True)
+    mfa_last_step: Mapped[int | None] = mapped_column(Integer, nullable=True)  # replay protection
+    mfa_recovery_codes: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 

@@ -8,12 +8,23 @@ export function AuthProvider({ children }) {
   // so a page refresh always requires a fresh login.
   const [session, setSession] = useState(null);
 
-  const login = useCallback(async (username, password) => {
-    const data = await post("/auth/login", { username, password });
+  const start = useCallback((data, username) => {
     setAuthToken(data.access_token);
     setSession({ token: data.access_token, role: data.role, username });
-    return data;
   }, []);
+
+  // Returns { mfaToken } when a second step is needed; the mfa_token is kept only
+  // in the Login page's state and is useless for anything except /auth/mfa/verify.
+  const login = useCallback(async (username, password) => {
+    const data = await post("/auth/login", { username, password });
+    if (data.mfa_required) return { mfaToken: data.mfa_token };
+    start(data, username);
+    return {};
+  }, [start]);
+
+  const verifyMfa = useCallback(async (username, mfaToken, code) => {
+    start(await post("/auth/mfa/verify", { mfa_token: mfaToken, code }), username);
+  }, [start]);
 
   const logout = useCallback(() => {
     setAuthToken(null);
@@ -25,9 +36,10 @@ export function AuthProvider({ children }) {
       session,
       isAuthenticated: !!session,
       login,
+      verifyMfa,
       logout,
     }),
-    [session, login, logout],
+    [session, login, verifyMfa, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

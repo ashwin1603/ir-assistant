@@ -28,6 +28,47 @@ class TokenResponse(BaseModel):
     role: str
 
 
+class LoginResponse(BaseModel):
+    """Either a full token, or mfa_required + a short-lived mfa_token for step two."""
+
+    access_token: str | None = None
+    token_type: str = "bearer"
+    role: str | None = None
+    mfa_required: bool = False
+    mfa_token: str | None = None
+
+
+MfaCode = Field(min_length=6, max_length=20)  # 6-digit TOTP or 'xxxxx-xxxxx' recovery code
+
+
+class MfaVerifyRequest(BaseModel):
+    mfa_token: str = Field(min_length=1, max_length=2000)
+    code: str = MfaCode
+
+
+class MfaStatusOut(BaseModel):
+    enabled: bool
+    recovery_codes_left: int
+
+
+class MfaSetupOut(BaseModel):
+    secret: str
+    otpauth_uri: str
+
+
+class MfaEnableRequest(BaseModel):
+    code: str = Field(min_length=6, max_length=6)
+
+
+class MfaEnableOut(BaseModel):
+    recovery_codes: list[str]
+
+
+class MfaDisableRequest(BaseModel):
+    password: str = Field(min_length=1, max_length=200)
+    code: str = MfaCode
+
+
 class UserOut(BaseModel):
     username: str
     role: str
@@ -47,6 +88,7 @@ class AdminUserOut(BaseModel):
     username: str
     role: str
     is_active: bool
+    mfa_enabled: bool
     created_at: UTCDateTime
 
 
