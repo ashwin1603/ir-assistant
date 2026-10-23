@@ -190,6 +190,13 @@ class EventIngestRequest(BaseModel):
     events: list[EventIn] = Field(min_length=1, max_length=1000)
 
 
+class TIMatch(BaseModel):
+    type: str
+    value: str
+    source: str
+    tags: str
+
+
 class EventOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -207,6 +214,25 @@ class EventOut(BaseModel):
     src_ip: str | None
     logon_type: str | None
     message: str | None
+    ti_matches: list[TIMatch] = []
+
+
+class TIIndicatorOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    type: str
+    value: str
+    source: str
+    tags: str
+    added_by: str | None
+    added_at: UTCDateTime
+
+
+class TIImportResult(BaseModel):
+    added: int
+    duplicates: int
+    errors: list[dict]
 
 
 class EventPage(BaseModel):
@@ -229,6 +255,7 @@ class DetectionOut(BaseModel):
     last_seen: UTCDateTime
     risk_score: float
     risk_level: str
+    ti_matches: list[TIMatch] = []
 
 
 class TechniqueCell(BaseModel):
@@ -305,6 +332,7 @@ class TimelineEntry(BaseModel):
     first_seen: UTCDateTime
     last_seen: UTCDateTime
     event_ids: list[str]
+    ti_matches: list[TIMatch] = []
 
 
 class IncidentDetail(IncidentOut):
@@ -411,6 +439,7 @@ class ReportOut(BaseModel):
     actions: list[ReportAction]
     attack: list[AttackRow]
     iocs: list[IOCOut]
+    ti_matches: list[TIMatch] = []  # imported threat-intel indicators seen in the evidence
     executive: ExecutiveSummary
     simulated: bool  # evidence came from the attack simulator, not real activity
     generated_at: UTCDateTime

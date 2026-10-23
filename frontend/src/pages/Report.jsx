@@ -207,7 +207,7 @@ function ExecutiveView({ incident, executive }) {
   );
 }
 
-function TechnicalView({ incident, analysis, actions, attack, iocs }) {
+function TechnicalView({ incident, analysis, actions, attack, iocs, tiMatches }) {
   return (
     <div>
       <Section title="Timeline" long>
@@ -260,6 +260,23 @@ function TechnicalView({ incident, analysis, actions, attack, iocs }) {
                 <td className={`${cell} evidence mono font-mono text-xs`}>
                 <EventIds ids={i.event_ids} />
               </td>
+              </tr>
+            ))}
+          </Table>
+        )}
+      </Section>
+
+      <Section title="Threat-intel matches">
+        {tiMatches.length === 0 ? (
+          <p className={`text-sm ${muted}`}>No imported threat-intel indicators were seen in the evidence.</p>
+        ) : (
+          <Table headers={["Type", "Indicator", "Source", "Tags"]}>
+            {tiMatches.map((m) => (
+              <tr key={`${m.type}:${m.value}`} className={rowClass}>
+                <td className={`${cell} whitespace-nowrap`}>{m.type}</td>
+                <td className={`${cell} mono font-mono text-xs`}>{m.value}</td>
+                <td className={cell}>{m.source}</td>
+                <td className={cell}>{m.tags || "—"}</td>
               </tr>
             ))}
           </Table>
@@ -421,6 +438,7 @@ export default function Report() {
           actions={report.actions}
           attack={report.attack}
           iocs={report.iocs}
+          tiMatches={report.ti_matches || []}
         />
       )}
 

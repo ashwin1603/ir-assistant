@@ -18,6 +18,7 @@ TACTICS: dict[str, str] = {
     "T1021.001": "Lateral Movement",
     "T1547.001": "Persistence",
     "T1003": "Credential Access",
+    "T1071": "Command and Control",
 }
 
 TECHNIQUE_NAMES: dict[str, str] = {
@@ -38,6 +39,7 @@ TECHNIQUE_NAMES: dict[str, str] = {
     "T1021.001": "Remote Services: Remote Desktop Protocol",
     "T1547.001": "Registry Run Keys / Startup Folder",
     "T1003": "OS Credential Dumping",
+    "T1071": "Application Layer Protocol",
 }
 
 
@@ -126,6 +128,11 @@ MITIGATIONS: dict[str, list[str]] = {
         "Enable LSASS protection (RunAsPPL) and Credential Guard",
         "Delete saved hive/dump files and check for exfiltration",
     ],
+    "T1071": [
+        "Block the matched indicator at the firewall, proxy and DNS resolver",
+        "Identify the process that contacted the indicator and isolate the host if confirmed",
+        "Search other hosts' logs for the same indicator",
+    ],
 }
 
 
@@ -160,6 +167,7 @@ DESCRIPTIONS: dict[str, str] = {
     "T1021.001": "Adversaries use Remote Desktop Protocol with valid accounts to move between systems interactively.",
     "T1547.001": "Adversaries add Registry Run keys or Startup folder entries so their program runs at logon.",
     "T1003": "Adversaries dump credential material from LSASS or registry hives to obtain passwords and hashes.",
+    "T1071": "Adversaries talk to command-and-control servers over common protocols such as HTTP, HTTPS or DNS to blend in with normal traffic.",
 }
 
 

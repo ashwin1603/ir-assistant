@@ -5,8 +5,9 @@ from sqlalchemy.orm import Session
 from app.audit import log_action
 from app.auth.deps import get_current_user, require_collector_key
 from app.db import get_db
+from app.detection.threat_intel import load_index, match_event
 from app.models import Event
-from app.schemas import EventIngestRequest, EventPage
+from app.schemas import EventIngestRequest, EventOut, EventPage
 
 router = APIRouter(prefix="/api/events", tags=["events"])
 
@@ -84,4 +85,8 @@ def list_events(
 
     total = query.count()
     items = query.order_by(Event.timestamp.desc()).offset((page - 1) * page_size).limit(page_size).all()
-    return EventPage(total=total, items=items)
+    index = load_index(db)
+    return EventPage(
+        total=total,
+        items=[EventOut.model_validate({**EventOut.model_validate(e).model_dump(), "ti_matches": match_event(e, index)}) for e in items],
+    )

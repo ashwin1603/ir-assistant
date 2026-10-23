@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { get } from "../lib/api";
+import { TIBadge } from "../components/TIBadge";
 
 const LEVEL_STYLES = {
   Low: "bg-slate-800 text-slate-300",
@@ -81,7 +82,12 @@ export default function Detections() {
             {!loading &&
               detections.map((d) => (
                 <tr key={d.id} className="border-t border-slate-800 hover:bg-slate-900/60">
-                  <td className="px-3 py-2 text-slate-200">{d.rule_name}</td>
+                  <td className="px-3 py-2 text-slate-200">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {d.rule_name}
+                      <TIBadge matches={d.ti_matches} />
+                    </div>
+                  </td>
                   <td className="px-3 py-2">
                     <div className="flex flex-wrap gap-1">
                       {d.technique_ids.map((id) => (

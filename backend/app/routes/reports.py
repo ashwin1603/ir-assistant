@@ -72,6 +72,7 @@ def get_report(incident_id: str, db: Session = Depends(get_db), user=Depends(get
         actions=actions,
         attack=attack_table(timeline),
         iocs=extract_iocs(db, incident.id),
+        ti_matches=list({(m["type"], m["value"]): m for e in timeline for m in e["ti_matches"]}.values()),
         executive=executive,
         simulated=is_simulated(db, incident.id),
         generated_at=datetime.now(timezone.utc),

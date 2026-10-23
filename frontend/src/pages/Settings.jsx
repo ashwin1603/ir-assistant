@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import { get, patch, post, put } from "../lib/api";
+import { del, get, patch, post, put, upload } from "../lib/api";
 import { useAuth } from "../auth/AuthContext";
 
-const ADMIN_TABS = ["Users", "Detection", "System"];
+const ADMIN_TABS = ["Users", "Detection", "Threat intel", "System"];
+const TI_MAX_BYTES = 1024 * 1024;
 const ROLES = ["admin", "analyst", "viewer"];
 
 const inputClass =
@@ -257,6 +258,121 @@ function DetectionTab() {
   );
 }
 
+function ThreatIntelTab() {
+  const [indicators, setIndicators] = useState([]);
+  const [q, setQ] = useState("");
+  const [type, setType] = useState("");
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [importErrors, setImportErrors] = useState([]);
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(() => {
+    const params = new URLSearchParams();
+    if (q.trim()) params.set("q", q.trim());
+    if (type) params.set("type", type);
+    get(`/settings/ti?${params}`).then(setIndicators).catch((err) => setError(err.message));
+  }, [q, type]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function onFile(e) {
+    const file = e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    setError(""); setNotice(""); setImportErrors([]);
+    if (!/\.(csv|txt)$/i.test(file.name)) return setError("Choose a .csv or .txt file");
+    if (file.size > TI_MAX_BYTES) return setError("File too large (max 1 MB)");
+    setBusy(true);
+    try {
+      const result = await upload("/settings/ti/import", file);
+      setNotice(`Added ${result.added}, skipped ${result.duplicates} duplicate(s), ${result.errors.length} invalid line(s)`);
+      setImportErrors(result.errors);
+      load();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove(indicator) {
+    if (!window.confirm(`Delete ${indicator.type} ${indicator.value}?`)) return;
+    try {
+      await del(`/settings/ti/${indicator.id}`);
+      setIndicators((list) => list.filter((i) => i.id !== indicator.id));
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  return (
+    <div>
+      <Message error={error} notice={notice} />
+      {importErrors.length > 0 && (
+        <ul className="mb-3 list-disc pl-5 text-xs text-amber-300">
+          {importErrors.map((e) => (
+            <li key={e.line}>Line {e.line}: {e.reason}</li>
+          ))}
+        </ul>
+      )}
+      <div className="mb-4 rounded border border-slate-800 p-4">
+        <h2 className="mb-1 text-sm font-semibold text-slate-200">Import indicators</h2>
+        <p className="mb-3 text-xs text-slate-500">
+          CSV or TXT, max 1 MB, one per line: <code>type,value,source,tags</code> (type is ip, domain or sha256;
+          separate tags with ;). Private/loopback IPs are rejected and duplicates are skipped. Matching is local only.
+        </p>
+        <input type="file" accept=".csv,.txt" onChange={onFile} disabled={busy} className="text-xs text-slate-400" />
+      </div>
+      <div className="mb-3 flex gap-2">
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search value, source or tag" maxLength={200}
+          className={`${inputClass} w-64`} />
+        <select value={type} onChange={(e) => setType(e.target.value)} className={inputClass}>
+          <option value="">All types</option>
+          <option value="ip">ip</option>
+          <option value="domain">domain</option>
+          <option value="sha256">sha256</option>
+        </select>
+      </div>
+      <div className="overflow-x-auto rounded border border-slate-800">
+        <table className="w-full text-left text-sm">
+          <thead className="bg-slate-900 text-slate-400">
+            <tr>
+              <th className="px-3 py-2">Type</th>
+              <th className="px-3 py-2">Value</th>
+              <th className="px-3 py-2">Source</th>
+              <th className="px-3 py-2">Tags</th>
+              <th className="px-3 py-2">Added</th>
+              <th className="px-3 py-2"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {indicators.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-3 py-6 text-center text-slate-500">No indicators.</td>
+              </tr>
+            )}
+            {indicators.map((i) => (
+              <tr key={i.id} className="border-t border-slate-800">
+                <td className="px-3 py-2 text-slate-300">{i.type}</td>
+                <td className="max-w-[24rem] truncate px-3 py-2 font-mono text-xs text-slate-200" title={i.value}>{i.value}</td>
+                <td className="px-3 py-2 text-slate-300">{i.source}</td>
+                <td className="px-3 py-2 text-slate-400">{i.tags || "—"}</td>
+                <td className="whitespace-nowrap px-3 py-2 text-slate-400">{new Date(i.added_at).toLocaleString()}</td>
+                <td className="px-3 py-2">
+                  <button onClick={() => remove(i)} className={buttonClass}>Delete</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function StatusDot({ ok, label }) {
   return (
     <span className="flex items-center gap-2">
@@ -452,6 +568,7 @@ export default function Settings() {
       {tab === "My account" && <MyAccountTab />}
       {isAdmin && tab === "Users" && <UsersTab />}
       {isAdmin && tab === "Detection" && <DetectionTab />}
+      {isAdmin && tab === "Threat intel" && <ThreatIntelTab />}
       {isAdmin && tab === "System" && <SystemTab />}
     </div>
   );

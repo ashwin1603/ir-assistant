@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { get, post, put, download, ApiError } from "../lib/api";
 import { RiskBadge } from "../components/RiskBadge";
+import { TIBadge } from "../components/TIBadge";
 import { StatusBadge, INCIDENT_STATUSES } from "../components/StatusBadge";
 import { useAuth } from "../auth/AuthContext";
 import { AskPanel } from "../components/AskPanel";
@@ -227,7 +228,12 @@ export default function IncidentDetail() {
                 <td className="whitespace-nowrap px-3 py-2 text-slate-400">
                   {new Date(entry.first_seen).toLocaleString()}
                 </td>
-                <td className="px-3 py-2 text-slate-200">{entry.rule_name}</td>
+                <td className="px-3 py-2 text-slate-200">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {entry.rule_name}
+                    <TIBadge matches={entry.ti_matches} />
+                  </div>
+                </td>
                 <td className="px-3 py-2">
                   <div className="flex flex-wrap gap-1">
                     {entry.technique_ids.map((tid) => (

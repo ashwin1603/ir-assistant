@@ -75,6 +75,7 @@ def build_facts(db: Session, incident: Incident) -> dict:
         "actions": [{"text": a.action_text, "status": a.status} for a in actions],
         "playbook": list(dict.fromkeys(m for tid in technique_ids for m in MITIGATIONS.get(tid, []))),
         "notes": [n.text[:300] for n in notes],
+        "threat_intel_matches": sorted({f"{m['type']} indicator listed by {m['source']}" for d in timeline for m in d["ti_matches"]}),
     }
 
 

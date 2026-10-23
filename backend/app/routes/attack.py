@@ -9,6 +9,7 @@ from app.auth.deps import get_current_user
 from app.db import get_db
 from app.detection.attack_map import DESCRIPTIONS, MITIGATIONS, TACTIC_ORDER, TACTICS, TECHNIQUE_NAMES
 from app.detection.engine import effective_rules, run_detection
+from app.detection.threat_intel import TI_RULE
 from app.models import Detection
 from app.routes.detections import _to_out
 from app.schemas import AttackMatrixOut, TechniqueCell, TechniqueDetailOut, TechniqueRule
@@ -21,7 +22,7 @@ RECENT_DETECTIONS_LIMIT = 20
 def _covered_techniques(db: Session) -> dict[str, list]:
     """technique id -> enabled rules that detect it."""
     covered: dict[str, list] = {}
-    for rule in effective_rules(db):
+    for rule in [*effective_rules(db), TI_RULE]:
         for technique_id in rule.technique_ids:
             covered.setdefault(technique_id, []).append(rule)
     return covered

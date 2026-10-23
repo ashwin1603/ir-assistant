@@ -27,6 +27,7 @@ from app.routes.incidents import router as incidents_router
 from app.routes.reports import router as reports_router
 from app.routes.settings import router as settings_router
 from app.routes.uploads import router as uploads_router
+from app.detection.threat_intel import seed_demo_indicators
 from app.seed import seed_admin_user
 
 Base.metadata.create_all(bind=engine)
@@ -38,6 +39,7 @@ async def lifespan(app: FastAPI):
     db = SessionLocal()
     try:
         seed_admin_user(db)
+        seed_demo_indicators(db)
     finally:
         db.close()
     # Fire-and-forget: don't block server startup on the model load.

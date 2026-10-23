@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -174,3 +174,19 @@ class AppSetting(Base):
 
     key: Mapped[str] = mapped_column(String, primary_key=True)
     value: Mapped[str] = mapped_column(String)
+
+
+class ThreatIndicator(Base):
+    """Local threat-intel indicator (admin-imported). Values are stored normalised
+    (lower-case, canonical IP) so matching is a simple exact lookup."""
+
+    __tablename__ = "ti_indicators"
+    __table_args__ = (UniqueConstraint("type", "value", name="uq_ti_type_value"),)
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    type: Mapped[str] = mapped_column(String, index=True)  # ip | domain | sha256
+    value: Mapped[str] = mapped_column(String, index=True)
+    source: Mapped[str] = mapped_column(String)
+    tags: Mapped[str] = mapped_column(String, default="")  # comma-separated
+    added_by: Mapped[str | None] = mapped_column(String, nullable=True)
+    added_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))

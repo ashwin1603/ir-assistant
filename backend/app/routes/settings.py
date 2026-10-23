@@ -1,10 +1,12 @@
-"""Admin-only Settings: user management, detection rule overrides, system status.
+"""Admin-only Settings: user management, detection rule overrides, threat intel, system status.
 Every route requires the admin role (enforced here, not just in the UI) and
 every change is written to the audit log."""
 
 from datetime import datetime, timedelta, timezone
+from pathlib import PurePath
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.ai.client import ollama_status
@@ -16,7 +18,8 @@ from app.config import settings
 from app.db import get_db
 from app.detection.rules import RULES
 from app.detection.sigma_import import MAX_BYTES, SigmaImportError, import_sigma
-from app.models import AuditLog, RuleOverride, User
+from app.detection.threat_intel import MAX_IMPORT_BYTES, import_indicators, parse_import
+from app.models import AuditLog, RuleOverride, ThreatIndicator, User
 from app.runtime_settings import get_ai_calls_per_hour, set_ai_calls_per_hour
 from app.schemas import (
     AdminUserCreate,
@@ -28,6 +31,8 @@ from app.schemas import (
     SigmaImport,
     SystemSettingsUpdate,
     SystemStatusOut,
+    TIImportResult,
+    TIIndicatorOut,
 )
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
@@ -165,6 +170,61 @@ def import_sigma_rule(body: SigmaImport, db: Session = Depends(get_db), admin: U
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     log_action(db, actor=admin.username, action="sigma_import", detail=f"rule={rule.name} id={rule.id} (disabled)")
     return _rule_out(rule, None)
+
+
+# ---------- Threat intel ----------
+
+TI_EXTENSIONS = {".csv", ".txt"}
+TI_LIST_LIMIT = 500
+
+
+@router.get("/ti", response_model=list[TIIndicatorOut])
+def list_indicators(
+    db: Session = Depends(get_db),
+    _admin: User = Depends(require_admin),
+    q: str | None = Query(default=None, max_length=200),
+    type: str | None = Query(default=None, pattern="^(ip|domain|sha256)$"),
+):
+    query = db.query(ThreatIndicator)
+    if type:
+        query = query.filter(ThreatIndicator.type == type)
+    if q:
+        like = f"%{q.strip().lower()}%"
+        query = query.filter(or_(ThreatIndicator.value.like(like), ThreatIndicator.source.like(like), ThreatIndicator.tags.like(like)))
+    return query.order_by(ThreatIndicator.type, ThreatIndicator.value).limit(TI_LIST_LIMIT).all()
+
+
+@router.post("/ti/import", response_model=TIImportResult, status_code=201)
+def import_ti(file: UploadFile = File(...), db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+    name = PurePath((file.filename or "").replace("\\", "/")).name[:255]
+
+    def reject(code: int, message: str):
+        log_action(db, actor=admin.username, action="ti_import", detail=f"file={name} rejected: {message}", success=False)
+        raise HTTPException(status_code=code, detail=message)
+
+    if PurePath(name).suffix.lower() not in TI_EXTENSIONS:
+        reject(400, "Unsupported file type. Allowed: .csv, .txt")
+    data = file.file.read(MAX_IMPORT_BYTES + 1)  # read one byte past the limit to detect oversize
+    if len(data) > MAX_IMPORT_BYTES:
+        reject(413, "File too large (max 1 MB)")
+    try:
+        text = data.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        reject(400, "File must be UTF-8 text")
+
+    rows, errors = parse_import(text)
+    added, duplicates = import_indicators(db, rows, added_by=admin.username)
+    log_action(db, actor=admin.username, action="ti_import", detail=f"file={name} added={added} duplicates={duplicates} errors={len(errors)}")
+    return TIImportResult(added=added, duplicates=duplicates, errors=errors)
+
+
+@router.delete("/ti/{indicator_id}", status_code=204)
+def delete_indicator(indicator_id: str, db: Session = Depends(get_db), admin: User = Depends(require_admin)):
+    indicator = db.get(ThreatIndicator, indicator_id)
+    if not indicator:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Indicator not found")
+    db.delete(indicator)
+    log_action(db, actor=admin.username, action="ti_delete", detail=f"{indicator.type}={indicator.value} source={indicator.source}")
 
 
 # ---------- System ----------

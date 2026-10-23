@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { get } from "../lib/api";
+import { TIBadge } from "../components/TIBadge";
 
 const PAGE_SIZE = 25;
 
@@ -160,7 +161,7 @@ export default function LogExplorer() {
                       {ev.process || "—"}
                     </td>
                     <td className="max-w-[20rem] truncate px-3 py-2 text-slate-400" title={ev.message || ""}>
-                      {ev.message || ev.command_line || "—"}
+                      <TIBadge matches={ev.ti_matches} /> {ev.message || ev.command_line || "—"}
                     </td>
                   </tr>
                 );

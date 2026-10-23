@@ -9,6 +9,7 @@ from app.analysis.incidents import group_into_incidents
 from app.analysis.risk import compute_risk
 from app.detection.attack_map import tactics_for
 from app.detection.rules import ALLOWLIST, RULES, Rule, is_allowlisted
+from app.detection.threat_intel import TI_RULE, load_index, match_event
 from app.models import Detection, Event, Incident, RuleOverride
 
 
@@ -109,6 +110,13 @@ def run_detection(db: Session) -> None:
         else:
             clusters = _cluster_events(candidates, rule.window_minutes, rule.min_count, rule.group_by)
         detections.extend(_build_detection(rule, cluster) for cluster in clusters)
+
+    # Threat-intel rule: fires on any event containing an imported indicator.
+    ti_index = load_index(db)
+    if ti_index:
+        ti_events = [e for e in events if match_event(e, ti_index)]
+        clusters = _cluster_events(ti_events, FILTER_RULE_WINDOW_MINUTES, min_count=1, group_by=("host",))
+        detections.extend(_build_detection(TI_RULE, cluster) for cluster in clusters)
 
     incidents = group_into_incidents(detections)
 
