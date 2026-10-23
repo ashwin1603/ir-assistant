@@ -160,7 +160,7 @@ export function AttackGraph({ incidentId }) {
               if (n.type !== "detection") {
                 return (
                   <g key={n.id} className="ag-node">
-                    <rect x={p.x} y={p.y} width={NODE_W} height={p.h} rx="6" fill="#33302b" stroke="#c74634" />
+                    <rect x={p.x} y={p.y} width={NODE_W} height={p.h} rx="6" fill="#262833" stroke="#0a84ff" />
                     <text x={p.x + 10} y={p.y + 22} fontSize="10" fill="#a59e93">{n.type.toUpperCase()}</text>
                     <text x={p.x + 10} y={p.y + 40} fontSize="13" fill="#e2e8f0">{shorten(n.label)}</text>
                   </g>

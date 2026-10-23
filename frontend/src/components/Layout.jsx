@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import ErrorBoundary from "./ErrorBoundary";
@@ -15,11 +15,27 @@ const navItems = [
   { to: "/recommendations", label: "Recommendations" },
 ];
 
-const navClass = ({ isActive }) => `ir-navlink rounded px-1.5 py-1.5${isActive ? " active" : ""}`;
+const navClass = ({ isActive }) => `ir-navlink${isActive ? " active" : ""}`;
+
+// Browser connectivity drives the status dot next to the user menu.
+function useOnline() {
+  const [online, setOnline] = useState(navigator.onLine);
+  useEffect(() => {
+    const update = () => setOnline(navigator.onLine);
+    window.addEventListener("online", update);
+    window.addEventListener("offline", update);
+    return () => {
+      window.removeEventListener("online", update);
+      window.removeEventListener("offline", update);
+    };
+  }, []);
+  return online;
+}
 
 export default function Layout() {
   const { session, can, logout } = useAuth();
   const location = useLocation();
+  const online = useOnline();
   const [menuOpen, setMenuOpen] = useState(false);
   const items = [...navItems];
   if (can("upload")) items.push({ to: "/upload", label: "Upload" });
@@ -28,56 +44,56 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen text-slate-100 print:bg-white print:text-black">
-      <header className="ir-topbar sticky top-0 z-20 print:hidden">
-        <div className="ir-container flex items-center justify-between gap-4 py-2.5">
-          <div className="flex min-w-0 items-center gap-5">
+      <div className="ir-topbar-wrap ir-container print:hidden">
+        <header className="ir-topbar">
+          <div className="flex items-center justify-between gap-4 py-2 pl-4 pr-2.5">
             <span className="flex shrink-0 items-center gap-2 text-sm font-semibold tracking-tight text-slate-100">
-              <span className="inline-block h-2.5 w-2.5 rounded-sm bg-sky-600" aria-hidden="true" />
+              <span className="inline-block h-3 w-3 rounded-full bg-gradient-to-br from-sky-400 to-violet-500" aria-hidden="true" />
               IR Assistant
             </span>
-            <nav className="hidden items-center gap-0.5 text-[13px] xl:flex">
+            <nav className="ir-nav hidden text-[13px] min-[1100px]:flex" aria-label="Main">
               {items.map((item) => (
                 <NavLink key={item.to} to={item.to} className={navClass}>
                   {item.label}
                 </NavLink>
               ))}
             </nav>
+            <div className="flex shrink-0 items-center gap-2.5 text-[13px] text-slate-300">
+              <span className={`live-dot${online ? "" : " off"}`} title={online ? "Online" : "Offline"} />
+              <span className="hidden max-w-[10rem] truncate 2xl:inline">{session?.username}</span>
+              <span className="ir-role">{session?.role}</span>
+              <button
+                onClick={logout}
+                title={`${session?.username} (${session?.role})`}
+                className="rounded-full border border-slate-700 px-3 py-1 text-slate-300"
+              >
+                Logout
+              </button>
+              <button
+                onClick={() => setMenuOpen((o) => !o)}
+                aria-expanded={menuOpen}
+                aria-label="Toggle navigation"
+                className="rounded-full border border-slate-700 px-2.5 py-1 text-slate-300 min-[1100px]:hidden"
+              >
+                {menuOpen ? "✕" : "☰"}
+              </button>
+            </div>
           </div>
-          <div className="flex shrink-0 items-center gap-3 text-[13px] text-slate-400">
-            <span className="hidden whitespace-nowrap 2xl:inline">
-              {session?.username} <span className="text-slate-600">·</span> {session?.role}
-            </span>
-            <button
-              onClick={logout}
-              title={`${session?.username} (${session?.role})`}
-              className="rounded border border-slate-700 px-3 py-1 text-slate-300 hover:border-sky-600 hover:text-white"
-            >
-              Logout
-            </button>
-            <button
-              onClick={() => setMenuOpen((o) => !o)}
-              aria-expanded={menuOpen}
-              aria-label="Toggle navigation"
-              className="rounded border border-slate-700 px-2.5 py-1 text-slate-300 hover:border-slate-500 xl:hidden"
-            >
-              {menuOpen ? "✕" : "☰"}
-            </button>
-          </div>
-        </div>
-        {menuOpen && (
-          <nav className="ir-mobile-nav ir-container page-enter grid gap-0.5 border-t border-slate-800 py-2 text-sm xl:hidden">
-            <span className="px-2 py-1 text-xs text-slate-500">
-              {session?.username} · {session?.role}
-            </span>
-            {items.map((item) => (
-              <NavLink key={item.to} to={item.to} className={navClass} onClick={() => setMenuOpen(false)}>
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
-        )}
-      </header>
-      <main className="ir-container py-6 print:max-w-none print:p-0">
+          {menuOpen && (
+            <nav className="ir-mobile-nav page-enter grid gap-0.5 border-t border-white/10 p-2 text-sm min-[1100px]:hidden">
+              <span className="px-3 py-1 text-xs text-slate-400">
+                {session?.username} · {session?.role}
+              </span>
+              {items.map((item) => (
+                <NavLink key={item.to} to={item.to} className={navClass} onClick={() => setMenuOpen(false)}>
+                  {item.label}
+                </NavLink>
+              ))}
+            </nav>
+          )}
+        </header>
+      </div>
+      <main className="ir-container print:max-w-none print:p-0">
         <ErrorBoundary key={location.pathname}>
           <div className="page-enter">
             <Outlet />

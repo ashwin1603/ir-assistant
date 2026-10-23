@@ -1,76 +1,80 @@
-/* IR Assistant theme: warm charcoal dark UI with glass panels and a red accent.
+/* IR Assistant theme: Apple-style "liquid glass" on deep graphite.
    All colours live here. Pages keep using Tailwind's slate/sky class names;
-   the @theme block below remaps those scales, so slate = warm neutrals and
-   sky = the accent. Severity (amber/orange/red), status and TI (fuchsia)
+   the @theme block below remaps those scales, so slate = cool graphite neutrals
+   and sky = the blue accent. Severity (amber/orange/red), status and TI (fuchsia)
    colours are untouched so they stay distinct from the accent. */
 
 :root {
-  --ir-bg: #14120f;
-  --ir-bg-raised: #1f1d1a;
-  --ir-surface: rgba(255, 255, 255, 0.055);
+  --ir-bg: #0b0c10;
+  --ir-bg-2: #12131a;
+  --ir-surface: rgba(255, 255, 255, 0.06);
   --ir-surface-nested: rgba(255, 255, 255, 0.035);
-  --ir-surface-solid: rgba(34, 31, 28, 0.96); /* fallback when backdrop-filter is unsupported */
+  --ir-surface-inner: rgba(18, 19, 26, 0.55); /* opaque layer under tables */
+  --ir-surface-solid: rgba(26, 28, 36, 0.97); /* fallback when backdrop-filter is unsupported */
   --ir-border: rgba(255, 255, 255, 0.1);
   --ir-border-strong: rgba(255, 255, 255, 0.16);
   --ir-separator: rgba(255, 255, 255, 0.06);
-  --ir-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.12);
-  --ir-text: #f2f0ec;
-  --ir-muted: #aaa398; /* AA on the glass surfaces */
-  --ir-accent: #c74634;
-  --ir-accent-hover: #d4584a;
-  --ir-accent-soft: rgba(199, 70, 52, 0.22);
-  --ir-accent-grad: linear-gradient(180deg, #d4584a 0%, #b53b2b 100%);
-  --ir-ring: rgba(224, 117, 99, 0.7);
-  --ir-live: #3fb950;
-  --ir-shadow: var(--ir-highlight), 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.28),
-    0 24px 48px -12px rgba(0, 0, 0, 0.35);
-  --ir-shadow-hover: var(--ir-highlight), 0 2px 4px rgba(0, 0, 0, 0.3), 0 14px 32px rgba(0, 0, 0, 0.36),
-    0 32px 64px -16px rgba(0, 0, 0, 0.45);
-  --ir-inset: inset 0 1px 2px rgba(0, 0, 0, 0.4), inset 0 0 0 1px rgba(0, 0, 0, 0.1);
-  --ir-blur: blur(20px) saturate(140%);
-  --ir-radius: 15px;
-  --ir-radius-sm: 10px;
-  --ir-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
-  --ir-fast: 150ms;
-  --ir-med: 240ms;
-  --ir-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  /* Spacing scale for the custom components. */
+  --ir-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  --ir-text: #f5f5f7;
+  --ir-muted: rgba(255, 255, 255, 0.65); /* secondary text, AA on graphite */
+  --ir-accent: #0a84ff;
+  --ir-accent-soft: rgba(10, 132, 255, 0.24);
+  --ir-accent-grad: linear-gradient(180deg, #3b9bff 0%, #0a6fe0 100%);
+  --ir-danger: #ff453a;
+  --ir-danger-grad: linear-gradient(180deg, #ff5f55 0%, #e0322a 100%);
+  --ir-ring: rgba(10, 132, 255, 0.55);
+  --ir-live: #30d158;
+  --ir-shadow: var(--ir-highlight), 0 1px 2px rgba(0, 0, 0, 0.25), 0 8px 24px rgba(0, 0, 0, 0.25),
+    0 24px 56px -16px rgba(0, 0, 0, 0.45);
+  --ir-shadow-hover: var(--ir-highlight), 0 2px 4px rgba(0, 0, 0, 0.28), 0 14px 32px rgba(0, 0, 0, 0.32),
+    0 32px 72px -16px rgba(0, 0, 0, 0.55);
+  --ir-inset: inset 0 1px 2px rgba(0, 0, 0, 0.35);
+  --ir-blur: blur(24px) saturate(160%);
+  --ir-radius: 20px;
+  --ir-radius-sm: 12px;
+  --ir-ease: cubic-bezier(0.22, 1, 0.36, 1); /* ease-out */
+  --ir-spring: cubic-bezier(0.34, 1.56, 0.64, 1); /* slight overshoot for the switch knob */
+  --ir-fast: 200ms;
+  --ir-med: 260ms;
+  --ir-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable", "Segoe UI", Inter, sans-serif;
+  /* Layout */
+  --ir-max: 1560px;
+  --ir-gutter: 32px;
+  --ir-rhythm: 24px;
   --ir-space-1: 0.25rem;
   --ir-space-2: 0.5rem;
   --ir-space-3: 0.75rem;
   --ir-space-4: 1rem;
   --ir-space-6: 1.5rem;
-  /* Film grain (SVG feTurbulence): strong copy for the page overlay, faint copy baked into surfaces. */
-  --ir-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  --ir-grain-soft: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  /* Very fine film grain (SVG feTurbulence) for the page overlay. */
+  --ir-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 @theme {
-  /* Warm charcoal neutrals in place of slate. */
-  --color-slate-50: #faf9f7;
-  --color-slate-100: #f2f0ec;
-  --color-slate-200: #e3dfd8;
-  --color-slate-300: #cdc7bd;
-  --color-slate-400: #a59e93;
-  --color-slate-500: #827b71;
-  --color-slate-600: #5e5850;
-  --color-slate-700: #46423c;
-  --color-slate-800: #33302b;
-  --color-slate-900: #1f1d1a;
-  --color-slate-950: #161513;
+  /* Cool graphite neutrals in place of slate. */
+  --color-slate-50: #f9f9fb;
+  --color-slate-100: #f5f5f7;
+  --color-slate-200: #e2e3e8;
+  --color-slate-300: #c9cad2;
+  --color-slate-400: #abadb6; /* ~65% white on graphite */
+  --color-slate-500: #868896;
+  --color-slate-600: #5d6070;
+  --color-slate-700: #3a3d4a;
+  --color-slate-800: #262833;
+  --color-slate-900: #1a1c24;
+  --color-slate-950: #111218;
 
-  /* Accent (primary buttons, links, focus) in place of sky. */
-  --color-sky-100: #fae1db;
-  --color-sky-200: #f4c1b6;
-  --color-sky-300: #eb9a8b;
-  --color-sky-400: #e07563;
-  --color-sky-500: #d4584a;
-  --color-sky-600: #c74634;
-  --color-sky-700: #9e3426;
-  --color-sky-800: #74281d;
-  --color-sky-900: #4d1c15;
-  --color-sky-950: #2b120e;
-
+  /* Blue accent (primary buttons, links, focus) in place of sky. */
+  --color-sky-100: #dbecff;
+  --color-sky-200: #b5d8ff;
+  --color-sky-300: #84c0ff;
+  --color-sky-400: #5aaaff;
+  --color-sky-500: #2f95ff;
+  --color-sky-600: #0a84ff;
+  --color-sky-700: #0068d1;
+  --color-sky-800: #004f9e;
+  --color-sky-900: #003670;
+  --color-sky-950: #001f42;
 }
 
 /* ---------- Screen only (print keeps the original report styling) ---------- */
@@ -80,12 +84,14 @@
 
 html {
   color-scheme: dark;
+  background: linear-gradient(180deg, var(--ir-bg) 0%, var(--ir-bg-2) 100%) fixed;
   background-color: var(--ir-bg);
   scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
 }
 
-/* Three large, soft colour orbs (red, amber, deep teal) drifting slowly behind everything.
-   Two live on html::before, one on html::after so they can drift in different directions. */
+/* Three large blurred glows (blue-violet, soft red, teal) drifting slowly.
+   Two live on html::before, one on html::after so they drift in different directions.
+   Only transform is animated, so the compositor does the work. */
 html::before,
 html::after {
   content: "";
@@ -93,20 +99,20 @@ html::after {
   inset: -25vmax;
   z-index: -2;
   pointer-events: none;
-  filter: blur(40px);
+  filter: blur(60px);
   will-change: transform;
 }
 
 html::before {
   background:
-    radial-gradient(38vmax 38vmax at 22% 24%, rgba(199, 70, 52, 0.25), transparent 70%),
-    radial-gradient(34vmax 34vmax at 80% 70%, rgba(214, 150, 70, 0.2), transparent 70%);
-  animation: ir-drift-a 40s ease-in-out infinite alternate;
+    radial-gradient(36vmax 36vmax at 24% 22%, rgba(108, 92, 255, 0.22), transparent 70%),
+    radial-gradient(30vmax 30vmax at 82% 74%, rgba(255, 90, 95, 0.22), transparent 70%);
+  animation: ir-drift-a 45s ease-in-out infinite alternate;
 }
 
 html::after {
-  background: radial-gradient(40vmax 40vmax at 70% 18%, rgba(28, 110, 112, 0.25), transparent 70%);
-  animation: ir-drift-b 40s ease-in-out infinite alternate;
+  background: radial-gradient(38vmax 38vmax at 72% 16%, rgba(40, 200, 190, 0.22), transparent 70%);
+  animation: ir-drift-b 45s ease-in-out infinite alternate;
 }
 
 body {
@@ -114,9 +120,10 @@ body {
   background: transparent;
   color: var(--ir-text);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Fine film grain over the background (surfaces carry their own faint grain). */
+/* Very fine grain over the background. */
 body::after {
   content: "";
   position: fixed;
@@ -124,18 +131,15 @@ body::after {
   z-index: -1;
   pointer-events: none;
   background-image: var(--ir-grain);
-  opacity: 0.04;
+  opacity: 0.03;
 }
 
 h1,
 h2,
 h3 {
-  letter-spacing: -0.015em;
+  font-weight: 600;
+  letter-spacing: -0.02em;
   line-height: 1.2;
-}
-
-h1 {
-  font-weight: 650;
 }
 
 ::selection {
@@ -147,7 +151,7 @@ h1 {
   outline-offset: 2px;
 }
 
-/* ---------- Scrollbars (dark, no white tracks) ---------- */
+/* ---------- Scrollbars ---------- */
 
 * {
   scrollbar-width: thin;
@@ -175,14 +179,14 @@ h1 {
   background-color: rgba(255, 255, 255, 0.28);
 }
 
-/* ---------- Inputs: glass inset with focus glow ---------- */
+/* ---------- Inputs: glass with a soft focus ring ---------- */
 
 input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="color"]),
 select,
 textarea {
-  background-color: rgba(0, 0, 0, 0.24);
+  background-color: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--ir-border);
-  border-radius: 0.5rem;
+  border-radius: 10px;
   box-shadow: var(--ir-inset);
   color: var(--ir-text);
   transition: border-color var(--ir-fast) ease, box-shadow var(--ir-fast) ease, background-color var(--ir-fast) ease;
@@ -190,7 +194,7 @@ textarea {
 
 input::placeholder,
 textarea::placeholder {
-  color: #8a8379;
+  color: rgba(255, 255, 255, 0.42);
 }
 
 input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="color"]):hover,
@@ -203,9 +207,9 @@ input:focus,
 select:focus,
 textarea:focus {
   outline: none;
-  border-color: var(--ir-accent);
-  background-color: rgba(0, 0, 0, 0.3);
-  box-shadow: var(--ir-inset), 0 0 0 3px var(--ir-accent-soft), 0 0 18px rgba(199, 70, 52, 0.18);
+  border-color: rgba(10, 132, 255, 0.7);
+  background-color: rgba(255, 255, 255, 0.07);
+  box-shadow: var(--ir-inset), 0 0 0 4px var(--ir-accent-soft);
 }
 
 input:disabled,
@@ -220,7 +224,7 @@ select {
   appearance: none;
   -webkit-appearance: none;
   padding-right: 2rem;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5' fill='none' stroke='%23aaa398' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5' fill='none' stroke='%23a3a5b0' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 0.6rem center;
   background-size: 12px;
@@ -232,7 +236,7 @@ select[multiple] {
 }
 
 option {
-  background-color: #1f1d1a;
+  background-color: #1a1c24;
   color: var(--ir-text);
 }
 
@@ -243,10 +247,10 @@ input[type="radio"] {
 
 input[type="file"]::file-selector-button {
   margin-right: 0.75rem;
-  padding: 0.35rem 0.8rem;
+  padding: 0.35rem 0.9rem;
   border: 1px solid var(--ir-border-strong);
-  border-radius: 0.5rem;
-  background: rgba(255, 255, 255, 0.06);
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.08);
   color: var(--ir-text);
   cursor: pointer;
 }
@@ -255,117 +259,124 @@ input[type="file"]::file-selector-button {
 
 button {
   transition: background-color var(--ir-fast) ease, border-color var(--ir-fast) ease,
-    color var(--ir-fast) ease, transform var(--ir-fast) ease, box-shadow var(--ir-fast) ease,
+    color var(--ir-fast) ease, transform var(--ir-fast) var(--ir-ease), box-shadow var(--ir-fast) ease,
     filter var(--ir-fast) ease;
 }
 
 button:not(:disabled):active {
-  transform: translateY(1px) scale(0.98);
+  transform: scale(0.97);
 }
 
 button:disabled {
   cursor: not-allowed;
 }
 
-/* Primary: pages use bg-sky-600 (remapped to the red accent) -> subtle red gradient. */
+/* Primary: pages use bg-sky-600 (remapped to blue) -> blue gradient. */
 button[class*="bg-sky-6"],
 a[class*="bg-sky-6"] {
   background-image: var(--ir-accent-grad);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 0.55rem;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
   color: #fff;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 4px 14px rgba(199, 70, 52, 0.28);
+  font-weight: 500;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 4px 14px rgba(10, 132, 255, 0.3);
 }
 
 button[class*="bg-sky-6"]:not(:disabled):hover,
 a[class*="bg-sky-6"]:hover {
   filter: brightness(1.08);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 6px 20px rgba(199, 70, 52, 0.36);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 6px 20px rgba(10, 132, 255, 0.4);
 }
 
 button[class*="bg-sky-6"]:disabled {
-  filter: saturate(0.4);
+  filter: saturate(0.3) brightness(0.8);
   box-shadow: none;
 }
 
-/* Secondary: outlined buttons become small glass buttons (no blur, just tinted fill). */
+/* Secondary: outlined buttons become glass buttons (tinted fill, no blur). */
 button.border:not([class*="bg-"], [class*="border-red"], [class*="border-emerald"], .ir-switch, .ir-seg-btn) {
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: rgba(255, 255, 255, 0.06);
   border-color: var(--ir-border-strong);
-  border-radius: 0.55rem;
-  box-shadow: var(--ir-highlight), 0 1px 2px rgba(0, 0, 0, 0.25);
+  border-radius: 10px;
+  box-shadow: var(--ir-highlight), 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 button.border:not([class*="bg-"], [class*="border-red"], [class*="border-emerald"], .ir-switch, .ir-seg-btn):not(:disabled):hover {
-  background-color: rgba(255, 255, 255, 0.09);
+  background-color: rgba(255, 255, 255, 0.11);
   border-color: rgba(255, 255, 255, 0.24);
   color: var(--ir-text);
 }
 
-/* Danger (red outline / red fill) and approve (emerald outline). */
-button[class*="border-red"],
+/* Danger: red fill becomes a red gradient; red outline a tinted red glass button. */
 button[class*="bg-red-6"],
 button[class*="bg-red-7"] {
-  background-color: rgba(220, 70, 55, 0.1);
-  border-color: rgba(239, 100, 85, 0.45);
-  border-radius: 0.55rem;
+  background-image: var(--ir-danger-grad);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 10px;
+  color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 4px 14px rgba(255, 69, 58, 0.28);
+}
+
+button[class*="bg-red-6"]:not(:disabled):hover,
+button[class*="bg-red-7"]:not(:disabled):hover {
+  filter: brightness(1.08);
+}
+
+button[class*="border-red"]:not([class*="bg-red-6"], [class*="bg-red-7"]) {
+  background-color: rgba(255, 69, 58, 0.1);
+  border-color: rgba(255, 99, 90, 0.45);
+  border-radius: 10px;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
-button[class*="border-red"]:not(:disabled):hover,
-button[class*="bg-red-6"]:not(:disabled):hover,
-button[class*="bg-red-7"]:not(:disabled):hover {
-  background-color: rgba(220, 70, 55, 0.22);
-  border-color: rgba(239, 100, 85, 0.7);
+button[class*="border-red"]:not([class*="bg-red-6"], [class*="bg-red-7"]):not(:disabled):hover {
+  background-color: rgba(255, 69, 58, 0.2);
+  border-color: rgba(255, 99, 90, 0.7);
 }
 
 button[class*="border-emerald"] {
-  background-color: rgba(52, 180, 120, 0.08);
-  border-radius: 0.55rem;
+  background-color: rgba(48, 209, 88, 0.08);
+  border-radius: 10px;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
-/* ---------- Switch (role="switch") ---------- */
+/* ---------- iOS-style switch (role="switch"); .danger turns it red when on ---------- */
 
 .ir-switch {
   position: relative;
   display: inline-flex;
   flex-shrink: 0;
-  width: 2.25rem;
-  height: 1.25rem;
+  width: 2.75rem;
+  height: 1.625rem;
   border-radius: 9999px;
-  border: 1px solid var(--ir-border-strong);
-  background-color: rgba(0, 0, 0, 0.3);
-  box-shadow: var(--ir-inset);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background-color: rgba(120, 120, 128, 0.32);
   cursor: pointer;
-  transition: background-color var(--ir-med) ease, border-color var(--ir-med) ease, box-shadow var(--ir-med) ease;
+  transition: background-color var(--ir-med) ease, box-shadow var(--ir-med) ease;
 }
 
 .ir-switch-knob {
   position: absolute;
-  top: 1px;
-  left: 1px;
-  width: 1rem;
-  height: 1rem;
+  top: 2px;
+  left: 2px;
+  width: 1.25rem;
+  height: 1.25rem;
   border-radius: 9999px;
-  background: #d9d4cc;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.6);
-  transition: transform var(--ir-med) var(--ir-ease), background-color var(--ir-med) ease;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35), 0 0 0 0.5px rgba(0, 0, 0, 0.08);
+  transition: transform 320ms var(--ir-spring), width var(--ir-fast) var(--ir-ease);
 }
 
 .ir-switch[aria-checked="true"] {
-  background-image: var(--ir-accent-grad);
-  border-color: rgba(255, 255, 255, 0.18);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25), 0 0 12px rgba(199, 70, 52, 0.35);
+  background-color: var(--ir-accent);
+}
+
+.ir-switch.danger[aria-checked="true"] {
+  background-color: var(--ir-danger);
 }
 
 .ir-switch[aria-checked="true"] .ir-switch-knob {
-  transform: translateX(1rem);
-  background: #fff;
-}
-
-.ir-switch:not(:disabled):hover {
-  border-color: rgba(255, 255, 255, 0.26);
+  transform: translateX(1.125rem);
 }
 
 .ir-switch:disabled {
@@ -377,15 +388,16 @@ button[class*="border-emerald"] {
   transform: none;
 }
 
+/* Press: knob stretches like iOS. */
 .ir-switch:not(:disabled):active .ir-switch-knob {
-  width: 1.2rem;
+  width: 1.55rem;
 }
 
 .ir-switch[aria-checked="true"]:not(:disabled):active .ir-switch-knob {
-  transform: translateX(0.8rem);
+  transform: translateX(0.825rem);
 }
 
-/* ---------- Segmented control (tabs, view and status filters) ---------- */
+/* ---------- Pill segmented control (tabs, view and status filters) ---------- */
 
 .ir-seg {
   display: inline-flex;
@@ -393,17 +405,18 @@ button[class*="border-emerald"] {
   max-width: 100%;
   gap: 2px;
   padding: 3px;
-  border-radius: 0.7rem;
+  border-radius: 9999px;
   border: 1px solid var(--ir-border);
-  background-color: rgba(0, 0, 0, 0.26);
+  background-color: rgba(0, 0, 0, 0.22);
   box-shadow: var(--ir-inset);
 }
 
 .ir-seg-btn {
-  padding: 0.3rem 0.85rem;
-  border-radius: 0.5rem;
+  padding: 0.3rem 0.95rem;
+  border-radius: 9999px;
   font-size: 0.8125rem;
   line-height: 1.25rem;
+  font-weight: 500;
   color: var(--ir-muted);
   text-transform: capitalize;
   white-space: nowrap;
@@ -411,14 +424,14 @@ button[class*="border-emerald"] {
 
 .ir-seg-btn:hover {
   color: var(--ir-text);
-  background-color: rgba(255, 255, 255, 0.04);
+  background-color: rgba(255, 255, 255, 0.05);
 }
 
 .ir-seg-btn[aria-selected="true"],
 .ir-seg-btn[aria-checked="true"] {
   color: var(--ir-text);
-  background-color: rgba(255, 255, 255, 0.1);
-  box-shadow: var(--ir-highlight), 0 1px 3px rgba(0, 0, 0, 0.4), inset 0 -2px 0 var(--ir-accent);
+  background-color: rgba(255, 255, 255, 0.14);
+  box-shadow: var(--ir-highlight), 0 1px 4px rgba(0, 0, 0, 0.35);
 }
 
 /* ---------- Badges ---------- */
@@ -428,79 +441,87 @@ button[class*="border-emerald"] {
   align-items: center;
   gap: 0.25rem;
   border-radius: 9999px;
-  padding: 0.1rem 0.55rem;
+  padding: 0.1rem 0.6rem;
   font-size: 0.6875rem;
   font-weight: 600;
-  letter-spacing: 0.02em;
-  line-height: 1.1rem;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  letter-spacing: 0.01em;
+  line-height: 1.15rem;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 
-/* ---------- Top bar ---------- */
+/* ---------- Floating frosted top bar ---------- */
+
+.ir-topbar-wrap {
+  position: sticky;
+  top: 12px;
+  z-index: 20;
+  margin-top: 12px;
+}
 
 .ir-topbar {
-  background-color: rgba(20, 18, 15, 0.6);
-  background-image: var(--ir-grain-soft);
+  background-color: rgba(28, 30, 38, 0.55);
   backdrop-filter: var(--ir-blur);
   -webkit-backdrop-filter: var(--ir-blur);
-  border-bottom: 1px solid var(--ir-border);
-  box-shadow: var(--ir-highlight), 0 8px 24px rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--ir-border);
+  border-radius: 22px;
+  box-shadow: var(--ir-shadow);
+}
+
+.ir-nav {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.ir-nav::-webkit-scrollbar {
+  display: none;
 }
 
 .ir-navlink {
-  position: relative;
   white-space: nowrap;
+  padding: 0.3rem 0.7rem;
+  border-radius: 9999px;
   color: var(--ir-muted);
-  transition: color var(--ir-fast) ease;
+  transition: color var(--ir-fast) ease, background-color var(--ir-fast) ease, box-shadow var(--ir-fast) ease;
 }
 
 .ir-navlink:hover {
   color: var(--ir-text);
+  background-color: rgba(255, 255, 255, 0.05);
 }
 
-.ir-navlink::after {
-  content: "";
-  position: absolute;
-  left: 0.5rem;
-  right: 0.5rem;
-  bottom: -0.65rem;
-  height: 2px;
-  border-radius: 2px;
-  background: var(--ir-accent);
-  transform: scaleX(0);
-  transition: transform var(--ir-med) var(--ir-ease);
-}
-
+/* Active page: a small glass pill. */
 .ir-navlink.active {
   color: var(--ir-text);
+  background-color: rgba(255, 255, 255, 0.13);
+  box-shadow: var(--ir-highlight), 0 1px 4px rgba(0, 0, 0, 0.3);
 }
 
-.ir-navlink.active::after {
-  transform: scaleX(1);
+.ir-role {
+  border-radius: 9999px;
+  padding: 0.05rem 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  color: var(--color-sky-300);
+  background-color: rgba(10, 132, 255, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(10, 132, 255, 0.3);
 }
 
-/* Mobile menu: links stack, active one gets an accent bar on the left. */
-.ir-mobile-nav .ir-navlink::after {
-  left: 0;
-  right: auto;
-  top: 0.4rem;
-  bottom: 0.4rem;
-  width: 2px;
-  height: auto;
-  transform: scaleY(0);
-}
-
-.ir-mobile-nav .ir-navlink.active::after {
-  transform: scaleY(1);
+.ir-mobile-nav .ir-navlink {
+  padding: 0.5rem 0.8rem;
 }
 
 /* ---------- Glass surfaces ---------- */
 
-/* Every bordered panel, card, section and table container becomes frosted matte glass. */
+/* Top-level panels, cards, sections and table containers become frosted glass. */
 :is(.glass, .ir-dialog, main [class*="bg-slate-900/"].border, main [class*="bg-slate-950/"].border,
   main .overflow-x-auto.rounded.border, main section.rounded.border):not(button, input, select, textarea) {
   background-color: var(--ir-surface);
-  background-image: var(--ir-grain-soft);
+  background-image: none;
   border: 1px solid var(--ir-border);
   border-radius: var(--ir-radius);
   backdrop-filter: var(--ir-blur);
@@ -508,22 +529,26 @@ button[class*="border-emerald"] {
   box-shadow: var(--ir-shadow);
 }
 
-/* No nested backdrop-filter: glass inside glass is a flat, lighter tint. */
+/* Never nested blur: glass inside glass is a flat, lighter tint. */
 :is(.glass, main [class*="bg-slate-900/"].border, main [class*="bg-slate-950/"].border,
   main .overflow-x-auto.rounded.border, main section.rounded.border)
   :is(.glass, main [class*="bg-slate-900/"].border, main [class*="bg-slate-950/"].border,
   main .overflow-x-auto.rounded.border, main section.rounded.border):not(button, input, select, textarea) {
   background-color: var(--ir-surface-nested);
-  background-image: none;
   border-radius: var(--ir-radius-sm);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
+/* Table containers: a more opaque inner layer so rows stay readable over the glows. */
+main .overflow-x-auto.rounded.border:has(> table) {
+  background-color: var(--ir-surface-inner);
+}
+
 /* Dialogs sit on a dark scrim, so they get a denser fill for legibility. */
 .ir-dialog {
-  background-color: rgba(30, 27, 24, 0.78) !important;
+  background-color: rgba(30, 32, 40, 0.8) !important;
   box-shadow: var(--ir-highlight), 0 30px 80px rgba(0, 0, 0, 0.55) !important;
 }
 
@@ -537,7 +562,8 @@ button[class*="border-emerald"] {
   }
 }
 
-.lift {
+.lift,
+main [class*="bg-slate-900/"].border.p-4 {
   transition: transform var(--ir-med) var(--ir-ease), box-shadow var(--ir-med) var(--ir-ease),
     border-color var(--ir-med) ease;
 }
@@ -549,12 +575,12 @@ main [class*="bg-slate-900/"].border.p-4:hover {
   border-color: var(--ir-border-strong);
 }
 
-main [class*="bg-slate-900/"].border.p-4 {
-  transition: transform var(--ir-med) var(--ir-ease), box-shadow var(--ir-med) var(--ir-ease),
-    border-color var(--ir-med) ease;
+/* Airy cards: p-4 panels get a little more room. */
+main :is(.glass, section.rounded.border).p-4 {
+  padding: 1.25rem;
 }
 
-/* ---------- Tables ---------- */
+/* ---------- Tables (compact 40px rows) ---------- */
 
 /* Table wrappers scroll inside the card so the header can stay sticky. */
 main .overflow-x-auto:has(> table) {
@@ -562,27 +588,31 @@ main .overflow-x-auto:has(> table) {
   overflow-y: auto;
 }
 
-/* Sticky header: tinted glass without its own blur (it sits inside a glass container). */
 main table thead,
 main table thead tr {
   background: transparent;
 }
 
+/* Sticky header: solid tint, no blur of its own (it sits inside a glass container). */
 main table thead th {
   position: sticky;
   top: 0;
   z-index: 1;
-  background-color: rgba(28, 26, 23, 0.92);
-  background-image: var(--ir-grain-soft);
-  box-shadow: inset 0 -1px 0 var(--ir-border-strong);
-  font-size: 0.72rem;
+  height: 40px;
+  background-color: rgba(22, 23, 31, 0.96);
+  box-shadow: inset 0 -1px 0 var(--ir-border);
+  font-size: 0.6875rem;
   font-weight: 600;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--ir-muted);
 }
 
-/* Rows: transparent, hairline separators, hover highlight (no per-row blur). */
+main table tbody td {
+  height: 40px;
+}
+
+/* Rows: transparent, subtle separators, hover highlight (no per-row blur). */
 main table tbody tr {
   background-color: transparent;
   border-color: var(--ir-separator);
@@ -616,44 +646,31 @@ main tbody > tr:only-child > td[colspan]:only-child:not(:has(.skeleton))::before
   background: radial-gradient(circle, rgba(255, 255, 255, 0.06) 0 30%, transparent 32%);
 }
 
-/* Links (rendered as sky-400 text) get the accent and a soft underline on hover. */
 main a[class*="text-sky-4"] {
   transition: color var(--ir-fast) ease;
   text-underline-offset: 3px;
 }
 
-/* Skeletons inside glass read as frosted bars. */
-.skeleton {
-  border-radius: 0.4rem;
-}
-
-/* ---------- Fluid page container (nav and main share it) ---------- */
+/* ---------- Page container (top bar and main share it) ---------- */
 
 .ir-container {
-  width: min(100% - 48px, 2200px);
+  width: min(100% - 2 * var(--ir-gutter), var(--ir-max));
   margin-inline: auto;
 }
 
-@media (max-width: 640px) {
-  .ir-container {
-    width: calc(100% - 32px);
-  }
+main.ir-container {
+  padding-block: var(--ir-rhythm);
 }
 
-/* Faint network grid + nodes behind the orbs: static, so it costs nothing per frame. */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -3;
-  pointer-events: none;
-  opacity: 0.05;
-  background-image:
-    radial-gradient(circle, #fff 1.2px, transparent 1.6px),
-    linear-gradient(rgba(255, 255, 255, 0.55) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.55) 1px, transparent 1px);
-  background-size: 48px 48px;
-  background-position: -0.5px -0.5px, -0.5px -0.5px, -0.5px -0.5px;
+/* Page title rows: 24px rhythm below headings. */
+main :is(h1.mb-4, div.mb-4:has(> h1)) {
+  margin-bottom: var(--ir-rhythm);
+}
+
+@media (max-width: 640px) {
+  :root {
+    --ir-gutter: 16px;
+  }
 }
 
 /* ---------- Dashboard: 12-column grid filling the viewport ---------- */
@@ -662,9 +679,9 @@ body::before {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
   grid-template-rows: auto minmax(260px, 1fr) minmax(300px, 1fr) auto;
-  gap: var(--ir-space-4);
-  /* viewport minus top bar, main padding and the title row */
-  min-height: calc(100dvh - 9.5rem);
+  gap: var(--ir-rhythm);
+  /* viewport minus floating top bar (12 + ~52 px), main padding and the title row */
+  min-height: calc(100dvh - 12px - 54px - 2 * var(--ir-rhythm) - 3.25rem);
 }
 
 .dash-grid > .span-3 { grid-column: span 3; }
@@ -676,7 +693,7 @@ body::before {
 .dash-stats {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: var(--ir-space-4);
+  gap: var(--ir-rhythm);
 }
 
 .dash-panel {
@@ -712,7 +729,7 @@ body::before {
   align-items: center;
   gap: var(--ir-space-3);
   padding: 0.4rem 0.25rem;
-  border-radius: 0.4rem;
+  border-radius: 0.5rem;
 }
 
 .dash-feed-row + .dash-feed-row {
@@ -720,7 +737,7 @@ body::before {
 }
 
 .dash-tile {
-  background-color: rgba(255, 255, 255, 0.035);
+  background-color: rgba(255, 255, 255, 0.04);
   border-color: var(--ir-separator);
   border-radius: var(--ir-radius-sm);
 }
@@ -728,7 +745,7 @@ body::before {
 .dash-bar {
   height: 6px;
   border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.07);
   overflow: hidden;
 }
 
@@ -748,15 +765,15 @@ body::before {
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
-  padding: 0.6rem 0.7rem;
-  background-color: rgba(255, 255, 255, 0.035);
+  padding: 0.6rem 0.75rem;
+  background-color: rgba(255, 255, 255, 0.04);
   border-color: var(--ir-separator);
   border-radius: var(--ir-radius-sm);
   transition: background-color var(--ir-fast) ease;
 }
 
 .dash-tactic:hover {
-  background-color: rgba(255, 255, 255, 0.07);
+  background-color: rgba(255, 255, 255, 0.08);
 }
 
 /* Below 1100px everything stacks to one column with natural heights. */
@@ -830,7 +847,7 @@ body::before {
 
 @keyframes ir-flash {
   from {
-    background-color: rgba(199, 70, 52, 0.22);
+    background-color: rgba(10, 132, 255, 0.22);
   }
   to {
     background-color: transparent;
@@ -839,13 +856,13 @@ body::before {
 
 @keyframes ir-pulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(63, 185, 80, 0.55);
+    box-shadow: 0 0 0 0 rgba(48, 209, 88, 0.55);
   }
   70% {
-    box-shadow: 0 0 0 6px rgba(63, 185, 80, 0);
+    box-shadow: 0 0 0 6px rgba(48, 209, 88, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(63, 185, 80, 0);
+    box-shadow: 0 0 0 0 rgba(48, 209, 88, 0);
   }
 }
 
@@ -881,22 +898,22 @@ body::before {
   animation: ir-flash 1.2s ease-out;
 }
 
-/* Skeleton loaders (replace "Loading..." text): frosted bars. */
+/* Skeleton loaders: frosted shimmer bars. */
 .skeleton {
   display: block;
   height: 0.8rem;
-  border-radius: 0.35rem;
+  border-radius: 0.4rem;
   background: linear-gradient(
     90deg,
-    rgba(255, 244, 230, 0.05) 25%,
-    rgba(255, 244, 230, 0.11) 37%,
-    rgba(255, 244, 230, 0.05) 63%
+    rgba(255, 255, 255, 0.05) 25%,
+    rgba(255, 255, 255, 0.12) 37%,
+    rgba(255, 255, 255, 0.05) 63%
   );
   background-size: 400% 100%;
   animation: ir-shimmer 1.4s ease infinite;
 }
 
-/* Pulsing green "live" dot: online devices and active auto-refresh. */
+/* Pulsing green "live" dot: online devices, auto-refresh, connection status. */
 .live-dot {
   display: inline-block;
   width: 0.5rem;
@@ -911,7 +928,6 @@ body::before {
   animation: none;
 }
 
-/* Charts: Recharts animates the bars; the chart itself fades in on mount. */
 .recharts-wrapper {
   animation: ir-fade var(--ir-med) ease both;
 }
@@ -923,7 +939,7 @@ body::before {
 }
 
 .ag-node:hover {
-  filter: drop-shadow(0 0 6px rgba(199, 70, 52, 0.75)) brightness(1.08);
+  filter: drop-shadow(0 0 6px rgba(10, 132, 255, 0.75)) brightness(1.08);
 }
 
 .ag-draw {

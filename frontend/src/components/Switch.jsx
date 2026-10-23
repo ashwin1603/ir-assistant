@@ -1,6 +1,6 @@
 // Accessible on/off switch (replaces checkboxes used as toggles).
 // A real <button role="switch">, so Space/Enter and focus work natively. Styles: .ir-switch in theme.css.
-export function Switch({ checked, onChange, label, disabled = false, children }) {
+export function Switch({ checked, onChange, label, disabled = false, danger = false, children }) {
   const control = (
     <button
       type="button"
@@ -9,7 +9,7 @@ export function Switch({ checked, onChange, label, disabled = false, children })
       aria-label={children ? undefined : label}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className="ir-switch"
+      className={`ir-switch${danger ? " danger" : ""}`}
     >
       <span className="ir-switch-knob" aria-hidden="true" />
     </button>

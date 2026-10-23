@@ -27,7 +27,7 @@ function TopChart({ title, rows, format = (v) => v }) {
             <YAxis type="category" dataKey="label" stroke="#827b71" fontSize={12} tickLine={false} width={130} />
             <Tooltip
               cursor={{ fill: "#33302b" }}
-              contentStyle={{ background: "#1f1d1a", border: "1px solid #46423c", fontSize: 12 }}
+              contentStyle={{ background: "#1a1c24", border: "1px solid #3a3d4a", fontSize: 12 }}
               formatter={(v) => [format(v), title]}
             />
             <Bar dataKey="value" fill={BAR_COLOR} radius={[0, 4, 4, 0]} maxBarSize={18} />
