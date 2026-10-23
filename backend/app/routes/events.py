@@ -82,14 +82,15 @@ def list_events(
         query = query.filter(Event.host == host)
     if q:
         like = f"%{q}%"
-        query = query.filter(
-            or_(
-                Event.message.like(like),
-                Event.command_line.like(like),
-                Event.user.like(like),
-                Event.process.like(like),
-            )
-        )
+        if sees_command_lines(user):
+            fields = [Event.message.like(like), Event.command_line.like(like), Event.user.like(like), Event.process.like(like)]
+        else:
+            # Viewers: never match on content they cannot see (command_line, message, raw),
+            # or the result count becomes an oracle for redacted text.
+            fields = [Event.user.like(like), Event.process.like(like), Event.host.like(like), Event.channel.like(like)]
+            if q.strip().isdigit():
+                fields.append(Event.event_id == int(q.strip()))
+        query = query.filter(or_(*fields))
 
     total = query.count()
     items = query.order_by(Event.timestamp.desc()).offset((page - 1) * page_size).limit(page_size).all()

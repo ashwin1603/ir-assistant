@@ -98,7 +98,8 @@ def test_list_events_search_matches_message(client, seed_users):
         json={"events": [SAMPLE_EVENT, _other_event(message="encoded powershell command")]},
         headers={"X-Collector-Key": "test-collector-key"},
     )
-    login = client.post("/api/auth/login", json={"username": "test_viewer", "password": "TestViewerPass123!"})
+    # Message search is analyst+: viewers only search non-redacted fields (tests/test_viewer_search.py).
+    login = client.post("/api/auth/login", json={"username": "test_analyst", "password": "TestAnalystPass123!"})
     token = login.json()["access_token"]
     headers = {"Authorization": f"Bearer {token}"}
 
