@@ -18,6 +18,7 @@ from app.db import Base, SessionLocal, add_missing_columns, engine
 from app.rate_limit import limiter
 from app.routes.actions import router as actions_router
 from app.routes.artifacts import router as artifacts_router
+from app.routes.attack import router as attack_router
 from app.routes.audit_log import router as audit_router
 from app.routes.detections import router as detections_router
 from app.routes.events import router as events_router
@@ -78,6 +79,7 @@ app.include_router(auth_router)
 app.include_router(audit_router)
 app.include_router(events_router)
 app.include_router(detections_router)
+app.include_router(attack_router)
 app.include_router(incidents_router)
 app.include_router(reports_router)
 app.include_router(artifacts_router)

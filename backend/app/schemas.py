@@ -184,6 +184,40 @@ class DetectionOut(BaseModel):
     risk_level: str
 
 
+class TechniqueCell(BaseModel):
+    technique_id: str
+    name: str
+    hit_count: int
+    max_risk_score: float | None  # None = covered by a rule but not seen
+    max_risk_level: str | None
+
+
+class TacticColumn(BaseModel):
+    tactic: str
+    techniques: list[TechniqueCell]
+
+
+class AttackMatrixOut(BaseModel):
+    tactics: list[TacticColumn]
+    hosts: list[str]
+
+
+class TechniqueRule(BaseModel):
+    id: str
+    name: str
+    severity: int
+    confidence: float
+    kind: str
+
+
+class TechniqueDetailOut(TechniqueCell):
+    tactic: str
+    description: str
+    rules: list[TechniqueRule]
+    recent_detections: list[DetectionOut]
+    mitigations: list[str]
+
+
 class IncidentOut(BaseModel):
     id: str
     host: str

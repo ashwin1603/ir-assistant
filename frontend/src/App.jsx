@@ -13,6 +13,8 @@ import AuditLog from "./pages/AuditLog";
 import Report from "./pages/Report";
 import Upload from "./pages/Upload";
 import Settings from "./pages/Settings";
+import AttackMatrix from "./pages/AttackMatrix";
+import TechniqueDetail from "./pages/TechniqueDetail";
 
 export default function App() {
   return (
@@ -25,6 +27,8 @@ export default function App() {
             <Route path="/events" element={<LogExplorer />} />
             <Route path="/detections" element={<Detections />} />
             <Route path="/incidents" element={<Incidents />} />
+            <Route path="/attack" element={<AttackMatrix />} />
+            <Route path="/attack/:techniqueId" element={<TechniqueDetail />} />
             <Route path="/incidents/:id" element={<IncidentDetail />} />
             <Route path="/incidents/:id/report" element={<Report />} />
             <Route path="/upload" element={<Upload />} />

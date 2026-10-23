@@ -129,6 +129,40 @@ MITIGATIONS: dict[str, list[str]] = {
 }
 
 
+# Matrix column order, following the ATT&CK Enterprise kill-chain order.
+TACTIC_ORDER: list[str] = [
+    "Execution",
+    "Persistence",
+    "Defense Evasion",
+    "Credential Access",
+    "Discovery",
+    "Lateral Movement",
+    "Command and Control",
+    "Impact",
+]
+
+# Short curated descriptions (paraphrased from ATT&CK) so the UI needs no network access.
+DESCRIPTIONS: dict[str, str] = {
+    "T1110": "Adversaries guess passwords repeatedly to gain access to accounts when credentials are unknown.",
+    "T1059.001": "Adversaries abuse PowerShell to run commands and scripts, often downloading or executing payloads in memory.",
+    "T1027": "Adversaries encode, encrypt or otherwise obfuscate commands and files to hide their intent from defenders.",
+    "T1136.001": "Adversaries create a local account to keep access to a system without needing a remote access tool.",
+    "T1098": "Adversaries change account permissions or group membership, e.g. adding a user to Administrators, to keep or raise access.",
+    "T1053.005": "Adversaries use Windows Task Scheduler to run malicious code at startup or on a schedule for persistence.",
+    "T1543.003": "Adversaries install or modify Windows services so malicious code runs, usually with SYSTEM privileges.",
+    "T1070.001": "Adversaries clear the Windows Security or System event logs to remove evidence of their activity.",
+    "T1033": "Adversaries identify the current user and owner of a system (e.g. whoami) to decide next steps.",
+    "T1087": "Adversaries list local or domain accounts (e.g. net user) to find targets for further access.",
+    "T1082": "Adversaries collect OS, hardware and configuration details (e.g. systeminfo) to shape follow-on actions.",
+    "T1490": "Adversaries delete shadow copies and backups to block recovery, a common step before ransomware encryption.",
+    "T1562.001": "Adversaries disable or weaken security tools such as Defender, e.g. by adding exclusions, to avoid detection.",
+    "T1105": "Adversaries download tools or payloads onto a compromised host, often with built-in utilities like certutil.",
+    "T1021.001": "Adversaries use Remote Desktop Protocol with valid accounts to move between systems interactively.",
+    "T1547.001": "Adversaries add Registry Run keys or Startup folder entries so their program runs at logon.",
+    "T1003": "Adversaries dump credential material from LSASS or registry hives to obtain passwords and hashes.",
+}
+
+
 def tactics_for(technique_ids: list[str]) -> list[str]:
     seen = []
     for technique_id in technique_ids:
