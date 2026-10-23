@@ -153,6 +153,28 @@
   color: var(--color-slate-200);
 }
 
+/* ---------- Sticky page header (Incident Detail) ---------- */
+
+.ir-sticky-head {
+  position: sticky;
+  top: 76px; /* below the floating top bar */
+  z-index: 15;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--ir-border);
+  border-radius: var(--ir-radius-sm);
+  background-color: rgba(28, 25, 23, 0.62);
+  background-image: var(--ir-glass-fill);
+  backdrop-filter: var(--ir-glass-blur);
+  -webkit-backdrop-filter: var(--ir-glass-blur);
+  box-shadow: var(--ir-glass-shadow);
+}
+
 /* Clickable rows that open the drawer. */
 main tbody tr[tabindex="0"] {
   cursor: pointer;
