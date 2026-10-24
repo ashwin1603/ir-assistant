@@ -61,7 +61,7 @@ Open http://localhost:5173 and log in as `admin` with the password from `backend
 For live collection, enable auditing once from an **elevated** terminal: `powershell -ExecutionPolicy Bypass -File .\setup.ps1 -EnableAuditing`. For local AI set `LLM_PROVIDER=ollama` in `backend\.env` (default `template` needs no model).
 
 ## Demo data
-- Seed scripts need the backend running: `backend\.venv\Scripts\python.exe scripts\seed_simulated_events.py` (and `seed_simulated_network.py`). `--wipe` removes simulated events. Simulated data is tagged `source=simulated`, host `SIM-WS01`.
+- Seed scripts need the backend running: `backend\.venv\Scripts\python.exe scripts\seed_simulated_events.py` (and `seed_simulated_network.py`). `--wipe` removes simulated events. Simulated data is tagged `source=simulated` on hosts `SIM-WS01` (events) and `SIM-NET01` (network).
 - The collector (`scripts\collector.py`) needs an elevated terminal and Windows auditing. Live collection is Windows-only; other OSes can use uploads and seeds.
 - Threat-intel demo rows are seeded at backend startup.
 - `docs/ground_truth.json` describes the original author's machine; it will not match yours.
