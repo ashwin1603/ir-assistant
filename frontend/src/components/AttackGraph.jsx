@@ -2,14 +2,9 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { get } from "../lib/api";
 import { Skeleton } from "./Skeleton";
+import { SevIcon, sevColor } from "./Severity";
 
 // Plain SVG attack graph: host (and user) on the left, detections left-to-right by time.
-const RISK_COLORS = {
-  Low: "#64748b",
-  Medium: "#d97706",
-  High: "#ea580c",
-  Critical: "#dc2626",
-};
 const COL_W = 190;
 const NODE_W = 160;
 const HOST_H = 56;
@@ -168,18 +163,20 @@ export function AttackGraph({ incidentId }) {
               }
               const clickable = Boolean(n.technique);
               return (
-                <g key={n.id} className={clickable ? "ag-node cursor-pointer" : "ag-node"}
+                <g key={n.id} className={`ag-node${clickable ? " cursor-pointer" : ""}${n.risk_level === "Critical" ? " ag-critical" : ""}`}
                   onClick={() => clickable && navigate(`/attack/${n.technique}`)}>
                   <title>{`${n.rule}\n${n.technique_ids.join(", ")} · ${n.tactic}\nRisk ${n.risk_level} ${Math.round(n.risk_score)}\n${new Date(n.first_seen).toLocaleString()}`}</title>
                   <rect x={p.x} y={p.y} width={NODE_W} height={p.h} rx="6"
-                    fill={RISK_COLORS[n.risk_level] || RISK_COLORS.Low} fillOpacity="0.85" />
-                  <text x={p.x + 10} y={p.y + 18} fontSize="12" fontWeight="600" fill="#fff">
+                    fill="var(--ir-graph-node)" stroke={sevColor(n.risk_level)} strokeWidth={n.risk_level === "Critical" ? 2 : 1} />
+                  <rect x={p.x} y={p.y} width="4" height={p.h} rx="2" fill={sevColor(n.risk_level)} />
+                  <SevIcon level={n.risk_level} x={p.x + NODE_W - 16} y={p.y + 7} style={{ color: sevColor(n.risk_level) }} />
+                  <text x={p.x + 10} y={p.y + 18} fontSize="12" fontWeight="600" fill="var(--ir-graph-text)">
                     {wrapped[n.id].map((line, i) => (
                       <tspan key={i} x={p.x + 10} dy={i === 0 ? 0 : LINE_H}>{line}</tspan>
                     ))}
                   </text>
                   <text x={p.x + 10} y={p.y + NODE_H - 22} fontSize="11" fill="var(--ir-graph-text)">
-                    {n.technique || "—"} · {Math.round(n.risk_score)}
+                    {n.technique || "—"} · {(n.risk_level || "Low").toUpperCase()} {Math.round(n.risk_score)}
                   </text>
                   <text x={p.x + 10} y={p.y + NODE_H - 8} fontSize="10" fill="var(--ir-graph-text)">
                     {new Date(n.first_seen).toLocaleTimeString()}

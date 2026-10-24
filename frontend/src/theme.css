@@ -2,8 +2,8 @@
    All colours live here. Pages keep using Tailwind's slate/sky class names;
    the @theme block below remaps those scales, so slate = warm grey neutrals
    and sky = the red accent. Badge scales (violet/indigo/cyan/fuchsia/emerald) are
-   remapped to desaturated tones so they stay distinct but quiet. Severity
-   (amber/orange/red) is untouched. */
+   remapped to desaturated tones so they stay distinct but quiet. Severity has its
+   own --ir-sev-* tokens below. */
 
 :root {
   --ir-bg: #121110;
@@ -27,7 +27,23 @@
   --ir-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.14);
   --ir-text: #f5f1ee;
   --ir-muted: rgba(245, 241, 238, 0.68); /* secondary text, AA on charcoal */
-  --ir-accent: #c74634;
+  /* Severity scale: the only severity colours in the app. Hue and lightness both step
+     (CIE L* ~63 / 84 / 66 / 52; adjacent levels differ by 14+), and none reuses the accent.
+     -ink = text on the dark background (all >= 6:1). Critical badges use the deeper -fill
+     so white text passes AA (4.9:1; white on #e5384f is only 4.2:1). */
+  --ir-sev-low: #4c9aff;
+  --ir-sev-medium: #f2d024;
+  --ir-sev-high: #ff7a1a;
+  --ir-sev-critical: #e5384f;
+  --ir-sev-low-ink: #6aaeff;
+  --ir-sev-medium-ink: #f2d024;
+  --ir-sev-high-ink: #ffa866;
+  --ir-sev-critical-ink: #ff6b7d;
+  --ir-sev-medium-tint: rgba(242, 208, 36, 0.14);
+  --ir-sev-high-tint: rgba(255, 122, 26, 0.26);
+  --ir-sev-critical-fill: #d42f47;
+  --ir-sev-critical-glow: rgba(229, 56, 79, 0.5);
+  --ir-accent: #c74634; /* buttons and nav only, never severity */
   --ir-accent-hover: #d9573f;
   --ir-accent-glow: rgba(199, 70, 52, 0.35);
   --ir-accent-soft: rgba(199, 70, 52, 0.24);
@@ -516,6 +532,79 @@ button[class*="border-emerald"] {
   letter-spacing: 0.01em;
   line-height: 1.15rem;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+/* ---------- Severity: a non-colour cue per level, plus icon and text label ---------- */
+
+.sev {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.sev-icon {
+  flex-shrink: 0;
+}
+.sev-low {
+  color: var(--ir-sev-low-ink);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--ir-sev-low);
+}
+.sev-medium {
+  color: var(--ir-sev-medium-ink);
+  background: var(--ir-sev-medium-tint);
+  box-shadow: inset 0 0 0 1px rgba(242, 208, 36, 0.22);
+}
+.sev-high {
+  color: var(--ir-sev-high-ink);
+  background: var(--ir-sev-high-tint);
+  box-shadow: inset 3px 0 0 var(--ir-sev-high);
+  border-radius: 3px 9999px 9999px 3px;
+}
+.sev-critical {
+  color: #fff;
+  background: var(--ir-sev-critical-fill);
+  box-shadow: 0 0 0 1px var(--ir-sev-critical), 0 0 10px var(--ir-sev-critical-glow);
+}
+/* ATT&CK matrix cells: same cues plus a left bar on every seen level. */
+.sev-cell {
+  border-radius: 6px;
+  border-left: 3px solid var(--ir-sev-low);
+}
+.sev-cell.sev-medium {
+  border-left-color: var(--ir-sev-medium);
+}
+.sev-cell.sev-high {
+  border-left-color: var(--ir-sev-high);
+  border-radius: 6px;
+  box-shadow: none;
+}
+.sev-cell.sev-critical {
+  border-left-color: #fff;
+}
+/* Attack graph: soft glow on Critical nodes. */
+.ag-critical {
+  filter: drop-shadow(0 0 6px var(--ir-sev-critical-glow));
+}
+
+/* Print / greyscale: darker inks on white; outline < light tint < tint + bar < solid. */
+@media print {
+  :root {
+    --ir-sev-low: #1f5fbf;
+    --ir-sev-medium: #9c7c00;
+    --ir-sev-high: #b34700;
+    --ir-sev-critical: #a81d36;
+    --ir-sev-low-ink: #1a4d99;
+    --ir-sev-medium-ink: #4d3d00;
+    --ir-sev-high-ink: #6b2a00;
+    --ir-sev-critical-ink: #a81d36;
+    --ir-sev-medium-tint: #fff4c2;
+    --ir-sev-high-tint: #ffd2b0;
+    --ir-sev-critical-fill: #a81d36;
+    --ir-sev-critical-glow: transparent;
+  }
+  .sev-medium {
+    box-shadow: inset 0 0 0 1px var(--ir-sev-medium);
+  }
 }
 
 /* ---------- Floating frosted top bar ---------- */

@@ -3,15 +3,16 @@ import { Link, useSearchParams } from "react-router-dom";
 import { get } from "../lib/api";
 import { Skeleton } from "../components/Skeleton";
 import { ErrorBanner } from "../components/States";
+import { SEV_LEVELS, SevIcon, sevClass } from "../components/Severity";
 
-// Cell colour = highest risk level among current detections; grey = covered by a rule, not seen.
-const CELL_STYLES = {
-  Low: "border-cyan-800 bg-cyan-950/60 text-cyan-200",
-  Medium: "border-amber-700 bg-amber-900/50 text-amber-200",
-  High: "border-orange-700 bg-orange-900/60 text-orange-200",
-  Critical: "border-red-700 bg-red-900/70 text-red-200",
+// Cell style = highest risk level among current detections; grey = covered by a rule, not seen.
+const UNSEEN_STYLE = "rounded border border-slate-800 bg-slate-900 text-slate-500";
+const LEGEND_HINTS = {
+  Low: "outline",
+  Medium: "light tint",
+  High: "strong tint",
+  Critical: "solid + glow",
 };
-const UNSEEN_STYLE = "border-slate-800 bg-slate-900 text-slate-500";
 
 export default function AttackMatrix() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -45,13 +46,17 @@ export default function AttackMatrix() {
         </select>
       </div>
 
-      <div className="mb-4 flex flex-wrap gap-3 text-xs text-slate-400">
-        <span className={`rounded border px-2 py-0.5 ${UNSEEN_STYLE}`}>Covered, not seen</span>
-        {Object.entries(CELL_STYLES).map(([level, style]) => (
-          <span key={level} className={`rounded border px-2 py-0.5 ${style}`}>
-            {level}
+      <div className="mb-4 flex flex-wrap items-center gap-3 text-xs text-slate-400">
+        <span>Highest risk seen:</span>
+        {SEV_LEVELS.map((level) => (
+          <span key={level} className={`sev-cell px-2 py-0.5 ${sevClass(level)}`}>
+            <SevIcon level={level} />
+            {level.toUpperCase()}
+            <span className="opacity-80">· {LEGEND_HINTS[level]}</span>
           </span>
         ))}
+        <span className={`px-2 py-0.5 ${UNSEEN_STYLE}`}>Covered by a rule, not seen</span>
+        <span>Number = detection hits.</span>
       </div>
 
       <ErrorBanner message={error} onRetry={() => setReload((n) => n + 1)} />
@@ -69,13 +74,18 @@ export default function AttackMatrix() {
                   <Link
                     key={t.technique_id}
                     to={`/attack/${t.technique_id}${host ? `?host=${encodeURIComponent(host)}` : ""}`}
-                    className={`rounded border p-2 text-xs hover:brightness-125 ${
-                      CELL_STYLES[t.max_risk_level] || UNSEEN_STYLE
+                    className={`block p-2 text-xs hover:brightness-125 ${
+                      t.max_risk_level ? `sev-cell ${sevClass(t.max_risk_level)}` : UNSEEN_STYLE
                     }`}
                   >
-                    <div className="flex justify-between font-mono">
+                    <div className="flex flex-wrap justify-between gap-1 font-mono">
                       <span>{t.technique_id}</span>
-                      {t.hit_count > 0 && <span className="font-semibold">{t.hit_count}</span>}
+                      {t.max_risk_level && (
+                        <span className="sev font-semibold">
+                          <SevIcon level={t.max_risk_level} />
+                          {t.max_risk_level.toUpperCase()} · {t.hit_count}
+                        </span>
+                      )}
                     </div>
                     <div className="mt-1 leading-tight">{t.name}</div>
                   </Link>

@@ -4,14 +4,7 @@ import { get } from "../lib/api";
 import { PageSkeleton } from "../components/Skeleton";
 import Logo from "../components/Logo";
 import { Segmented } from "../components/Segmented";
-
-// Screen colours first, then lighter print colours so the PDF stays readable on white paper.
-const RISK_STYLES = {
-  Low: "bg-slate-800 text-slate-200 print:bg-slate-100 print:text-slate-800",
-  Medium: "bg-amber-900/60 text-amber-200 print:bg-amber-100 print:text-amber-900",
-  High: "bg-orange-900/60 text-orange-200 print:bg-orange-100 print:text-orange-900",
-  Critical: "bg-red-900/70 text-red-200 print:bg-red-100 print:text-red-900",
-};
+import { SevIcon, sevClass } from "../components/Severity";
 
 const ACTION_STYLES = {
   pending: "bg-slate-800 text-slate-300 print:bg-slate-100 print:text-slate-700",
@@ -98,7 +91,8 @@ function ReportHeader({ incident, view, generatedAt, generatedBy, simulated }) {
             <span className={`font-normal ${muted}`}>&mdash; {view === "executive" ? "Executive summary" : "Technical report"}</span>
           </h1>
         </div>
-        <span className={`rounded px-3 py-1 text-sm font-semibold ${RISK_STYLES[incident.risk_level] || RISK_STYLES.Low}`}>
+        <span className={`rounded px-3 py-1 text-sm font-semibold ${sevClass(incident.risk_level)}`}>
+          <SevIcon level={incident.risk_level} />
           {incident.risk_level} risk &middot; {Math.round(incident.risk_score)}/100
         </span>
       </div>
@@ -227,7 +221,10 @@ function TechnicalView({ incident, analysis, actions, attack, iocs, tiMatches, i
               <td className={cell}>{e.technique_ids.join(", ")}</td>
               <td className={cell}>{e.severity}/10</td>
               <td className={`${cell} whitespace-nowrap`}>
-                {e.risk_level} &middot; {Math.round(e.risk_score)}
+                <span className={`rounded px-1.5 py-0.5 text-xs font-semibold ${sevClass(e.risk_level)}`}>
+                  <SevIcon level={e.risk_level} />
+                  {e.risk_level} &middot; {Math.round(e.risk_score)}
+                </span>
               </td>
               <td className={`${cell} evidence mono font-mono text-xs`}>
                 <EventIds ids={e.event_ids} />

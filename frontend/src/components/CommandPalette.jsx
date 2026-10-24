@@ -7,6 +7,7 @@ import { trapTab } from "../lib/a11y";
 import { navItemsFor } from "../lib/nav";
 import { useLive } from "./LiveProvider";
 import { useDemoMode } from "./DemoMode";
+import { SevIcon, sevInk } from "./Severity";
 
 const MAX_PER_GROUP = 6;
 
@@ -49,6 +50,7 @@ export function CommandPalette({ open, onClose }) {
       .map((i) => ({
         group: "Incidents",
         label: i.host,
+        level: i.risk_level,
         hint: `${i.risk_level} ${Math.round(i.risk_score)} · ${i.status} · ${new Date(i.started_at).toLocaleDateString()}`,
         run: go(`/incidents/${i.id}`),
       }));
@@ -146,7 +148,12 @@ export function CommandPalette({ open, onClose }) {
                   onClick={() => run(item)}
                 >
                   <span className="truncate text-slate-100">{item.label}</span>
-                  {item.hint && <span className="truncate text-xs text-slate-400">{item.hint}</span>}
+                  {item.hint && (
+                    <span className="sev truncate text-xs text-slate-400">
+                      {item.level && <SevIcon level={item.level} style={{ color: sevInk(item.level) }} />}
+                      {item.hint}
+                    </span>
+                  )}
                 </div>
               </li>
             );

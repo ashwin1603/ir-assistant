@@ -108,7 +108,7 @@ export default function Anomalies() {
                   <td className="px-2 py-1.5">
                     <span
                       className={`rounded px-1.5 py-0.5 text-xs font-medium ${
-                        a.is_anomaly ? "bg-violet-900/60 text-violet-300" : "bg-slate-800 text-slate-300"
+                        a.is_anomaly ? "bg-slate-700 text-slate-100 ring-1 ring-slate-500" : "bg-slate-800 text-slate-300"
                       }`}
                     >
                       {a.score.toFixed(3)}

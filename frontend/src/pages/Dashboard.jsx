@@ -8,6 +8,7 @@ import { useLive } from "../components/LiveProvider";
 import { Skeleton } from "../components/Skeleton";
 import { CountUp } from "../components/CountUp";
 import { RiskBadge } from "../components/RiskBadge";
+import { SEV_LEVELS, SevIcon, sevColor, sevInk } from "../components/Severity";
 import { StatusBadge } from "../components/StatusBadge";
 import { useNewIds } from "../components/useNewIds";
 import { TimeAgo } from "../components/TimeAgo";
@@ -15,15 +16,10 @@ import { Sparkline } from "../components/Sparkline";
 import { EmptyState, ErrorBanner } from "../components/States";
 
 
-const LEVEL_ORDER = ["Low", "Medium", "High", "Critical"];
+const LEVEL_ORDER = SEV_LEVELS;
 
 // Matches RiskBadge's existing color language so the dashboard reads as one system with the rest of the app.
-const LEVEL_COLORS = {
-  Low: "#64748b",
-  Medium: "#d79b1f",
-  High: "#e07a2e",
-  Critical: "#dc4c4c",
-};
+const LEVEL_COLORS = Object.fromEntries(SEV_LEVELS.map((l) => [l, sevColor(l)]));
 
 const DEVICE_COLORS = { online: "#3fb950", stale: "#d79b1f", offline: "#5e5850" };
 const FEED_SIZE = 8;
@@ -121,7 +117,7 @@ function SeverityChart({ detections }) {
           <div className="dash-col-track">
             <span style={{ height: `${(d.count / max) * 100}%`, background: LEVEL_COLORS[d.name] }} />
           </div>
-          <span className="text-xs text-slate-400">{d.name}</span>
+          <span className="sev text-xs text-slate-400"><SevIcon level={d.name} style={{ color: LEVEL_COLORS[d.name] }} />{d.name}</span>
         </div>
       ))}
     </div>
@@ -206,7 +202,7 @@ function RiskDonut({ incidents }) {
       <ul className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 text-xs text-slate-400">
         {legend.map((d) => (
           <li key={d.name} className={`flex items-center gap-1.5${d.count ? "" : " opacity-60"}`}>
-            <span className="h-2 w-2 rounded-full" style={{ background: LEVEL_COLORS[d.name] }} aria-hidden="true" />
+            <SevIcon level={d.name} style={{ color: LEVEL_COLORS[d.name] }} />
             {d.name} {d.count}
           </li>
         ))}
@@ -423,9 +419,9 @@ export default function Dashboard() {
             spark={incidents && [...incidents].sort((a, b) => new Date(a.started_at) - new Date(b.started_at)).map((i) => i.risk_score)}
             sparkTip="Risk score of each incident, oldest first" sparkColor={top ? LEVEL_COLORS[top.risk_level] : undefined}>
             {top ? (
-              <span style={{ color: LEVEL_COLORS[top.risk_level] }}>
+              <span style={{ color: sevInk(top.risk_level) }}>
                 <CountUp value={Math.round(top.risk_score)} />
-                <span className="ml-2 text-sm font-medium">{top.risk_level}</span>
+                <span className="sev ml-2 text-sm font-medium"><SevIcon level={top.risk_level} />{top.risk_level}</span>
               </span>
             ) : (
               <span className="text-slate-500">—</span>
