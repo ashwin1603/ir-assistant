@@ -27,3 +27,7 @@ backend/rules/imported/
 
 # collector.py --watch state (last RecordId per channel/event id)
 scripts/.collector_state.json
+
+# SQLite WAL side files
+backend/ir_assistant.db-shm
+backend/ir_assistant.db-wal

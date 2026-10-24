@@ -75,7 +75,9 @@ def test_text_redactor_masks_full_commands_and_long_arguments():
 
 def test_events_viewer_redacted_analyst_full(client, seeded):
     url = "/api/events?event_id=4688&q=EncodedCommand"
-    viewer = client.get(url, headers=seeded["viewer"]).json()["items"][0]
+    # Viewers cannot search command-line text (test_viewer_search), so find the same row by id.
+    rows = client.get("/api/events?event_id=4688&page_size=100", headers=seeded["viewer"]).json()["items"]
+    viewer = next(r for r in rows if r["id"] == "r0000000-0000-0000-0000-000000000000")
     assert viewer["command_line"] == f"powershell.exe {REDACTED}"
     assert PAYLOAD not in viewer["message"] and viewer["process"] == PS
     analyst = client.get(url, headers=seeded["analyst"]).json()["items"][0]

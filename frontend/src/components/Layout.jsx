@@ -11,6 +11,7 @@ import { STATUS_TEXT, liveDotClass, useAutoRefresh } from "./AutoRefresh";
 import { useLive } from "./LiveProvider";
 import { DemoChecklist, DemoRibbon } from "./DemoMode";
 import { navItemsFor } from "../lib/nav";
+import { FirstTour } from "./FirstTour";
 
 // Browser tab title per page, e.g. "Detections · IR Assistant".
 const PAGE_TITLES = [
@@ -69,13 +70,22 @@ export default function Layout() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // The collapsed menu closes on navigation and on Escape.
+  useEffect(() => setMenuOpen(false), [location.pathname]);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e) => e.key === "Escape" && setMenuOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
+
   return (
     <div className="min-h-screen text-slate-100 print:bg-white print:text-black">
       <div className="ir-topbar-wrap ir-container print:hidden">
         <header className="ir-topbar">
           <div className="flex items-center justify-between gap-4 py-2 pl-4 pr-2.5">
             <Logo size="sm" className="shrink-0" />
-            <nav className="ir-nav hidden text-[13px] min-[1100px]:flex" aria-label="Main">
+            <nav data-tour="nav" className="ir-nav hidden text-[13px] min-[1600px]:flex" aria-label="Main">
               {items.map((item) => (
                 <NavLink key={item.to} to={item.to} className={navClass}>
                   {item.label}
@@ -87,14 +97,17 @@ export default function Layout() {
                 type="button"
                 onClick={() => setPaletteOpen(true)}
                 aria-label="Open command palette (Ctrl+K)"
+                data-tour="palette"
                 title="Search and commands (Ctrl+K)"
                 className="ir-kbd-btn"
               >
                 <span aria-hidden="true">⌕</span>
                 <kbd className="hidden sm:inline">Ctrl K</kbd>
               </button>
-              <NotificationBell signal={refreshTick} />
-              <span className={`live-dot ${online ? liveDotClass(liveStatus) : "off"}`} title={dotTitle} role="img" aria-label={dotTitle} />
+              <span data-tour="bell" className="inline-flex">
+                <NotificationBell signal={refreshTick} />
+              </span>
+              <span data-tour="live" className={`live-dot ${online ? liveDotClass(liveStatus) : "off"}`} title={dotTitle} role="img" aria-label={dotTitle} />
               <span className="hidden max-w-[10rem] truncate 2xl:inline">{session?.username}</span>
               <span className="ir-role">{session?.role}</span>
               <button
@@ -107,16 +120,18 @@ export default function Layout() {
               <button
                 onClick={() => setMenuOpen((o) => !o)}
                 aria-expanded={menuOpen}
+                aria-controls="ir-mobile-nav"
                 aria-label="Toggle navigation"
-                className="rounded-full border border-slate-700 px-2.5 py-1 text-slate-300 min-[1100px]:hidden"
+                data-tour="menu"
+                className="rounded-full border border-slate-700 px-2.5 py-1 text-slate-300 min-[1600px]:hidden"
               >
                 {menuOpen ? "✕" : "☰"}
               </button>
             </div>
           </div>
           {menuOpen && (
-            <nav className="ir-mobile-nav page-enter grid gap-0.5 border-t border-white/10 p-2 text-sm min-[1100px]:hidden">
-              <span className="px-3 py-1 text-xs text-slate-400">
+            <nav id="ir-mobile-nav" aria-label="Main" className="ir-mobile-nav page-enter grid grid-cols-2 gap-0.5 sm:grid-cols-4 border-t border-white/10 p-2 text-sm min-[1600px]:hidden">
+              <span className="col-span-full px-3 py-1 text-xs text-slate-400">
                 {session?.username} · {session?.role}
               </span>
               {items.map((item) => (
@@ -140,6 +155,7 @@ export default function Layout() {
       <TooltipLayer />
       <DemoRibbon />
       <DemoChecklist />
+      <FirstTour />
     </div>
   );
 }

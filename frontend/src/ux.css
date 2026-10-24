@@ -641,3 +641,66 @@ main tbody tr[tabindex="0"]:focus-visible {
     animation: none;
   }
 }
+
+/* ---------- UX 10: polish ---------- */
+
+/* First-login tour card. */
+.ir-tour {
+  position: fixed;
+  z-index: 60;
+  width: 300px;
+  max-width: calc(100vw - 32px);
+  padding: 0.9rem 1rem;
+  border-radius: var(--ir-radius-sm);
+  animation: ir-fade var(--ir-fast) ease both;
+}
+
+.ir-tour:focus {
+  outline: none;
+}
+
+/* Visible keyboard focus on text fields (the base style only tints the border). */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  box-shadow: var(--ir-inset), 0 0 0 2px var(--ir-ring);
+}
+
+/* No page may scroll sideways; wide tables scroll inside their own wrapper. */
+html,
+body {
+  overflow-x: clip;
+}
+
+main.ir-container {
+  min-width: 0;
+}
+
+/* slate-600 is a border/decoration shade; as text it is ~2.8:1, so lift it to slate-500 (AA). */
+@media screen {
+  .text-slate-600 {
+    color: var(--color-slate-500);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter,
+  .skeleton,
+  .lg-row,
+  .ir-tour,
+  .recharts-wrapper,
+  .ag-node,
+  .ag-fade {
+    animation: none !important;
+  }
+
+  .ag-draw {
+    animation: none !important;
+    stroke-dashoffset: 0;
+  }
+
+  * {
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

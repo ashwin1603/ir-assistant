@@ -85,7 +85,7 @@
   --ir-ease: cubic-bezier(0.22, 1, 0.36, 1); /* ease-out */
   --ir-spring: cubic-bezier(0.34, 1.56, 0.64, 1); /* slight overshoot for the switch knob */
   --ir-fast: 200ms;
-  --ir-med: 260ms;
+  --ir-med: 200ms; /* page transitions stay at or under 200ms */
   --ir-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable", "Segoe UI", Inter, sans-serif;
   /* Layout */
   --ir-max: 1560px;
