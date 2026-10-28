@@ -9,6 +9,7 @@ from app.db import get_db
 from app.detection.engine import run_detection
 from app.detection.threat_intel import matches_for_event_ids, unique_matches
 from app.export import MAX_EXPORT_ROWS, csv_response, pick_columns
+from app.export_quota import consume_export_quota
 from app.models import Detection
 from app.rate_limit import limiter
 from app.schemas import DetectionOut
@@ -76,6 +77,7 @@ def export_detections(
     columns: str | None = Query(default=None, max_length=500),
 ):
     """CSV of the current Detections view: the same fields every role already sees in the list."""
+    consume_export_quota(db, user.username, "detections CSV")
     picked = pick_columns(columns, EXPORT_COLUMNS)
     detections = _filtered(db, host, technique_id)
     truncated = len(detections) > MAX_EXPORT_ROWS

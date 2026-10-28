@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IR Assistant — Project Presentation</title>
+  <style>
+    :root { color-scheme: dark; --bg:#080e18; --panel:#101b2b; --line:#263951; --ink:#edf4ff; --muted:#a4b4ca; --cyan:#66e0d0; --amber:#ffc66d; --red:#ff7185; }
+    * { box-sizing:border-box }
+    body { margin:0; background:var(--bg); color:var(--ink); font:20px/1.5 "Segoe UI",Arial,sans-serif; }
+    main { min-height:100vh; display:grid; place-items:center; padding:3rem 5vw 5rem; }
+    section { display:none; width:min(1180px,100%); min-height:72vh; padding:clamp(2rem,5vw,5rem); border:1px solid var(--line); border-radius:24px; background:radial-gradient(ellipse at 85% 5%,#17374a 0,transparent 34%),linear-gradient(145deg,#111e30,#0c1421 72%); box-shadow:0 30px 100px #0008; }
+    section.active { display:block; animation:enter .25s ease-out }
+    @keyframes enter { from { opacity:.5; transform:translateY(8px) } to { opacity:1; transform:none } }
+    .eyebrow { color:var(--cyan); text-transform:uppercase; letter-spacing:.16em; font-size:.72em; font-weight:700 }
+    h1 { font-size:clamp(2.5rem,6vw,5.2rem); line-height:1.05; max-width:950px; margin:.5em 0 }
+    h2 { font-size:clamp(2rem,4vw,3.4rem); line-height:1.1; margin:.35em 0 .7em }
+    h3 { margin:.2em 0; color:var(--cyan); font-size:1.05em }
+    p,li { color:var(--muted) }
+    strong { color:var(--ink) }
+    ul { padding-left:1.2em }
+    li { margin:.5em 0 }
+    .grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; margin-top:1.5rem }
+    .card { border:1px solid var(--line); background:#0b1421b8; border-radius:14px; padding:1.15rem 1.3rem }
+    .card p { margin:.4em 0 0; font-size:.9em }
+    .flow { display:flex; align-items:stretch; gap:.5rem; flex-wrap:wrap; margin:2rem 0 }
+    .node { flex:1 1 130px; min-height:86px; display:grid; place-items:center; text-align:center; padding:.8rem; border:1px solid #3f6779; background:#10283a; border-radius:13px; color:var(--ink); font-size:.86em }
+    .arrow { align-self:center; color:var(--cyan); font-size:1.6em }
+    .tag { display:inline-block; border:1px solid var(--line); background:#142235; color:var(--cyan); padding:.28em .7em; margin:.2em; border-radius:999px; font-size:.78em }
+    .callout { border-left:4px solid var(--amber); padding:.8rem 1rem; background:#261e13; color:#ffe3b1; border-radius:0 10px 10px 0; margin-top:1rem }
+    .danger { border-color:#743845; background:#28141c; color:#ffc1ca }
+    .bigstat { font-size:2.4rem; color:var(--cyan); font-weight:750 }
+    footer { position:fixed; bottom:0; left:0; right:0; display:flex; justify-content:space-between; align-items:center; padding:.7rem 2vw; background:#080e18eF; border-top:1px solid var(--line); color:var(--muted); font-size:.8rem }
+    button { color:var(--ink); background:#152438; border:1px solid var(--line); border-radius:8px; padding:.5rem .8rem; cursor:pointer; font:inherit }
+    button:hover { border-color:var(--cyan) }
+    @media (max-width:700px) { body {font-size:16px} main {padding:1rem 1rem 5rem} section {min-height:78vh;padding:1.4rem;border-radius:16px} .grid {grid-template-columns:1fr} footer {font-size:.72rem} }
+    @media print { body {background:white;color:#111} main {display:block;padding:0} section,section.active {display:block;page-break-after:always;min-height:100vh;border-radius:0;box-shadow:none;background:#101b2b;color:white} footer {display:none} }
+  </style>
+</head>
+<body>
+<main>
+  <section class="active">
+    <div class="eyebrow">Security Analyst · Incident Response</div>
+    <h1>AI-Powered Incident Response Assistant</h1>
+    <p>Security log analysis with evidence, ATT&amp;CK context, and analyst-guided response.</p>
+    <div style="margin-top:3rem"><span class="tag">Course project</span><span class="tag">Team: add names</span><span class="tag">Date: add presentation date</span></div>
+  </section>
+  <section>
+    <div class="eyebrow">01 · The problem</div><h2>Investigations start with too much raw data</h2>
+    <div class="grid">
+      <article class="card"><h3>Manual triage costs time</h3><p>Security events come from hosts and network sources, with useful clues spread across many records.</p></article>
+      <article class="card"><h3>Context is easy to miss</h3><p>Analysts need to connect related events, understand likely techniques, and preserve evidence.</p></article>
+      <article class="card"><h3>Prioritization matters</h3><p>A useful investigation view combines severity, confidence, frequency, and a readable timeline.</p></article>
+      <article class="card"><h3>Project goal</h3><p>Turn uploaded or collected logs into structured detections and an incident report that helps an analyst investigate.</p></article>
+    </div>
+  </section>
+  <section>
+    <div class="eyebrow">02 · Scope</div><h2>One investigation workflow</h2>
+    <div class="flow"><div class="node">Collect or upload logs</div><div class="arrow">→</div><div class="node">Normalize events</div><div class="arrow">→</div><div class="node">Detect suspicious patterns</div><div class="arrow">→</div><div class="node">Build incident context</div></div>
+    <div class="grid"><article class="card"><h3>Included</h3><p>ATT&amp;CK mapping, timeline, risk scoring, evidence-linked AI explanation, recommendations, and report.</p></article><article class="card"><h3>Boundaries</h3><p>On-demand/local demo workflow; not a full streaming SIEM. Response actions are simulated and never executed.</p></article></div>
+  </section>
+  <section>
+    <div class="eyebrow">03 · Architecture</div><h2>Rules find signals; the analyst stays in control</h2>
+    <div class="flow"><div class="node">Windows collector<br>or file upload</div><div class="arrow">→</div><div class="node">FastAPI<br>normalization</div><div class="arrow">→</div><div class="node">SQLite<br>events + cases</div><div class="arrow">→</div><div class="node">Rules + TI<br>+ anomaly layer</div></div>
+    <div class="flow"><div class="node">ATT&amp;CK + timeline + risk</div><div class="arrow">→</div><div class="node">Optional local Ollama explanation</div><div class="arrow">→</div><div class="node">Evidence check + analyst UI</div></div>
+    <p>Stack: <span class="tag">FastAPI</span><span class="tag">SQLite</span><span class="tag">React + Vite</span><span class="tag">Sigma-style YAML</span><span class="tag">Ollama or template</span></p>
+  </section>
+  <section>
+    <div class="eyebrow">04 · Detection and evaluation</div><h2>Explainable detections with measurable limits</h2>
+    <div class="grid"><article class="card"><div class="bigstat">18 + 5</div><p>Built-in Windows YAML rules and network rules, plus threat-intelligence matches.</p></article><article class="card"><div class="bigstat">ATT&amp;CK</div><p>Technique IDs connect alert patterns to a common security framework.</p></article><article class="card"><div class="bigstat">9 / 9</div><p>Prior validation detected expected real technique instances in a small labelled window.</p></article><article class="card"><div class="bigstat">7 / 8</div><p>Prior real-window precision count; one false-positive group was observed.</p></article></div>
+    <div class="callout">Prior results are dated and based on a small, partly hand-labelled sample. The ML anomaly layer is supplementary and weak; do not present these numbers as broad production performance.</div>
+  </section>
+  <section>
+    <div class="eyebrow">05 · Product walkthrough</div><h2>Follow a simulated incident</h2>
+    <div class="grid"><article class="card"><h3>1. Dashboard and logs</h3><p>Show dashboard totals, then filter Log Explorer to SIM-WS01. Point out the simulated label.</p></article><article class="card"><h3>2. Detections</h3><p>Open encoded PowerShell, service creation, or log clearing. Show matched event IDs and ATT&amp;CK techniques.</p></article><article class="card"><h3>3. Incident detail</h3><p>Walk the timeline, graph, score, evidence, and AI explanation. The evidence check grounds claims in event IDs.</p></article><article class="card"><h3>4. Response and report</h3><p>Show pending recommendation, human approve/reject, and print-friendly report. Actions remain simulated.</p></article></div>
+    <div class="callout danger">Screenshot placeholder: replace with a real, redacted incident-detail screenshot from the presentation machine. Never fabricate UI or expose credentials/real telemetry.</div>
+  </section>
+  <section>
+    <div class="eyebrow">06 · Security</div><h2>Controls support safe analyst use</h2>
+    <ul><li>Backend role permissions and viewer command-line redaction.</li><li>Argon2 passwords, optional TOTP MFA, step-up authentication, and server-side logout revocation.</li><li>Login backoff, upload validation and encryption, download quotas, and auditable access.</li><li>Hash-linked audit records with integrity verification.</li><li>AI does not choose severity or execute responses; the analyst approves every simulated action.</li></ul>
+    <div class="callout">The audit chain detects partial edits and tail deletion while its head remains intact. It is not an external immutable archive; a full database rewrite can recompute an unkeyed chain.</div>
+  </section>
+  <section>
+    <div class="eyebrow">07 · Limitations and next steps</div><h2>What this project demonstrates</h2>
+    <div class="grid"><article class="card"><h3>Demonstrates</h3><p>End-to-end log triage, evidence handling, ATT&amp;CK context, clear analyst workflow, and security controls.</p></article><article class="card"><h3>Limitations</h3><p>Small evaluation sample, local HTTP demo, supplementary ML, on-demand analysis, no automated response.</p></article><article class="card"><h3>Next steps</h3><p>Complete per-machine secret rotation, teammate clean setup, final screenshots, clean restart, and two rehearsals.</p></article><article class="card"><h3>Takeaway</h3><p>Automation can shorten repetitive triage while keeping evidence and human judgment visible.</p></article></div>
+  </section>
+</main>
+<footer><span><button id="prev" aria-label="Previous slide">←</button> <button id="next" aria-label="Next slide">→</button> <span id="count"></span></span><span>Use ← / → keys · Press P to print</span></footer>
+<script>
+  const slides = [...document.querySelectorAll('main section')]; let index = 0;
+  const show = (n) => { index = (n + slides.length) % slides.length; slides.forEach((s, i) => s.classList.toggle('active', i === index)); document.querySelector('#count').textContent = `${index + 1} / ${slides.length}`; };
+  document.querySelector('#prev').addEventListener('click', () => show(index - 1));
+  document.querySelector('#next').addEventListener('click', () => show(index + 1));
+  document.addEventListener('keydown', (e) => { if (e.key === 'ArrowRight' || e.key === ' ') show(index + 1); if (e.key === 'ArrowLeft') show(index - 1); if (e.key.toLowerCase() === 'p') window.print(); });
+  show(0);
+</script>
+</body>
+</html>

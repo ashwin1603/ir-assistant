@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 import jwt
+import uuid
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 
@@ -28,7 +29,7 @@ MFA_SETUP_TOKEN_MINUTES = 10
 
 def create_access_token(subject: str, role: str) -> str:
     expire = datetime.now(timezone.utc) + timedelta(minutes=settings.jwt_expire_minutes)
-    payload = {"sub": subject, "role": role, "purpose": "access", "exp": expire}
+    payload = {"sub": subject, "role": role, "purpose": "access", "jti": str(uuid.uuid4()), "exp": expire}
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
 
 

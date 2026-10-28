@@ -1,17 +1,22 @@
 import asyncio
 import logging
+import re
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from cryptography.fernet import Fernet
+from sqlalchemy import text
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 logger = logging.getLogger("ir_assistant")
 
 from app.ai.client import warm_up
+from app.audit import initialize_audit_chain
 from app.auth.permissions import authorize
 from app.auth.routes import router as auth_router
 from app.config import settings
@@ -37,12 +42,18 @@ from app.seed import seed_admin_user
 Base.metadata.create_all(bind=engine)
 add_missing_columns()
 ensure_indexes()
+_chain_db = SessionLocal()
+try:
+    initialize_audit_chain(_chain_db)
+finally:
+    _chain_db.close()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     db = SessionLocal()
     try:
+        migrate_sensitive_storage()
         seed_admin_user(db)
         seed_demo_indicators(db)
     finally:
@@ -52,8 +63,35 @@ async def lifespan(app: FastAPI):
     yield
 
 
+def migrate_sensitive_storage() -> None:
+    """Encrypt legacy MFA values and leftover UUID-named upload files once configured."""
+    if not settings.data_encryption_key:
+        logger.warning("DATA_ENCRYPTION_KEY is missing; encrypted uploads and MFA updates are unavailable")
+        return
+    fernet = Fernet(settings.data_encryption_key.encode("ascii"))
+    with engine.begin() as conn:
+        for column in ("mfa_secret", "mfa_pending_secret"):
+            rows = conn.execute(text(f"SELECT id, {column} FROM users WHERE {column} IS NOT NULL")).all()
+            for user_id, value in rows:
+                if not value.startswith("gAAAA"):
+                    encrypted = fernet.encrypt(value.encode("utf-8")).decode("ascii")
+                    conn.execute(text(f"UPDATE users SET {column} = :value WHERE id = :id"),
+                                 {"value": encrypted, "id": user_id})
+    upload_dir = Path(settings.upload_dir).resolve()
+    if upload_dir.is_dir():
+        for path in upload_dir.iterdir():
+            if path.is_file() and re.fullmatch(r"[0-9a-f]{32}\.(evtx|json|csv)", path.name, re.I):
+                content = path.read_bytes()
+                if not content.startswith(b"gAAAA"):
+                    path.write_bytes(fernet.encrypt(content))
+
+
 # authorize runs before every route: role checks come from the one table in app/auth/permissions.py.
-app = FastAPI(title="IR Assistant API", lifespan=lifespan, dependencies=[Depends(authorize)])
+_docs_enabled = settings.app_env.lower() == "development"
+app = FastAPI(title="IR Assistant API", lifespan=lifespan, dependencies=[Depends(authorize)],
+              docs_url="/docs" if _docs_enabled else None,
+              redoc_url="/redoc" if _docs_enabled else None,
+              openapi_url="/openapi.json" if _docs_enabled else None)
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)

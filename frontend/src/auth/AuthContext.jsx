@@ -37,9 +37,15 @@ export function AuthProvider({ children }) {
     return { recoveryCodes: data.recovery_codes, enter: () => start(data, username) };
   }, [start]);
 
-  const logout = useCallback(() => {
-    setAuthToken(null);
-    setSession(null);
+  const logout = useCallback(async () => {
+    try {
+      await post("/auth/logout", {});
+    } catch {
+      // Always clear the local session, even when the server cannot be reached.
+    } finally {
+      setAuthToken(null);
+      setSession(null);
+    }
   }, []);
 
   const can = useCallback((action) => !!session?.permissions?.includes(action), [session]);

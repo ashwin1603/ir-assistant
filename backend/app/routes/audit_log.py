@@ -2,11 +2,18 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.auth.permissions import current_user
+from app.audit import verify_audit_chain
 from app.db import get_db
 from app.models import AuditLog
 from app.schemas import AuditLogPage
 
 router = APIRouter(prefix="/api/audit", tags=["audit"])
+
+
+@router.get("/verify")
+def audit_verify(db: Session = Depends(get_db), _user=Depends(current_user)):
+    valid, first_invalid_id = verify_audit_chain(db)
+    return {"valid": valid, "first_invalid_id": first_invalid_id}
 
 
 @router.get("", response_model=AuditLogPage)

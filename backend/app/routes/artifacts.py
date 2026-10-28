@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
-from fastapi.responses import Response
+from fastapi.responses import JSONResponse, Response
 from sqlalchemy.orm import Session
 
 from app.analysis.artifacts import extract_iocs, firewall_block_script, iocs_to_csv, isolation_script
 from app.audit import log_action
 from app.auth.permissions import current_user
 from app.db import get_db
+from app.export_quota import consume_export_quota
 from app.models import Incident
 
 router = APIRouter(prefix="/api/incidents", tags=["artifacts"])
@@ -22,7 +23,7 @@ def _attachment(body: str, media_type: str, filename: str) -> Response:
     return Response(
         content=body,
         media_type=media_type,
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={"Content-Disposition": f'attachment; filename="{filename}"', "Cache-Control": "no-store"},
     )
 
 
@@ -34,11 +35,12 @@ def download_iocs(
     user=Depends(current_user),
 ):
     incident = _get_or_404(db, incident_id)
+    consume_export_quota(db, user.username, "IOC download")
     iocs = extract_iocs(db, incident.id)
     log_action(db, actor=user.username, action="ioc_download", detail=f"incident={incident.id} format={format} count={len(iocs)}")
     if format == "csv":
         return _attachment(iocs_to_csv(iocs), "text/csv", f"iocs-{incident.id[:8]}.csv")
-    return iocs
+    return JSONResponse(content=iocs, headers={"Cache-Control": "no-store"})
 
 
 @router.get("/{incident_id}/scripts/{kind}")
@@ -50,6 +52,7 @@ def download_script(
 ):
     # Text only: the script is returned for human review and is never executed by the app.
     incident = _get_or_404(db, incident_id)
+    consume_export_quota(db, user.username, "response script download")
     if kind == "firewall":
         body = firewall_block_script(incident.host, incident.id, extract_iocs(db, incident.id))
     else:

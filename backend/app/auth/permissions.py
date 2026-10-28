@@ -23,7 +23,7 @@ from app.audit import log_action
 from app.auth.security import decode_access_token, decode_mfa_setup_token
 from app.config import settings
 from app.db import get_db
-from app.models import User
+from app.models import RevokedToken, User
 
 VIEWER = frozenset({"viewer", "analyst", "admin"})
 ANALYST = frozenset({"analyst", "admin"})
@@ -57,6 +57,7 @@ ROUTE_PERMISSIONS: dict[tuple[str, str], str] = {
     ("POST", "/api/auth/login"): PUBLIC,
     ("POST", "/api/auth/mfa/verify"): PUBLIC,  # needs the short-lived mfa_token in the body
     ("GET", "/api/auth/me"): "account",
+    ("POST", "/api/auth/logout"): "account",
     ("GET", "/api/auth/mfa"): "account",
     ("POST", "/api/auth/mfa/setup"): MFA_ENROLMENT,
     ("POST", "/api/auth/mfa/enable"): MFA_ENROLMENT,
@@ -110,6 +111,7 @@ ROUTE_PERMISSIONS: dict[tuple[str, str], str] = {
     ("GET", "/api/settings/system"): "manage_settings",
     ("PUT", "/api/settings/system"): "manage_settings",
     ("GET", "/api/audit"): "read_audit",
+    ("GET", "/api/audit/verify"): "read_audit",
 }
 
 CREDENTIALS_ERROR = "Could not validate credentials"
@@ -174,6 +176,10 @@ def authorize(request: Request, db: Session = Depends(get_db)) -> None:
             raise _unauthorized()
         request.state.mfa_setup_only = True
     user = _load_user(db, payload.get("sub"))
+    if payload.get("purpose") == "access":
+        token_id = payload.get("jti")
+        if not token_id or db.query(RevokedToken.jti).filter(RevokedToken.jti == token_id).first():
+            raise _unauthorized()
     request.state.user = user
 
     if action is None:

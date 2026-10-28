@@ -8,6 +8,7 @@ from app.auth.redaction import TextRedactor, redact_command, sees_command_lines
 from app.db import get_db, retry_on_lock
 from app.detection.threat_intel import load_index, match_event
 from app.export import MAX_EXPORT_ROWS, csv_response, pick_columns
+from app.export_quota import consume_export_quota
 from app.models import Event
 from app.rate_limit import limiter
 from app.schemas import EventIngestRequest, EventOut, EventPage
@@ -132,6 +133,7 @@ def export_events(
     columns: str | None = Query(default=None, max_length=500),
 ):
     """CSV of the current Log Explorer view (same filters and redaction), newest first."""
+    consume_export_quota(db, user.username, "events CSV")
     picked = pick_columns(columns, EXPORT_COLUMNS)
     items = (_filtered(db, user, q, channel, event_id, host)
              .order_by(Event.timestamp.desc()).limit(MAX_EXPORT_ROWS + 1).all())

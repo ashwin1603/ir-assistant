@@ -68,6 +68,14 @@ function New-RandomSecret([int]$bytes) {
     return [Convert]::ToBase64String($buf).TrimEnd("=").Replace("+", "-").Replace("/", "_")
 }
 
+function New-FernetKey {
+    $buf = New-Object byte[] 32
+    $rng = [Security.Cryptography.RandomNumberGenerator]::Create()
+    $rng.GetBytes($buf)
+    $rng.Dispose()
+    return [Convert]::ToBase64String($buf).Replace("+", "-").Replace("/", "_")
+}
+
 function Find-Python314 {
     $candidates = @(
         (Join-Path $env:LOCALAPPDATA "Programs\Python\Python314\python.exe"),
@@ -179,13 +187,29 @@ elseif (Get-Command npm -ErrorAction SilentlyContinue) {
 
 # ---------------------------------------------------------------- 5. .env
 Step "5/7 backend\.env (secrets)"
-if (Test-Path $EnvFile) { Ok "backend\.env exists (left untouched)" }
+if (Test-Path $EnvFile) {
+    $envLines = [IO.File]::ReadAllLines($EnvFile)
+    $keyLine = $envLines | Where-Object { $_ -match '^DATA_ENCRYPTION_KEY=([A-Za-z0-9_-]{43}=)$' } | Select-Object -First 1
+    if (-not $keyLine -and $Check) { Bad "backend\.env needs a valid DATA_ENCRYPTION_KEY; run setup without -Check to create one" }
+    elseif (-not $keyLine) {
+        $newKeyLine = "DATA_ENCRYPTION_KEY=$(New-FernetKey)"
+        $replaced = $false
+        for ($i = 0; $i -lt $envLines.Length; $i++) {
+            if ($envLines[$i] -match '^DATA_ENCRYPTION_KEY=') { $envLines[$i] = $newKeyLine; $replaced = $true; break }
+        }
+        if (-not $replaced) { $envLines += $newKeyLine }
+        [IO.File]::WriteAllLines($EnvFile, $envLines, (New-Object Text.UTF8Encoding $false))
+        $envLines = $null
+        Ok "created DATA_ENCRYPTION_KEY in backend\.env (existing secrets left untouched)"
+    } else { Ok "backend\.env contains a valid encryption key (left untouched)" }
+}
 elseif ($Check) { Bad "backend\.env missing" }
 else {
     $values = @{
         "JWT_SECRET"        = (New-RandomSecret 48)
         "COLLECTOR_API_KEY" = (New-RandomSecret 32)
         "ADMIN_PASSWORD"    = (New-RandomSecret 18)
+        "DATA_ENCRYPTION_KEY" = (New-FernetKey)
     }
     $lines = Get-Content $EnvExample | ForEach-Object {
         $key = ($_ -split "=", 2)[0]
@@ -194,7 +218,7 @@ else {
     # UTF-8 without BOM so pydantic-settings reads the first key correctly
     [IO.File]::WriteAllLines($EnvFile, $lines, (New-Object Text.UTF8Encoding $false))
     $values = $null
-    Ok "created backend\.env with random JWT_SECRET, COLLECTOR_API_KEY, ADMIN_PASSWORD"
+    Ok "created backend\.env with random secrets and an encryption key"
     Info "Open backend\.env to read the admin password (ADMIN_USERNAME / ADMIN_PASSWORD)."
 }
 

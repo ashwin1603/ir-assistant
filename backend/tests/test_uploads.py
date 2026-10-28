@@ -47,7 +47,17 @@ def test_viewer_cannot_upload(client, seed_users):
     assert _upload(client, headers, "a.json", json.dumps([ENCODED_PS_EVENT]).encode()).status_code == 403
 
 
-def test_json_upload_normalizes_dedupes_and_detects(client, seed_users, db_session, tmp_upload_dir):
+def test_json_upload_normalizes_dedupes_and_detects(client, seed_users, db_session, tmp_upload_dir, monkeypatch):
+    from pathlib import Path
+    import app.routes.uploads as uploads
+
+    parse = uploads.parse_upload
+
+    def check_encrypted_staging(ext, data, path):
+        assert Path(path).read_bytes().startswith(b"gAAAA")
+        return parse(ext, data, path)
+
+    monkeypatch.setattr(uploads, "parse_upload", check_encrypted_staging)
     headers = _token(client)
     body = json.dumps([ENCODED_PS_EVENT]).encode()
 
@@ -68,9 +78,8 @@ def test_json_upload_normalizes_dedupes_and_detects(client, seed_users, db_sessi
     detections = client.get("/api/detections", headers=headers).json()
     assert any(event.id in d["matched_event_ids"] for d in detections)
 
-    # Stored under a random name, and audited.
-    stored = list(tmp_upload_dir.iterdir())
-    assert stored and all(p.name != "export.json" and p.suffix == ".json" for p in stored)
+    # Encrypted staging files are removed after parsing, and the import is audited.
+    assert not tmp_upload_dir.exists() or not any(tmp_upload_dir.iterdir())
     assert db_session.query(AuditLog).filter(AuditLog.action == "upload", AuditLog.success.is_(True)).count() == 2
 
 
@@ -109,8 +118,7 @@ def test_traversal_filename_is_contained(client, seed_users, tmp_upload_dir, tmp
     assert resp.status_code == 201
     assert resp.json()["filename"] == "evil.json"
     assert not (tmp_path / "evil.json").exists()
-    stored = list(tmp_upload_dir.iterdir())
-    assert len(stored) == 1 and stored[0].name != "evil.json"
+    assert not tmp_upload_dir.exists() or not any(tmp_upload_dir.iterdir())
 
 
 def test_traversal_windows_style_filename(client, seed_users, tmp_path):

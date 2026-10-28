@@ -3,10 +3,46 @@ from datetime import datetime, timezone
 
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.types import TypeDecorator
+from cryptography.fernet import Fernet, InvalidToken
+from app.config import settings
 
 from app.db import Base
 
 ROLES = ("admin", "analyst", "viewer")
+
+
+class EncryptedText(TypeDecorator):
+    """Fernet encrypted text column; accepts legacy cleartext values for migration."""
+    impl = Text
+    cache_ok = True
+
+    @staticmethod
+    def _fernet():
+        if not settings.data_encryption_key:
+            return None
+        return Fernet(settings.data_encryption_key.encode("ascii"))
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return None
+        fernet = self._fernet()
+        if fernet is None:
+            raise ValueError("DATA_ENCRYPTION_KEY must be configured to store MFA secrets")
+        return fernet.encrypt(value.encode("utf-8")).decode("ascii")
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return None
+        if not value.startswith("gAAAA"):
+            return value  # legacy plaintext; startup migration encrypts it
+        fernet = self._fernet()
+        if fernet is None:
+            raise ValueError("DATA_ENCRYPTION_KEY is required to read encrypted MFA secrets")
+        try:
+            return fernet.decrypt(value.encode("ascii")).decode("utf-8")
+        except InvalidToken as exc:
+            raise ValueError("DATA_ENCRYPTION_KEY does not match the key used for MFA secrets") from exc
 
 
 class User(Base):
@@ -20,13 +56,26 @@ class User(Base):
     # Optional TOTP MFA. mfa_pending_secret holds a secret during enrolment until
     # the user confirms a code; recovery codes are a JSON list of argon2 hashes.
     mfa_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
-    mfa_secret: Mapped[str | None] = mapped_column(String, nullable=True)
-    mfa_pending_secret: Mapped[str | None] = mapped_column(String, nullable=True)
+    mfa_secret: Mapped[str | None] = mapped_column(EncryptedText, nullable=True)
+    mfa_pending_secret: Mapped[str | None] = mapped_column(EncryptedText, nullable=True)
     mfa_last_step: Mapped[int | None] = mapped_column(Integer, nullable=True)  # replay protection
     mfa_recovery_codes: Mapped[str | None] = mapped_column(Text, nullable=True)
     # Last successful step-up re-authentication (app/auth/step_up.py).
     step_up_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class LoginFailure(Base):
+    __tablename__ = "login_failures"
+    username: Mapped[str] = mapped_column(String, primary_key=True)
+    failures: Mapped[int] = mapped_column(Integer, default=0)
+    locked_until: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class RevokedToken(Base):
+    __tablename__ = "revoked_tokens"
+    jti: Mapped[str] = mapped_column(String, primary_key=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, index=True)
 
 
 class AuditLog(Base):
@@ -38,6 +87,21 @@ class AuditLog(Base):
     action: Mapped[str] = mapped_column(String)
     detail: Mapped[str | None] = mapped_column(String, nullable=True)
     success: Mapped[bool] = mapped_column(Boolean, default=True)
+    previous_hash: Mapped[str] = mapped_column(String, default="")
+    entry_hash: Mapped[str] = mapped_column(String, default="")
+
+
+class AuditChainState(Base):
+    __tablename__ = "audit_chain_state"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, default=1)
+    head_hash: Mapped[str] = mapped_column(String)
+
+
+class ExportUsage(Base):
+    __tablename__ = "export_usage"
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    actor: Mapped[str] = mapped_column(String, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
 
 
 class Event(Base):

@@ -1,5 +1,7 @@
 # Verification report
 
+> Historical snapshot from 2026-10-23. Its MFA storage note describes the code at that date; current implementation and outstanding verification status are tracked in `HANDOFF.md`.
+
 Date: 2026-10-23. Backend run with `LLM_PROVIDER=template` (no Ollama calls). No packages were
 installed, no detection rules were changed or tuned, and the dev database was not modified:
 validation scripts ran against a read-only snapshot copy of `backend/ir_assistant.db`.

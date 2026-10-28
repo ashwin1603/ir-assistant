@@ -1,7 +1,14 @@
 import os
+import tempfile
+from pathlib import Path
 
 os.environ["RATE_LIMIT_ENABLED"] = "false"
 os.environ["COLLECTOR_API_KEY"] = "test-collector-key"
+os.environ["APP_ENV"] = "test"
+os.environ["DATA_ENCRYPTION_KEY"] = "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA="
+# app.main initializes its engine on import; keep that startup DB outside the checkout too.
+os.environ["DATABASE_URL"] = f"sqlite:///{Path(tempfile.gettempdir()) / 'ir-assistant-test-app.db'}"
+os.environ["UPLOAD_DIR"] = str(Path(tempfile.gettempdir()) / "ir-assistant-test-app-uploads")
 # Live stream: short-lived in tests (TestClient reads a response to its end).
 os.environ["STREAM_POLL_SECONDS"] = "0.05"
 os.environ["STREAM_MAX_SECONDS"] = "1"

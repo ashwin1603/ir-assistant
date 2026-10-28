@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -16,8 +16,9 @@ from app.auth.security import (
     hash_password,
     verify_password,
 )
+from app.config import settings
 from app.db import get_db
-from app.models import User
+from app.models import LoginFailure, RevokedToken, User
 from app.rate_limit import limiter
 from app.runtime_settings import get_require_admin_mfa
 from app.schemas import (
@@ -38,16 +39,48 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 GENERIC_AUTH_ERROR = "Invalid username or password"
 GENERIC_MFA_ERROR = "Invalid or expired code"
+LOGIN_THRESHOLD = 5
+LOGIN_MAX_LOCK_SECONDS = 15 * 60
+
+
+def _record_login_failure(db: Session, username: str) -> None:
+    row = db.get(LoginFailure, username)
+    if row is None:
+        row = LoginFailure(username=username, failures=0)
+        db.add(row)
+    row.failures += 1
+    if row.failures >= LOGIN_THRESHOLD:
+        seconds = min(30 * (2 ** min(row.failures - LOGIN_THRESHOLD, 5)), LOGIN_MAX_LOCK_SECONDS)
+        row.locked_until = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(seconds=seconds)
+    db.commit()
+
+
+def _login_locked(db: Session, username: str) -> bool:
+    row = db.get(LoginFailure, username)
+    if not row or not row.locked_until:
+        return False
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    if row.locked_until <= now:
+        row.locked_until = None
+        db.commit()
+        return False
+    return True
 
 
 @router.post("/login", response_model=LoginResponse, response_model_exclude_none=True)
 @limiter.limit("5/minute")
 def login(request: Request, payload: LoginRequest, db: Session = Depends(get_db)):
+    locked = _login_locked(db, payload.username)
     user = db.query(User).filter(User.username == payload.username).first()
     # Disabled accounts get the same generic error (no account-state enumeration).
-    if not user or not verify_password(payload.password, user.password_hash) or not user.is_active:
+    if locked or not user or not verify_password(payload.password, user.password_hash) or not user.is_active:
+        if not locked:
+            _record_login_failure(db, payload.username)
         log_action(db, actor=payload.username, action="login", success=False)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=GENERIC_AUTH_ERROR)
+
+    db.query(LoginFailure).filter(LoginFailure.username == payload.username).delete()
+    db.commit()
 
     if user.mfa_enabled:
         # Password is right but no access token yet: only /auth/mfa/verify accepts this token.
@@ -67,6 +100,18 @@ def login(request: Request, payload: LoginRequest, db: Session = Depends(get_db)
 @router.get("/me", response_model=UserOut)
 def me(current_user: User = Depends(current_user)):
     return UserOut(username=current_user.username, role=current_user.role, permissions=allowed_actions(current_user.role))
+
+
+@router.post("/logout", status_code=204)
+def logout(request: Request, db: Session = Depends(get_db), user: User = Depends(current_user)):
+    token = request.headers.get("Authorization", "").partition(" ")[2]
+    claims = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm], options={"require": ["exp", "jti"]})
+    expires = datetime.fromtimestamp(claims["exp"], timezone.utc).replace(tzinfo=None)
+    db.query(RevokedToken).filter(RevokedToken.expires_at <= datetime.now(timezone.utc).replace(tzinfo=None)).delete()
+    if not db.get(RevokedToken, claims["jti"]):
+        db.add(RevokedToken(jti=claims["jti"], expires_at=expires))
+        db.commit()
+    log_action(db, actor=user.username, action="logout")
 
 
 # ---------- MFA ----------

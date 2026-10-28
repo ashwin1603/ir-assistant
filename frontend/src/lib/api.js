@@ -102,7 +102,7 @@ export async function download(path, filename) {
     throw new ApiError("Network error", 0);
   }
   if (!res.ok) {
-    const reason = { 403: "Not authorized", 429: "Too many exports, wait a minute" }[res.status];
+    const reason = { 403: "Not authorized", 429: "Export quota exceeded; try again later" }[res.status];
     throw new ApiError(reason || "Download failed", res.status);
   }
 

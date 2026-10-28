@@ -1,9 +1,11 @@
 import logging
+import tempfile
 import uuid
 from pathlib import Path, PurePath
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
 from pydantic import ValidationError
+from cryptography.fernet import Fernet
 from sqlalchemy.orm import Session
 
 from app.audit import log_action
@@ -33,6 +35,15 @@ def _upload_dir() -> Path:
     path = Path(settings.upload_dir).resolve()
     path.mkdir(parents=True, exist_ok=True)
     return path
+
+
+def _fernet() -> Fernet:
+    if not settings.data_encryption_key:
+        raise HTTPException(status_code=500, detail="Upload encryption is not configured")
+    try:
+        return Fernet(settings.data_encryption_key.encode("ascii"))
+    except (ValueError, UnicodeEncodeError):
+        raise HTTPException(status_code=500, detail="Upload encryption is not configured")
 
 
 def _reject(db: Session, user, code: int, message: str, original_name: str):
@@ -95,18 +106,27 @@ def upload_log_file(
         _reject(db, user, 400, f"File content does not match the {ext} extension", original_name)
 
     stored_path = _upload_dir() / f"{uuid.uuid4().hex}{ext}"
-    stored_path.write_bytes(data)
-
+    cipher = _fernet()
     try:
-        parsed = parse_upload(ext, bytes(data), str(stored_path))
+        stored_path.write_bytes(cipher.encrypt(bytes(data)))
+        if ext == ".evtx":
+            with tempfile.NamedTemporaryFile(prefix="ir-parse-", suffix=".evtx", delete=False) as temp:
+                parse_path = Path(temp.name)
+                temp.write(bytes(data))
+            try:
+                parsed = parse_upload(ext, bytes(data), str(parse_path))
+            finally:
+                parse_path.unlink(missing_ok=True)
+        else:
+            parsed = parse_upload(ext, bytes(data), str(stored_path))
         events = [EventIn(**item) for item in parsed]
     except UploadParseError as exc:
-        stored_path.unlink(missing_ok=True)
         _reject(db, user, 400, str(exc), original_name)
     except ValidationError as exc:
         logger.warning("upload validation failed for %s: %s", stored_path.name, exc.errors()[:3])
-        stored_path.unlink(missing_ok=True)
         _reject(db, user, 400, "File contains events with invalid or oversized fields", original_name)
+    finally:
+        stored_path.unlink(missing_ok=True)
 
     inserted = skipped = 0
     seen: set = set()

@@ -26,6 +26,9 @@ class Settings(BaseSettings):
 
     admin_username: str = ""
     admin_password: str = ""
+    data_encryption_key: str = ""
+    export_quota_count: int = 30
+    export_quota_minutes: int = 60
 
     rate_limit_enabled: bool = True
 

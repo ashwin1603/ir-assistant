@@ -58,6 +58,11 @@ def add_missing_columns() -> None:
         "mfa_recovery_codes": "ALTER TABLE users ADD COLUMN mfa_recovery_codes TEXT",
         "step_up_at": "ALTER TABLE users ADD COLUMN step_up_at DATETIME",
     }
+    audit_columns = {c["name"] for c in inspect(engine).get_columns("audit_log")}
+    missing_audit = {
+        "previous_hash": "ALTER TABLE audit_log ADD COLUMN previous_hash VARCHAR NOT NULL DEFAULT ''",
+        "entry_hash": "ALTER TABLE audit_log ADD COLUMN entry_hash VARCHAR NOT NULL DEFAULT ''",
+    }
     event_columns = {c["name"] for c in inspect(engine).get_columns("events")}
     new_event_columns = {
         "dst_ip": "ALTER TABLE events ADD COLUMN dst_ip VARCHAR",
@@ -74,6 +79,9 @@ def add_missing_columns() -> None:
     with engine.begin() as conn:
         for name, ddl in new_columns.items():
             if name not in columns:
+                conn.execute(text(ddl))
+        for name, ddl in missing_audit.items():
+            if name not in audit_columns:
                 conn.execute(text(ddl))
         for name, ddl in new_event_columns.items():
             if name not in event_columns:

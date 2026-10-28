@@ -24,20 +24,20 @@ An AI-assisted incident response web app for Windows security logs (course proje
 ### TODO
 | Task | Owner | Status |
 |---|---|---|
-| Security: login lockout with backoff | | |
-| Security: server-side logout / token revocation | | |
-| Security: download/export quotas + anomaly alert | | |
-| Security: disable `/docs` and `/openapi.json` outside dev | | |
-| Security: tamper-evident hash-chained audit log | | |
-| Encryption: MFA secret at rest | | |
-| Encryption: uploads at rest + delete after parse | | |
-| Encryption: exports | | |
-| Rotate JWT secret, collector key, admin password (they appeared in a screenshot) | | |
-| README | | |
-| Architecture doc | | |
-| Demo script | | |
-| Slides + screenshots | | |
-| 2 rehearsals + clean-restart test | | |
+| Security: login lockout with backoff | | Implemented; verification pending |
+| Security: server-side logout / token revocation | | Implemented; verification pending |
+| Security: download/export quotas + anomaly alert | | Implemented; verification pending |
+| Security: disable `/docs` and `/openapi.json` outside dev | | Implemented; verification pending |
+| Security: tamper-evident hash-chained audit log | | Implemented; verification pending |
+| Encryption: MFA secret at rest | | Implemented with `DATA_ENCRYPTION_KEY`; verification pending |
+| Encryption: uploads at rest + delete after parse | | Implemented; verification pending |
+| Encryption: exports | | No export files are persisted; generated responses use no-store headers |
+| Rotate JWT secret, collector key, admin password (they appeared in a screenshot) | | Pending on each system; see `docs/security_rotation.md` |
+| README | | Draft created: `README.md`; teammate review pending |
+| Architecture doc | | Draft created: `docs/architecture.md`; teammate review pending |
+| Demo script | | Draft created: `docs/demo_script.md`; rehearsal pending |
+| Slides + screenshots | | Browser slide deck created: `docs/presentation.html`; real app screenshots pending |
+| 2 rehearsals + clean-restart test | | Manual on teammate/presentation machine |
 | Optional: OWASP ZAP scan (run on a COPY of the DB) | | |
 | Optional: Atomic Red Team (Windows VM only) | | |
 | Optional: syslog receiver | | |
@@ -94,7 +94,15 @@ Always use `LLM_PROVIDER=template`; do not run the full suite against Ollama (sl
 
 ## Security notes and known limitations
 - HTTP on localhost only; production would need HTTPS + HSTS.
-- TOTP MFA secret is stored unencrypted until the encryption task is done.
+- Login lockout starts after 5 failed attempts; backoff starts at 30 seconds and grows to a 15-minute cap. A successful login clears the failure state.
+- Access-token logout revokes the token server-side; each protected request checks revocation in SQLite.
+- CSV, IOC, and response-script downloads share a per-user rolling quota (30 per 60 minutes by default); exceeded quotas create an `export_quota_alert` audit entry. Existing per-request limits and role redaction remain in place.
+- `/docs`, `/redoc`, and `/openapi.json` are only registered when `APP_ENV=development`.
+- Audit rows are linked by SHA-256 hashes. Admins can verify the chain at `GET /api/audit/verify`. The chain detects accidental or partial database edits; an attacker able to rewrite the entire database can recompute an unkeyed chain, so it is not an external immutable archive.
+- TOTP pending and active secrets are encrypted in SQLite with Fernet using `DATA_ENCRYPTION_KEY`. Keep that key stable and backed up securely; losing it prevents MFA secrets from being decrypted. `setup.ps1` creates it without displaying it.
+- Uploaded source files are encrypted while staged and removed after parsing. EVTX parsing uses a short-lived plaintext temporary file that is deleted after parsing. CSV/JSON and generated exports are processed in memory; export responses are marked `no-store` and are not saved by the app.
+- Existing leftover upload files are encrypted on startup. The application needs `DATA_ENCRYPTION_KEY` set before uploads or MFA enrollment; run setup to add it to an existing `.env`.
+- JWT secret, collector key, and admin password still need manual rotation on each machine because their previous values appeared in a screenshot. Never paste their values into chat or commit them.
 - Simulated data is labelled as such; it is not real attack telemetry.
 - Small evaluation sample; the ML anomaly layer is weak and supplementary.
 - The AI never decides or executes anything: rules detect, AI explains, an analyst approves, actions are simulated.
