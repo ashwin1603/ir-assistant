@@ -130,7 +130,7 @@ def test_matrix_per_role(client, tokens, incident_id):
     rule_id = client.get("/api/settings/rules", headers=tokens["admin"]).json()[0]["id"]
     problems = []
     for (method, path), action in sorted(ROUTE_PERMISSIONS.items()):
-        if action == PUBLIC:
+        if action == PUBLIC or (method, path) == ("POST", "/api/auth/logout"):  # revokes shared tokens; tested separately
             continue
         url = _url(path, incident_id, rule_id)
         for role, headers in tokens.items():
@@ -148,6 +148,12 @@ def test_matrix_per_role(client, tokens, incident_id):
             elif status != 403:
                 problems.append(f"{role} {method} {path}: expected 403, got {status}")
     assert not problems, "\n".join(problems)
+
+
+def test_logout_revokes_only_the_token_used(client, seed_users):
+    headers = _login(client, "viewer")  # a freshly issued token, not the shared fixture ones
+    assert client.post("/api/auth/logout", headers=headers).status_code == 204
+    assert client.get("/api/auth/me", headers=headers).status_code == 401
 
 
 def test_collector_routes_accept_only_the_collector_key(client, seed_users):
