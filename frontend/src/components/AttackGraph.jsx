@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { get } from "../lib/api";
 import { Skeleton } from "./Skeleton";
-import { SevIcon, sevColor } from "./Severity";
+import { SEV_LEVELS, SevIcon, sevColor } from "./Severity";
 
 // Plain SVG attack graph: host (and user) on the left, detections left-to-right by time.
 const COL_W = 190;
@@ -98,9 +98,9 @@ export function AttackGraph({ incidentId }) {
   return (
     <div className="mb-6 rounded border border-slate-800 bg-slate-900/40 p-4">
       <div className="mb-3 flex flex-wrap items-center gap-4 text-xs text-slate-400">
-        {Object.entries(RISK_COLORS).map(([level, color]) => (
+        {SEV_LEVELS.map((level) => (
           <span key={level} className="flex items-center gap-1">
-            <span className="inline-block h-3 w-3 rounded-sm" style={{ background: color }} />
+            <SevIcon level={level} style={{ color: sevColor(level) }} />
             {level}
           </span>
         ))}
